@@ -382,7 +382,8 @@
         "msvc-ue3-x86-debug"
       ],
       "cacheVariables": {
-        "UNREALSDK_GAME": "BL1"
+        "UNREALSDK_GAME": "BL1",
+        "BL1_MODS_PRESET": "msvc-debug"
       }
     },
     {
@@ -392,7 +393,8 @@
         "msvc-ue3-x86-release"
       ],
       "cacheVariables": {
-        "UNREALSDK_GAME": "BL1"
+        "UNREALSDK_GAME": "BL1",
+        "BL1_MODS_PRESET": "msvc-release"
       }
     }
   ]

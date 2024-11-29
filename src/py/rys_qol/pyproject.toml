@@ -1,0 +1,18 @@
+[project]
+name = "-Ry's QoL"
+version = "1.1"
+authors = [{ name = "-Ry" }]
+description = "QoL features and Cheats for BL1"
+
+[packager]
+safe_name = "rys_qol"
+version = "1.1"
+exclude_globs = []
+
+[tool.sdkmod]
+name = "-Ry's QoL"
+mod_type = "Standard" # or "Library"
+supported_games = "BL1"
+coop_support = "Unknown"
+auto_enable = "False"
+license = {name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
