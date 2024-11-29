@@ -71,7 +71,7 @@ function(bl1_add_basic_py_module name dir)
 endfunction()
 
 ################################################################################
-# | ADDING NATIVE MODULES |
+# | ADDING MODULES |
 ################################################################################
 
 bl1_add_py_module(object_explorer "src/native/object_explorer")
