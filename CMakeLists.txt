@@ -74,5 +74,6 @@ endfunction()
 # | ADDING MODULES |
 ################################################################################
 
-bl1_add_py_module(object_explorer "src/native/object_explorer")
+# Leaked project
+# bl1_add_py_module(object_explorer "src/native/object_explorer")
 bl1_add_basic_py_module("rys_qol" "src/py/rys_qol/")
