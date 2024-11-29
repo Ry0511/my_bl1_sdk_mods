@@ -3,12 +3,18 @@ project(bl1_sdk_mods)
 
 find_package(Python3 REQUIRED)
 
-add_custom_target(${PROJECT_NAME})
-add_custom_target(bl1_package_all)
-
 if (${BL1_MODS_PRESET} EQUAL "")
     message(FATAL_ERROR "Invalid configuration preset")
 endif ()
+
+add_custom_target(${PROJECT_NAME})
+add_custom_target(bl1_package_all)
+
+add_custom_target(
+        bl1_clean_install_dir
+        COMMAND
+        ${CMAKE_COMMAND} -E remove_directory "${CMAKE_CURRENT_SOURCE_DIR}/build/${BL1_MODS_PRESET}"
+)
 
 add_subdirectory(./vendor/pyunrealsdk EXCLUDE_FROM_ALL)
 add_dependencies(${PROJECT_NAME} pyunrealsdk)
