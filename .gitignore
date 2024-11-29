@@ -1,0 +1,10 @@
+.vs
+.idea
+.vscode
+out
+
+src/**/__pycache__
+src/**/.idea
+
+scripts/**/__pycache__
+scripts/**/.idea
