@@ -1,15 +1,15 @@
 import argparse
 import fnmatch
+import tomllib
 from pathlib import Path
-from typing import Iterable
+from types import SimpleNamespace
 
 
 def print_args(args: argparse.Namespace):
     max_len = max([len(k) for k, _ in args._get_kwargs()])
-    print("# ARGS ", "#" * 73)
+    print("[ARGS]:")
     for k, v in args._get_kwargs():
         print(f"  {k:>{max_len}} -> {v}")
-    print("#" * 80)
 
 
 def parse_args(parser: argparse.ArgumentParser, abort: bool = False) -> argparse.Namespace | None:
@@ -54,3 +54,53 @@ def parse_path_exists(raw_path: str) -> Path:
     if not p.exists():
         raise argparse.ArgumentTypeError(f"Path does not exist: '{p}'")
     return p.absolute().resolve()
+
+
+def parse_toml_file(p: Path) -> SimpleNamespace:
+    def convert_to_namespace(d: dict) -> SimpleNamespace:
+        ns = SimpleNamespace()
+
+
+        def get_or(name: str, default: any) -> any:
+            node = ns
+            for n in name.split("."):
+                if not hasattr(node, n):
+                    return default
+                node = getattr(node, n)
+            return node
+
+
+        ns.get_or = get_or
+
+
+        def require(name: str | list[str], exit_code=-1, throw=False):
+            if type(name) is not str:
+                for n in name:
+                    try:
+                        require(n, exit_code=exit_code, throw=True)
+                    except Exception:  # noqa
+                        if throw:
+                            raise Exception()
+                        print(f"toml file is missing required fields: {name}")
+                        exit(exit_code)
+                return
+
+            if get_or(name, None) is None:
+                if throw:
+                    raise Exception()
+                print(f"toml file is missing required field: '{name}'")
+                exit(exit_code)
+
+
+        ns.require = require
+
+        for k, v in d.items():
+            if type(v) is dict:
+                ns.__setattr__(k, convert_to_namespace(v))
+            else:
+                ns.__setattr__(k, v)
+        return ns
+
+
+    with open(p, "rb") as f:
+        return convert_to_namespace(tomllib.load(f))
