@@ -34,10 +34,12 @@ if __name__ == "__main__":
         exit(-1)
 
     ns: types.SimpleNamespace = common_utils.parse_toml_file(xs[0])
-    ns.require(["packager.safe_name", "packager.version"])
+    ns.require(["packager.safe_name", "project.version"])
+
+    proj = ns.project
     packager = ns.packager
 
-    zip_file_out = args.out / f"{packager.safe_name}-{packager.version}.zip"
+    zip_file_out = args.out / f"{packager.safe_name}-{proj.version}.zip"
 
     with ZipFile(zip_file_out, "w", ZIP_DEFLATED, compresslevel=9) as zip_file:
         package_dir_into_zip(

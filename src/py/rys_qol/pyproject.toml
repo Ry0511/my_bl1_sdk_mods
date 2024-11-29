@@ -1,12 +1,11 @@
 [project]
 name = "-Ry's QoL"
-version = "1.1"
+version = "2.0"
 authors = [{ name = "-Ry" }]
 description = "QoL features and Cheats for BL1"
 
 [packager]
 safe_name = "rys_qol"
-version = "1.1"
 exclude_globs = []
 
 [tool.sdkmod]
