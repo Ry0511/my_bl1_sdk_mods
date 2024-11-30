@@ -1,0 +1,9 @@
+[project]
+name = "Object Explorer"
+version = "0.0"
+authors = [{ name = "-Ry" }]
+description = "UObject Explorer to see Game Objects and their attributes/data"
+
+[packager]
+safe_name="object_explorer"
+exclude_globs=["CMakeLists.txt", "*.cpp", "*.h"]

@@ -1,22 +1,25 @@
 ---
-Language:                       Cpp
-BasedOnStyle:                   Chromium
+Language: Cpp
+BasedOnStyle: Chromium
 
 # New Additions
-BinPackArguments           : false
-BinPackParameters          : false
-PenaltyBreakOpenParenthesis: 50
-LambdaBodyIndentation      : OuterScope
-AlignAfterOpenBracket      : BlockIndent
+BinPackArguments: false
+BinPackParameters: false
+PenaltyBreakOpenParenthesis: 0
+LambdaBodyIndentation: Signature
+AlignAfterOpenBracket: BlockIndent
+Cpp11BracedListStyle: true
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
 
-AllowShortBlocksOnASingleLine:  Empty
-BreakBeforeBinaryOperators:     NonAssignment
-ColumnLimit:                    100
-IndentWidth:                    4
-InsertBraces:                   true
-SortIncludes:                   CaseInsensitive
+AllowShortBlocksOnASingleLine: Empty
+BreakBeforeBinaryOperators: NonAssignment
+ColumnLimit: 100
+IndentWidth: 4
+InsertBraces: true
+SortIncludes: CaseInsensitive
 IncludeCategories:
-  - Regex:                      '".*pch\.h"'
-    Priority:                   -1
-    CaseSensitive:              true
+  - Regex: '".*pch\.h"'
+    Priority: -1
+    CaseSensitive: true
 ---

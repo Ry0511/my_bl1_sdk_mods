@@ -46,7 +46,7 @@ endfunction()
 function(bl1_add_py_module target dir)
 
     # Grab All Files
-    file(GLOB_RECURSE DIR_CONTENT "${dir}/*")
+    file(GLOB_RECURSE DIR_CONTENT "${dir}/*.*")
     list(FILTER DIR_CONTENT EXCLUDE REGEX ".+\\.(cpp)|(h)")
     message(STATUS "Directory Content: ${DIR_CONTENT}")
 
@@ -81,5 +81,9 @@ endfunction()
 ################################################################################
 
 # Leaked project
-# bl1_add_py_module(object_explorer "src/native/object_explorer")
+add_subdirectory(./src/native/object_explorer)
+bl1_add_py_module(object_explorer src/native/object_explorer)
+target_link_libraries(object_explorer PRIVATE imgui_glfw_gl3)
+target_compile_definitions(object_explorer PRIVATE _CRT_SECURE_NO_WARNINGS)
+
 bl1_add_basic_py_module("rys_qol" "src/py/rys_qol/")
