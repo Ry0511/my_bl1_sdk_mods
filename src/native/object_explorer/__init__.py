@@ -4,11 +4,11 @@
 
 from unrealsdk import logging
 from mods_base import build_mod
-from .object_explorer import get_version, start, stop
+from .object_explorer import get_version, initialise, terminate
 
 build_mod(
-    on_enable=lambda: start(),
-    on_disable=lambda: stop(),
+    on_enable=lambda: initialise(),
+    on_disable=lambda: terminate(),
     auto_enable=False
 )
 

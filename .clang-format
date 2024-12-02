@@ -2,10 +2,11 @@
 Language: Cpp
 BasedOnStyle: Chromium
 
-# New Additions
 BinPackArguments: false
-BinPackParameters: false
-PenaltyBreakOpenParenthesis: 0
+BinPackParameters: OnePerLine
+BreakInheritanceList: BeforeColon
+PackConstructorInitializers: CurrentLine
+AlignArrayOfStructures: Right
 LambdaBodyIndentation: Signature
 AlignAfterOpenBracket: BlockIndent
 Cpp11BracedListStyle: true
