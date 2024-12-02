@@ -387,6 +387,18 @@
       }
     },
     {
+      "name": "msvc-bl1-x86-rel-with-debug",
+      "displayName": "BL1 x86 RelWithDebug (MSVC)",
+      "inherits": [
+        "msvc-ue3-x86-debug"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebug",
+        "UNREALSDK_GAME": "BL1",
+        "BL1_MODS_PRESET": "msvc-rel-with-debug"
+      }
+    },
+    {
       "name": "msvc-bl1-x86-release",
       "displayName": "BL1 x86 Release (MSVC)",
       "inherits": [
