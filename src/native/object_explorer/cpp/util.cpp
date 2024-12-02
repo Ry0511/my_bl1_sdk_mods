@@ -41,4 +41,11 @@ std::string wstr_to_str(const std::wstring& wstr) noexcept {
     return utf8_str;
 }
 
+std::wstring str_to_wstr(const std::string& str) noexcept {
+    int size_needed = MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), nullptr, 0);
+    std::wstring wstr(size_needed, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, str.c_str(), (int)str.size(), &wstr[0], size_needed);
+    return wstr;
+}
+
 }  // namespace object_explorer

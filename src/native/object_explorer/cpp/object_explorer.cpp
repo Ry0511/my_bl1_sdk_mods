@@ -13,12 +13,35 @@ namespace {
 
 using TreeNodeBuilder = void (*)(UObject*, UProperty*);
 
+// We can't trust any cached data to stay valid for any amount of time so a little more info is
+// required to validate the pointer.
+struct GObjects_Query {
+    size_t Index;          // Index inside GObjects
+    UObject* Obj;          // The pointer when we accessed it
+    std::string PathName;  // PathName for the object
+
+    operator bool() const noexcept {
+        const GObjects& objs = gobjects();
+        return (Index < objs.size()) && (Obj == objs.obj_at(Index));
+    }
+};
+
+enum EQueryStrategy : uint8_t { STARTS_WITH, ENDS_WITH, EQUALS, CONTAINS };
+
 // This will persist even if the system is restarted so everything in this struct should be
 // sanitised or used with the instability in mind.
 struct RuntimeConfig {
+    // Selection
     size_t GObjects_SelectedIndex = 0;
     UObject* GObjects_SelectedObject = nullptr;
     size_t GObjects_VisibleItemsCount = 0;
+
+    // Queries
+    std::vector<GObjects_Query> GObjects_QueryObjects{};
+    std::string GObjects_ObjectQuery{};
+    std::wstring GObjects_ObjectQueryWide{};
+    float GObjects_ObjectQueryDelta{};
+    EQueryStrategy GObjects_ObjectQueryStrategy = STARTS_WITH;
 
     // This is lazily built as new classes are found/discovered
     std::unordered_map<UClass*, TreeNodeBuilder> ObjectTree_TreeNodeBuilderMap{};
@@ -37,6 +60,9 @@ void show_debug_info(void);
 
 // Builds a complex tree structure for the provided UObject; Lazily builds open nodes
 void show_editable_uobject_tree(UObject*);
+
+void show_query_controls(void);
+void update_query_objects(void);
 
 }  // namespace
 
@@ -83,34 +109,133 @@ void show_gobjects_list(void) {
         return;
     }
 
-    const GObjects& objects = gobjects();
-    ImGuiListClipper clipper{};
-    clipper.Begin(objects.size());
-    cfg.GObjects_VisibleItemsCount = 0;
+    show_query_controls();
 
-    while (clipper.Step()) {
-        for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
-            cfg.GObjects_VisibleItemsCount++;
-            UObject* obj = objects.obj_at(i);
+    const std::vector<GObjects_Query>& objects = cfg.GObjects_QueryObjects;
 
-            if (!obj) {
+    if (ImGui::BeginChild("GObjects##QueryList", ImGui::GetContentRegionAvail())) {
+        ImGuiListClipper clipper{};
+        clipper.Begin(objects.size());
+        cfg.GObjects_VisibleItemsCount = 0;
+
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                cfg.GObjects_VisibleItemsCount++;
+
+                const GObjects_Query& query = objects[i];
+
+                // Still show that it was there but this object is no longer valid
+                if (!query) {
+                    ImGui::PushID(i);
+                    ImVec4 red{1.0F, 0.0F, 0.0F, 1.0F};
+                    ImGui::TextColored(red, query.PathName.c_str());
+                    ImGui::PopID();
+                    continue;
+                }
+
+                bool is_selected = static_cast<int>(cfg.GObjects_SelectedIndex) == i;
+
                 ImGui::PushID(i);
-                ImGui::Selectable("NULL", false, ImGuiSelectableFlags_Disabled);
+                if (ImGui::Selectable(query.PathName.c_str(), is_selected)) {
+                    cfg.GObjects_SelectedIndex = query.Index;
+                    cfg.GObjects_SelectedObject = query.Obj;
+                }
                 ImGui::PopID();
-                continue;
             }
-
-            ImGui::PushID(i);
-            std::string obj_path = wstr_to_str(obj->get_path_name());
-            if (ImGui::Selectable(obj_path.c_str(), false)) {
-                cfg.GObjects_SelectedIndex = i;
-            }
-            ImGui::PopID();
         }
     }
+    ImGui::EndChild();
 
     ImGui::End();
 }
+
+// ############################################################################//
+//  | OBJECT QUERY |
+// ############################################################################//
+
+void show_query_controls(void) {
+    auto child_window_flags =
+        ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_Borders;
+    if (!ImGui::BeginChild("GObjects List Controls", {0, 0}, child_window_flags)) {
+        ImGui::EndChild();
+        return;
+    }
+
+    // Input Text
+    std::string* ptr = &cfg.GObjects_ObjectQuery;
+    auto text_flags = ImGuiInputTextFlags_EnterReturnsTrue;
+    if (ImGui::InputText("Query##GObjects_ObjectQuery", ptr, text_flags)) {
+        cfg.GObjects_ObjectQueryWide = str_to_wstr(cfg.GObjects_ObjectQuery);
+        update_query_objects();
+    }
+
+    // Query Delta
+    ImGui::SameLine();
+    ImGui::Text("Delta %.2f ms", cfg.GObjects_ObjectQueryDelta * 1000.0F);
+    ImGui::SameLine();
+
+    // Query Strategy
+    const char* strategies[]{"Starts With", "Ends With", "Equals", "Contains"};
+    constexpr int count = sizeof(strategies) / sizeof(strategies[0]);
+    const char* label = "##GObjectsQueryStrategy";
+
+    if (ImGui::BeginCombo(label, strategies[cfg.GObjects_ObjectQueryStrategy])) {
+        for (uint8_t i = 0; i < count; ++i) {
+            bool is_selection = (cfg.GObjects_ObjectQueryStrategy == i);
+            auto flags = is_selection ? ImGuiSelectableFlags_Disabled : 0;
+            if (ImGui::Selectable(strategies[i], is_selection, flags)) {
+                cfg.GObjects_ObjectQueryStrategy = (EQueryStrategy)i;
+                update_query_objects();
+            }
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::EndChild();
+}
+
+void update_query_objects(void) {
+    auto start = Clock::now();
+    std::vector<GObjects_Query>& objects = cfg.GObjects_QueryObjects;
+    objects.clear();
+    const GObjects& all_objects = gobjects();
+
+    // Query Strategy
+    auto pred = [](const std::wstring& path_name) {
+        switch (cfg.GObjects_ObjectQueryStrategy) {
+            case STARTS_WITH:
+                return path_name.starts_with(cfg.GObjects_ObjectQueryWide);
+            case ENDS_WITH:
+                return path_name.ends_with(cfg.GObjects_ObjectQueryWide);
+            case EQUALS:
+                return path_name == cfg.GObjects_ObjectQueryWide;
+            case CONTAINS:
+                return path_name.find(cfg.GObjects_ObjectQueryWide) != std::wstring::npos;
+        }
+        return false;
+    };
+
+    Instant before_query = Clock::now();
+    for (size_t i = 0; i < all_objects.size(); ++i) {
+        UObject* obj = all_objects.obj_at(i);
+        if (!obj) {
+            continue;
+        }
+
+        std::wstring path_name = obj->get_path_name();
+        if (!pred(path_name)) {
+            continue;
+        }
+
+        objects.emplace_back(i, obj, wstr_to_str(path_name));
+    }
+    objects.shrink_to_fit();
+
+    cfg.GObjects_ObjectQueryDelta = FloatDuration{Clock::now() - start}.count();
+}
+
+// ############################################################################//
+//  | OBJECT SELECTION |
+// ############################################################################//
 
 void show_gobjects_selection(void) {
     if (!ImGui::Begin("GObject Selection")) {
@@ -138,6 +263,10 @@ void show_gobjects_selection(void) {
     ImGui::End();
 }
 
+// ############################################################################//
+//  | THE WORLD OBJECTS |
+// ############################################################################//
+
 void show_theworld_objects(void) {
     if (ImGui::Begin("The World")) {
         ImGui::Text("Objects");
@@ -145,6 +274,10 @@ void show_theworld_objects(void) {
     ImGui::End();
     return;
 }
+
+// ############################################################################//
+//  | DEBUG INFO |
+// ############################################################################//
 
 void show_debug_info(void) {
     if (!ImGui::Begin("Object Explorer")) {
@@ -157,6 +290,7 @@ void show_debug_info(void) {
         ImGui::Text("GObjects_SelectedIndex     %zu", cfg.GObjects_SelectedIndex);
         ImGui::Text("GObjects_SelectedObject    %p", cfg.GObjects_SelectedObject);
         ImGui::Text("GObjects_VisibleItemsCount %zu", cfg.GObjects_VisibleItemsCount);
+        ImGui::Text("GObjects_TotalUObjects     %zu", gobjects().size());
 
         if (ImGui::TreeNode("ObjectTree TreeNodeBuilderMap")) {
             for (const auto& [key, _] : cfg.ObjectTree_TreeNodeBuilderMap) {
@@ -192,10 +326,6 @@ void show_debug_info(void) {
 }
 
 }  // namespace
-
-// ############################################################################//
-//  | UTILS |
-// ############################################################################//
 
 namespace {
 
@@ -304,9 +434,9 @@ void tree_node_builder_object_property(UObject* obj_in, UProperty* obj_prop) {
     if (!obj_in || !obj_in->Class) {
         if (obj_prop) {
             std::string prop_name = std::format("Object is NULL for property {}", obj_prop->Name);
-            ImGui::TextWrapped(prop_name.c_str());
+            ImGui::Text(prop_name.c_str());
         } else {
-            ImGui::TextWrapped("Object Property is NULL");
+            ImGui::Text("Object Property is NULL");
         }
         return;
     }
@@ -475,16 +605,21 @@ void tree_node_builder_byte_property(UObject* obj, UProperty* prop) {
 }
 
 void tree_node_builder_bool_property(UObject* obj, UProperty* prop) {
+    // TODO: All pointers from this seem to have the same address?
     bool* value = get_property_ptr<UBoolProperty>(prop, obj);
     std::string label = std::format("{}##BoolProp_{}", prop->Name, get_unique_label(obj, prop));
     ImGui::Checkbox(label.c_str(), value);
+
+    std::string ptr_str = std::format("0x{:X}", (uintptr_t)value);
+    ImGui::SameLine();
+    ImGui::Text(ptr_str.c_str());
 }
 
 void tree_node_builder_str_property(UObject* obj, UProperty* prop) {
     std::string label = std::format("{}##StrProp_{}", prop->Name, get_unique_label(obj, prop));
     if (ImGui::TreeNode(label.c_str())) {
         std::string value = wstr_to_str(get_property<UStrProperty>(prop, obj));
-        ImGui::TextWrapped(value.c_str());
+        ImGui::Text(value.c_str());
         ImGui::TreePop();
     }
 }
@@ -495,8 +630,8 @@ void tree_node_builder_name_property(UObject* obj, UProperty* prop) {
     if (ImGui::TreeNode(label.c_str())) {
         FName name = get_property<UNameProperty>(prop, obj);
 
-        std::string value = std::format("Name: '{}'", name);
-        ImGui::TextWrapped(value.c_str());
+        std::string value = std::format("Value '{}'", name);
+        ImGui::Text(value.c_str());
 
         static_assert(sizeof(FName) == sizeof(int32_t) * 2);
         int32_t* hack = reinterpret_cast<int32_t*>(&name);

@@ -1,5 +1,7 @@
 __all__: tuple[str, ...] = (
-    "get_version"
+    "get_version",
+    "initialise",
+    "terminate",
 )
 
 

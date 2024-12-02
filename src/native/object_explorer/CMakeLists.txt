@@ -36,6 +36,8 @@ target_sources(
         ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
         ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h
         ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+        ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.h
+        ${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp
 )
 
 target_link_libraries(imgui_glfw_gl3 PUBLIC glfw OpenGL::GL)

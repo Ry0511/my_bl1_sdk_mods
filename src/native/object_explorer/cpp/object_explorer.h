@@ -27,6 +27,7 @@
 
 #define IMGUI_USER_CONFIG "_imconfig_.h"
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 namespace object_explorer {
 
@@ -54,6 +55,7 @@ extern Context ctx;
 // ############################################################################//
 
 std::string wstr_to_str(const std::wstring& wstr) noexcept;
+std::wstring str_to_wstr(const std::string& str) noexcept;
 
 void create_view_object_tree(UObject*) noexcept;
 
