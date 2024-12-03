@@ -12,6 +12,7 @@ fetchcontent_declare(
         glfw
         GIT_REPOSITORY https://github.com/glfw/glfw.git
         GIT_TAG 3.4
+        EXCLUDE_FROM_ALL
 )
 fetchcontent_makeavailable(glfw)
 
@@ -19,7 +20,8 @@ fetchcontent_makeavailable(glfw)
 fetchcontent_declare(
         imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
-        GIT_TAG docking
+        GIT_TAG v1.91.5-docking
+        EXCLUDE_FROM_ALL
 )
 fetchcontent_makeavailable(imgui)
 
