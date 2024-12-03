@@ -513,20 +513,28 @@ void tree_node_builder_struct_property(UObject* obj, UProperty* prop) {
     UScriptStruct* inner = struct_prop->get_inner_struct();
 
     std::string label = std::format(
-        "{} ( {} )##StructProp{}",
+        "{}##StructProp_{}",
         prop->Name,
-        inner->Name,
         get_unique_label(obj, prop)
     );
 
-    if (ImGui::TreeNode(label.c_str())) {
+    bool is_open = ImGui::TreeNode(label.c_str());
+
+    if (inner && ImGui::IsItemHovered(ImGuiHoveredFlags_DelayNormal)) {
+        ImGui::BeginTooltip();
+        std::string inner_name = std::string{inner->Name};
+        ImGui::TextWrapped(inner_name.c_str());
+        ImGui::EndTooltip();
+    }
+
+    if (is_open) {
         if (!inner) {
             ImGui::Text("Inner Struct is NULL");
             ImGui::TreePop();
             return;
         }
 
-        std::string struct_meta_label = label + ";Meta";
+        std::string struct_meta_label = "Meta Info##" + label;
         if (ImGui::TreeNodeEx(struct_meta_label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth)) {
             std::string inner_name = inner->Name;
             ImGui::Text("Struct Name %s", inner_name.c_str());
@@ -543,14 +551,12 @@ void tree_node_builder_struct_property(UObject* obj, UProperty* prop) {
             ImGui::TreePop();
         }
 
-        ImGui::SeparatorText("Struct Properties");
         for (UProperty* inner_prop : inner->properties()) {
             TreeNodeBuilder builder = find_or_create_parser(inner_prop->Class);
             builder(obj, inner_prop);
         }
         ImGui::TreePop();
     }
-    // tree_node_builder_default(obj, prop);
 }
 
 void tree_node_builder_int_property(UObject* obj, UProperty* prop) {
@@ -560,7 +566,7 @@ void tree_node_builder_int_property(UObject* obj, UProperty* prop) {
     int32_t value = get_property<UIntProperty>(prop, obj);
 
     std::string label = std::format("{}##IntProp_S{}", prop->Name, get_unique_label(obj, prop));
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5F);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.33F);
     if (ImGui::SliderInt(label.c_str(), &value, MIN, MAX, "%d")) {
         set_property<UIntProperty>(prop, obj, value);
     }
@@ -574,7 +580,7 @@ void tree_node_builder_float_property(UObject* obj, UProperty* prop) {
     float32_t value = get_property<UFloatProperty>(prop, obj);
 
     std::string label = std::format("{}##FloatProp_S{}", prop->Name, get_unique_label(obj, prop));
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5F);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.33F);
     if (ImGui::SliderFloat(label.c_str(), &value, MIN, MAX, "%.6f", flags)) {
         set_property<UFloatProperty>(prop, obj, value);
     }
@@ -588,7 +594,7 @@ void tree_node_builder_byte_property(UObject* obj, UProperty* prop) {
     int value = static_cast<int>(get_property<UByteProperty>(prop, obj));
 
     std::string label = std::format("{}##ByteProp_S{}", prop->Name, get_unique_label(obj, prop));
-    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5F);
+    ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.33F);
     if (ImGui::SliderInt(label.c_str(), &value, MIN, MAX, "%d")) {
         set_property<UByteProperty>(prop, obj, static_cast<uint8_t>(value));
     }
