@@ -5,7 +5,9 @@
 //
 
 #include "object_explorer.h"
+
 #include "imgui_internal.h"
+#include "regex"
 
 namespace object_explorer {
 
@@ -26,37 +28,52 @@ struct GObjects_Query {
     }
 };
 
-enum EQueryStrategy : uint8_t { STARTS_WITH, ENDS_WITH, EQUALS, CONTAINS };
+enum EQueryStrategy : uint8_t { STARTS_WITH, ENDS_WITH, EQUALS, CONTAINS, REGEX };
+
+constexpr const char* QUERY_STRATEGY_NAMES[] =
+    {"Starts With", "Ends With", "Equals", "Contains", "Regex"};
+
+constexpr size_t QUERY_STRATEGY_COUNT =
+    sizeof(QUERY_STRATEGY_NAMES) / sizeof(QUERY_STRATEGY_NAMES[0]);
+
+constexpr float ERROR_POPUP_SHORT = 3.0F;
+constexpr float ERROR_POPUP_LONG = 5.0F;
 
 // This will persist even if the system is restarted so everything in this struct should be
 // sanitised or used with the instability in mind.
 struct RuntimeConfig {
     // Selection
-    size_t GObjects_SelectedIndex = 0;
-    UObject* GObjects_SelectedObject = nullptr;
-    size_t GObjects_VisibleItemsCount = 0;
+    size_t GObjects_SelectedIndex{0};
+    UObject* GObjects_SelectedObject{nullptr};
+    size_t GObjects_VisibleItemsCount{0};
 
     // Queries
     std::vector<GObjects_Query> GObjects_QueryObjects{};
     std::string GObjects_ObjectQuery{};
     std::wstring GObjects_ObjectQueryWide{};
     float GObjects_ObjectQueryDelta{};
-    EQueryStrategy GObjects_ObjectQueryStrategy = STARTS_WITH;
+    EQueryStrategy GObjects_ObjectQueryStrategy{STARTS_WITH};
 
     // This is lazily built as new classes are found/discovered
     std::unordered_map<UClass*, TreeNodeBuilder> ObjectTree_TreeNodeBuilderMap{};
     std::set<std::string> ObjectTree_DefaultedTypes{};
 
     // Retains the last 8 error messages
-    std::array<std::string, 8> Error_RingBuffer = {};
-    uint8_t Error_Index = 0;
+    std::array<std::string, 8> Error_RingBuffer{};
+    uint8_t Error_Index{0};
+
+    // Error Message Popup; Assuming only a single error
+    bool Error_ShouldShowPopup{false};
+    std::string Error_PopupHeader{};
+    std::string Error_PopupMessage{};
+    float Error_PopupRemainingTime{0.0F};
 
 } cfg;
 
 void show_gobjects_list(void);
 void show_gobjects_selection(void);
-void show_theworld_objects(void);
 void show_debug_info(void);
+void show_error_popup(void);
 
 // Builds a complex tree structure for the provided UObject; Lazily builds open nodes
 void show_editable_uobject_tree(UObject*);
@@ -82,16 +99,17 @@ void update() noexcept {
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
         TRY_SHOW(show_gobjects_selection);
         ImGui::PopStyleVar();
-        TRY_SHOW(show_theworld_objects);
         TRY_SHOW(show_debug_info);
+        show_error_popup();
 
-        //
+        // Generic Exception
     } catch (const std::exception& err) {
         uint8_t index = (cfg.Error_Index + 1) % cfg.Error_RingBuffer.size();
         cfg.Error_Index = index;
         cfg.Error_RingBuffer[index] = std::string{err.what()};
         ImGui::ErrorRecoveryTryToRecoverState(&state);
 
+        // Excess Exception
     } catch (...) {
         ImGui::ErrorRecoveryTryToRecoverState(&state);
     }
@@ -154,53 +172,112 @@ void show_gobjects_list(void) {
 // ############################################################################//
 
 void show_query_controls(void) {
-    auto child_window_flags =
-        ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_Borders;
-    if (!ImGui::BeginChild("GObjects List Controls", {0, 0}, child_window_flags)) {
+    auto child_window_flags = ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY;
+    if (!ImGui::BeginChild(
+            "GObjects List Controls",
+            {ImGui::GetContentRegionAvail().x, 0},
+            child_window_flags
+        )) {
         ImGui::EndChild();
+        return;
+    }
+
+    int columns = 3;  // Input Text, Delta String, Dropdown
+    auto table_flags = ImGuiTableFlags_NoBordersInBody | ImGuiTableFlags_SizingStretchProp;
+    auto table_label = "GObjects_QueryControls_Table";
+
+    if (!ImGui::BeginTable(table_label, columns, table_flags)) {
         return;
     }
 
     // Input Text
     std::string* ptr = &cfg.GObjects_ObjectQuery;
     auto text_flags = ImGuiInputTextFlags_EnterReturnsTrue;
+    ImGui::TableNextColumn();
+    ImGui::TableSetupColumn(0, ImGuiTableColumnFlags_WidthStretch);
     if (ImGui::InputText("Query##GObjects_ObjectQuery", ptr, text_flags)) {
         cfg.GObjects_ObjectQueryWide = str_to_wstr(cfg.GObjects_ObjectQuery);
+        LOG(INFO, L"Query Changed to '{}'", cfg.GObjects_ObjectQueryWide);
         update_query_objects();
     }
 
     // Query Delta
-    ImGui::SameLine();
+    ImGui::TableNextColumn();
+    ImGui::TableSetupColumn(0, ImGuiTableColumnFlags_WidthFixed);
     ImGui::Text("Delta %.2f ms", cfg.GObjects_ObjectQueryDelta * 1000.0F);
-    ImGui::SameLine();
 
     // Query Strategy
-    const char* strategies[]{"Starts With", "Ends With", "Equals", "Contains"};
-    constexpr int count = sizeof(strategies) / sizeof(strategies[0]);
     const char* label = "##GObjectsQueryStrategy";
+    const char* current_value = QUERY_STRATEGY_NAMES[cfg.GObjects_ObjectQueryStrategy];
+    constexpr auto combo_flags = ImGuiComboFlags_WidthFitPreview;
 
-    if (ImGui::BeginCombo(label, strategies[cfg.GObjects_ObjectQueryStrategy])) {
-        for (uint8_t i = 0; i < count; ++i) {
+    ImGui::TableNextColumn();
+    ImGui::TableSetupColumn(0, ImGuiTableColumnFlags_WidthFixed);
+    if (ImGui::BeginCombo(label, current_value, combo_flags)) {
+        for (uint8_t i = 0; i < QUERY_STRATEGY_COUNT; ++i) {
             bool is_selection = (cfg.GObjects_ObjectQueryStrategy == i);
             auto flags = is_selection ? ImGuiSelectableFlags_Disabled : 0;
-            if (ImGui::Selectable(strategies[i], is_selection, flags)) {
+            if (ImGui::Selectable(QUERY_STRATEGY_NAMES[i], is_selection, flags)) {
                 cfg.GObjects_ObjectQueryStrategy = (EQueryStrategy)i;
                 update_query_objects();
             }
         }
         ImGui::EndCombo();
     }
+
+    ImGui::EndTable();
     ImGui::EndChild();
 }
 
 void update_query_objects(void) {
     auto start = Clock::now();
-    std::vector<GObjects_Query>& objects = cfg.GObjects_QueryObjects;
-    objects.clear();
-    const GObjects& all_objects = gobjects();
 
-    // Query Strategy
-    auto pred = [](const std::wstring& path_name) {
+    auto collect_results = [](std::function<bool(UObject*)> filter) {
+        Instant before = Clock::now();
+        cfg.GObjects_QueryObjects.clear();
+        const GObjects& objs = gobjects();
+        for (size_t i = 0; i < objs.size(); ++i) {
+            UObject* obj = objs.obj_at(i);
+
+            if (!obj || !filter(obj)) {
+                continue;
+            }
+
+            cfg.GObjects_QueryObjects.emplace_back(i, obj, wstr_to_str(obj->get_path_name()));
+        }
+        cfg.GObjects_QueryObjects.shrink_to_fit();
+        cfg.GObjects_ObjectQueryDelta = FloatDuration{Clock::now() - before}.count();
+    };
+
+    // Complex Query
+    if (cfg.GObjects_ObjectQueryStrategy == REGEX) {
+        try {
+            LOG(INFO, "Performing Regex Query: '{}'", cfg.GObjects_ObjectQueryWide);
+            namespace re = std::regex_constants;
+            std::wregex reg{cfg.GObjects_ObjectQueryWide, re::optimize | re::extended | re::nosubs};
+
+            collect_results([&reg](UObject* obj) {
+                return std::regex_search(obj->get_path_name(), reg);
+            });
+
+        } catch (const std::regex_error& err) {
+            // TODO: Turn this into a function
+            LOG(INFO, "Failed to parse regex: '{}'", err.what());
+            cfg.Error_PopupHeader = "Failed To Compile Regex";
+            cfg.Error_PopupMessage = std::format(
+                "The regex '{}' failed to compile with message '{}'",
+                cfg.GObjects_ObjectQuery,
+                err.what()
+            );
+            cfg.Error_ShouldShowPopup = true;
+            cfg.Error_PopupRemainingTime = ERROR_POPUP_LONG;
+        }
+        return;
+    }
+
+    // Basic Query
+    collect_results([](UObject* obj) -> bool {
+        const std::wstring& path_name = obj->get_path_name();
         switch (cfg.GObjects_ObjectQueryStrategy) {
             case STARTS_WITH:
                 return path_name.starts_with(cfg.GObjects_ObjectQueryWide);
@@ -210,27 +287,11 @@ void update_query_objects(void) {
                 return path_name == cfg.GObjects_ObjectQueryWide;
             case CONTAINS:
                 return path_name.find(cfg.GObjects_ObjectQueryWide) != std::wstring::npos;
+            case REGEX:
+                return false;
         }
         return false;
-    };
-
-    Instant before_query = Clock::now();
-    for (size_t i = 0; i < all_objects.size(); ++i) {
-        UObject* obj = all_objects.obj_at(i);
-        if (!obj) {
-            continue;
-        }
-
-        std::wstring path_name = obj->get_path_name();
-        if (!pred(path_name)) {
-            continue;
-        }
-
-        objects.emplace_back(i, obj, wstr_to_str(path_name));
-    }
-    objects.shrink_to_fit();
-
-    cfg.GObjects_ObjectQueryDelta = FloatDuration{Clock::now() - start}.count();
+    });
 }
 
 // ############################################################################//
@@ -323,6 +384,23 @@ void show_debug_info(void) {
     }
 
     ImGui::End();
+}
+
+void show_error_popup() {
+    if (!cfg.Error_ShouldShowPopup || cfg.Error_PopupRemainingTime <= 0.0F) {
+        return;
+    }
+
+    if (ImGui::BeginPopup(cfg.Error_PopupHeader.c_str())) {
+        ImGui::Text("%s", cfg.Error_PopupMessage.c_str());
+        ImGui::EndPopup();
+    }
+
+    cfg.Error_PopupRemainingTime -= ImGui::GetIO().DeltaTime;
+    if (cfg.Error_PopupRemainingTime <= 0.0F) {
+        cfg.Error_ShouldShowPopup = false;
+        LOG(INFO, "Closing Popup!");
+    }
 }
 
 }  // namespace
@@ -495,7 +573,8 @@ void tree_node_builder_object_property(UObject* obj_in, UProperty* obj_prop) {
 
     std::string properties_label =
         std::format("Object Properties##_{:p}_{}_{:p}", (void*)obj, obj->Name, (void*)obj_prop);
-    if (ImGui::TreeNodeEx(properties_label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth)) {
+    if (obj->Class
+        && ImGui::TreeNodeEx(properties_label.c_str(), ImGuiTreeNodeFlags_SpanAvailWidth)) {
         for (UProperty* prop : obj->Class->properties()) {
             TreeNodeBuilder builder = find_or_create_parser(prop->Class);
             builder(obj, prop);
@@ -512,11 +591,7 @@ void tree_node_builder_struct_property(UObject* obj, UProperty* prop) {
     UStructProperty* struct_prop = reinterpret_cast<UStructProperty*>(prop);
     UScriptStruct* inner = struct_prop->get_inner_struct();
 
-    std::string label = std::format(
-        "{}##StructProp_{}",
-        prop->Name,
-        get_unique_label(obj, prop)
-    );
+    std::string label = std::format("{}##StructProp_{}", prop->Name, get_unique_label(obj, prop));
 
     bool is_open = ImGui::TreeNode(label.c_str());
 
