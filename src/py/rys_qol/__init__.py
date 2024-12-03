@@ -22,5 +22,5 @@ build_mod(
     ],
     hooks=[on_player_loaded],
     commands=[],
-    settings_file=SETTINGS_DIR / "RysQoL.json",
+    settings_file=SETTINGS_DIR / "rys_qol.json",
 )

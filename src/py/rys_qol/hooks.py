@@ -9,14 +9,13 @@ from mods_base import hook
     hook_type=Type.POST,
 )
 def on_player_loaded(
-    obj: UObject,
-    __args: WrappedStruct,
-    __ret: any,
-    __func: BoundFunction,
+        obj: UObject,
+        __args: WrappedStruct,
+        __ret: any,
+        __func: BoundFunction,
 ) -> None:
     # This removes the 30s timer required for saving
     obj.ClientSetProfileLoaded()
 
-    # This enabled cool things :)
     if obj.CheatManager is None:
         obj.CheatManager = unrealsdk.construct_object("WillowGame.WillowCheatManager", obj)
