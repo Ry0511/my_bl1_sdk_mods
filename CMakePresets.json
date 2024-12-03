@@ -393,7 +393,7 @@
         "msvc-ue3-x86-debug"
       ],
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "RelWithDebug",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
         "UNREALSDK_GAME": "BL1",
         "BL1_MODS_PRESET": "msvc-rel-with-debug"
       }
