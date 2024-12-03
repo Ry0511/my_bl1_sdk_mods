@@ -3,6 +3,8 @@ project(bl1_sdk_mods)
 
 find_package(Python3 REQUIRED)
 
+message(STATUS "CMakeBuildType -> ${CMAKE_BUILD_TYPE}, ${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+
 if (${BL1_MODS_PRESET} EQUAL "")
     message(FATAL_ERROR "Invalid configuration preset")
 endif ()
