@@ -506,6 +506,7 @@ void tree_node_builder_default(UObject* obj, UProperty* in_prop) {
 
 void tree_node_builder_object_property(UObject* obj_in, UProperty* obj_prop) {
     // TODO: This one is extra messy
+    // TODO: Crashes for struct UObject properties?
 
     if (!obj_in || !obj_in->Class) {
         if (obj_prop) {
