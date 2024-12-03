@@ -338,12 +338,10 @@ PropTraits<T>::Value get_property(UProperty* prop, UObject* obj, size_t index = 
     return get_property<T>(reinterpret_cast<T*>(prop), index, reinterpret_cast<uintptr_t>(obj));
 };
 
-template <class T>
-PropTraits<T>::Value* get_property_ptr(UProperty* prop, UObject* obj, size_t index = 0) {
-    return reinterpret_cast<PropTraits<T>::Value*>(
-        reinterpret_cast<uintptr_t>(obj) + prop->Offset_Internal + (index * prop->ElementSize)
-    );
-};
+template <class T, class ValueType = PropTraits<T>::Value>
+void set_property(UProperty* prop, UObject* obj, ValueType value, size_t index = 0) {
+    set_property<T>(reinterpret_cast<T*>(prop), index, reinterpret_cast<uintptr_t>(obj), value);
+}
 
 std::string get_unique_label(UObject* obj, UProperty* prop) {
     return std::format(
@@ -557,62 +555,52 @@ void tree_node_builder_struct_property(UObject* obj, UProperty* prop) {
 
 void tree_node_builder_int_property(UObject* obj, UProperty* prop) {
     constexpr auto limits = std::numeric_limits<int16_t>{};
-    int32_t* value = get_property_ptr<UIntProperty>(prop, obj);
+    constexpr int32_t MIN = static_cast<int32_t>(limits.min());
+    constexpr int32_t MAX = static_cast<int32_t>(limits.max());
+    int32_t value = get_property<UIntProperty>(prop, obj);
 
     std::string label = std::format("{}##IntProp_S{}", prop->Name, get_unique_label(obj, prop));
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5F);
-    ImGui::SliderInt(
-        label.c_str(),
-        value,
-        static_cast<int32_t>(limits.min()),
-        static_cast<int32_t>(limits.max()),
-        "%d"
-    );
+    if (ImGui::SliderInt(label.c_str(), &value, MIN, MAX, "%d")) {
+        set_property<UIntProperty>(prop, obj, value);
+    }
 }
 
 void tree_node_builder_float_property(UObject* obj, UProperty* prop) {
     constexpr auto limits = std::numeric_limits<int16_t>{};
-    float32_t* value = get_property_ptr<UFloatProperty>(prop, obj);
+    constexpr float MIN = static_cast<float32_t>(limits.min());
+    constexpr float MAX = static_cast<float32_t>(limits.max());
+    constexpr auto flags = ImGuiSliderFlags_NoRoundToFormat;
+    float32_t value = get_property<UFloatProperty>(prop, obj);
 
     std::string label = std::format("{}##FloatProp_S{}", prop->Name, get_unique_label(obj, prop));
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5F);
-    ImGui::SliderFloat(
-        label.c_str(),
-        value,
-        static_cast<float32_t>(limits.min()),
-        static_cast<float32_t>(limits.max()),
-        "%.6f",
-        ImGuiSliderFlags_NoRoundToFormat
-    );
+    if (ImGui::SliderFloat(label.c_str(), &value, MIN, MAX, "%.6f", flags)) {
+        set_property<UFloatProperty>(prop, obj, value);
+    }
 }
 
 void tree_node_builder_byte_property(UObject* obj, UProperty* prop) {
     constexpr auto limits = std::numeric_limits<uint8_t>{};
-    uint8_t* value = get_property_ptr<UByteProperty>(prop, obj);
-    int temp = *value;
+    constexpr int MIN = static_cast<int>(limits.min());
+    constexpr int MAX = static_cast<int>(limits.max());
+
+    int value = static_cast<int>(get_property<UByteProperty>(prop, obj));
 
     std::string label = std::format("{}##ByteProp_S{}", prop->Name, get_unique_label(obj, prop));
     ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x * 0.5F);
-    if (ImGui::SliderInt(
-            label.c_str(),
-            &temp,
-            static_cast<int>(limits.min()),
-            static_cast<int>(limits.max()),
-            "%d"
-        )) {
-        *value = static_cast<uint8_t>(temp);
+    if (ImGui::SliderInt(label.c_str(), &value, MIN, MAX, "%d")) {
+        set_property<UByteProperty>(prop, obj, static_cast<uint8_t>(value));
     }
 }
 
 void tree_node_builder_bool_property(UObject* obj, UProperty* prop) {
-    // TODO: All pointers from this seem to have the same address?
-    bool* value = get_property_ptr<UBoolProperty>(prop, obj);
+    bool value = get_property<UBoolProperty>(prop, obj);
     std::string label = std::format("{}##BoolProp_{}", prop->Name, get_unique_label(obj, prop));
-    ImGui::Checkbox(label.c_str(), value);
 
-    std::string ptr_str = std::format("0x{:X}", (uintptr_t)value);
-    ImGui::SameLine();
-    ImGui::Text(ptr_str.c_str());
+    if (ImGui::Checkbox(label.c_str(), &value)) {
+        set_property<UBoolProperty>(prop, obj, value);
+    }
 }
 
 void tree_node_builder_str_property(UObject* obj, UProperty* prop) {
