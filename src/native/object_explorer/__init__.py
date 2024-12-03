@@ -4,12 +4,10 @@
 
 from unrealsdk import logging
 from mods_base import build_mod
-from .object_explorer import get_version, initialise, terminate
+from .object_explorer import initialise, terminate
 
 build_mod(
     on_enable=lambda: initialise(),
     on_disable=lambda: terminate(),
     auto_enable=False
 )
-
-logging.info(f"Object Explorer {get_version()} Loaded")

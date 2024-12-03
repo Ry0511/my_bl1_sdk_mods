@@ -7,7 +7,6 @@
 #include "object_explorer.h"
 
 PYBIND11_MODULE(object_explorer, m) {
-    m.def("get_version", []() { return std::string{"0.0"}; });
 
     m.def("initialise", []() {
         LOG(INFO, "Initialising object explorer...");
