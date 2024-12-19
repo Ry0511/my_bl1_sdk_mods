@@ -146,6 +146,14 @@ def hook_fast_travel_indent(
 
     helper.SendLocationData()
 
+    # Leaving this here since this can be used to color the text but its kinda buggy
+    # for i in range(1, 18):
+    #     s = obj.GetVariableString(f"teleport.selections.loc{i}.text")
+    #     if not str(s).startswith("  * "):
+    #         continue
+    #     obj.SetVariableString(f"teleport.selections.loc{i}.htmlText",
+    #                           f"<font color=\"#043565\">{s}</font>")
+
 
 @hook(hook_func="WillowGame.RegistrationStationGFxMovie:extSetTab", hook_type=Type.POST)
 def hook_indent_fast_travel_tab_changed(
