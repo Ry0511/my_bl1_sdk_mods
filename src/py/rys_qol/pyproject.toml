@@ -10,7 +10,7 @@ exclude_globs = []
 
 [tool.sdkmod]
 name = "-Ry's QoL"
-mod_type = "Standard" # or "Library"
+mod_type = "Standard"
 supported_games = "BL1"
 coop_support = "Unknown"
 auto_enable = "False"

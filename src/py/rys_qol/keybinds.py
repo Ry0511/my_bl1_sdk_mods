@@ -4,6 +4,15 @@ from mods_base import keybind, EInputEvent, get_pc
 import unrealsdk
 from unrealsdk.unreal import WrappedStruct
 
+__all__: [str] = [
+    "on_save_position",
+    "on_restore_position",
+    "on_quit_without_saving",
+    "on_toggle_ghost",
+    "on_toggle_hlq_noclip",
+    "on_make_op",
+]
+
 
 ################################################################################
 # | UTILITY |

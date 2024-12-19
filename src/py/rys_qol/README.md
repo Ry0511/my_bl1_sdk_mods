@@ -1,38 +1,29 @@
-# BL1 Commander
+# Rys Quality of Life
 
-Commander style mod which contains various quality of life features.
-It also acts as an example mod for those who want to learn how to mod
-Borderlands 1 using the PythonSDK.
+Contains a variety of changes which generally make the game better. Changes range from moderate to 
+extreme with the option to disable as needed/wanted.
 
-# Credits
+# Version 2.0
 
-This mod is based heavily on the BL2 Commander mods by **c0dycode**
-and **mopiod** and also on **apple1417's** various cheaty mods.
+- Added
+    - Fast Travel Sorting and Indenting (auto-enabled)
 
-# Features
+- Modified
+    - Save Restore Position; Now preserves view angle
+    - Project Name; bl1_commander -> rys_qol 
 
-* Save Restore Position
-* Quitting to Menu without saving
-* Modifying gamespeed and having the player ignore the speed
-* Removing the 30s timer required for saving
-* Toggle Ghost Mode (unbound by default)
-* Toggle HLQ Noclip (unbound by default)
-* Rebalance to level 69 (unbound by default)
+- Removed
+    - Modifying Game Speed; was a gimmick
 
-# Developers
+# Version 1.0
 
-This section is only useful to people who would like to learn how to create
-python mods. This assumes you have a basic to intermediate understanding of
-programming (Procedural or OOP). I recommend looking at these files (in order)
-as it shows you how to use the features of the sdk.
+Initial release; Originally called BL1 Commander.
 
-1. `__init__.py` Entry point for python sdk mods
-2. `pyproject.toml` Configuration file for setting up your mod
-3. `keybinds.py` Contains keybind hooks for actions
-4. `hooks.py` Contains unrealscript hooks
-5. `commands.py` Contains custom console commands
-
-If you follow the example provided you should be able to use the console command
-`rlm folder_name` in-game to hot-reload your mod. This way you don't have to
-reset your game to see changes. Something's might still require a full reset
-though.
+- Added
+  - Save Restore Position
+  - Quitting to Menu without saving
+  - Modifying gamespeed and having the player ignore the speed
+  - Removing the 30s timer required for saving
+  - Toggle Ghost Mode (unbound by default)
+  - Toggle HLQ Noclip (unbound by default)
+  - Rebalance to level 69 (unbound by default)
