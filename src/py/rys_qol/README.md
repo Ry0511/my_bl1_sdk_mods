@@ -1,19 +1,20 @@
 # Rys Quality of Life
 
-Contains a variety of changes which generally make the game better. Changes range from moderate to 
+Contains a variety of changes which generally make the game better. Changes range from moderate to
 extreme with the option to disable as needed/wanted.
 
 # Version 2.0
 
 - Added
-    - Fast Travel Sorting and Indenting (auto-enabled)
+  - Fast Travel Sorting and Indenting (auto-enabled)
+    - Current Mission Indicator in Fast-Travels (reqiures fast-travel-sorting)
 
 - Modified
-    - Save Restore Position; Now preserves view angle
-    - Project Name; bl1_commander -> rys_qol 
+  - Save Restore Position; Now preserves view angle
+  - Project Name; bl1_commander -> rys_qol
 
 - Removed
-    - Modifying Game Speed; was a gimmick
+  - Modifying Game Speed; was a gimmick
 
 # Version 1.0
 

@@ -74,10 +74,10 @@ def hook_sort_fast_travels_2(
     locations = wp.WorldInfo.GRI.FastTravelLocations
     locations.sort(key=cmp_to_key(compare_outpost))
 
-    logging.info("Queued Fast Travel Indenting")
+    # logging.info("Queued Fast Travel Indenting")
     global _has_applied_indents
     _has_applied_indents = False
-    # Changes the rate at which OnTick is called; N times a second here.
+    # Changes the rate at which OnTick is called; N times a second.
     obj.TickRateSeconds = 1.0 / 80.0
 
 
@@ -105,6 +105,31 @@ def hook_fast_travel_indent(
     if _has_applied_indents:
         return
 
+    tracker = obj.WPlayerOwner.WorldInfo.Game.MissionTracker
+    lookup = obj.WPlayerOwner.GetWillowGlobals().GetRegistrationStationLookup()
+    active_mission: WrappedStruct | None = None
+    active_waypoint: WrappedStruct | None = None
+
+    from .registration_list import get_level_name_from_outpost_path
+
+    if tracker is not None and tracker.ActiveMission is not None:
+        active_mission = tracker.ActiveMission
+        active_waypoint = active_mission.TargetWaypointDefinition
+        # wp_level = "_None_" if active_waypoint is None else str(active_waypoint.PersistentLevelName)
+        # wp_sublevel = "_None_" if active_waypoint is None else str(active_waypoint.SubLevelName)
+        # logging.info(f"Active Mission: '{active_mission.MissionName}'; {wp_level}, {wp_sublevel}")
+
+
+    def is_active_mission_location(location: UNameProperty) -> bool:
+        nonlocal lookup
+        nonlocal active_waypoint
+        active_loc = str(active_waypoint.PersistentLevelName)
+        path_name = lookup.GetPathName(location)
+        lvl_name = get_level_name_from_outpost_path(path_name)
+        # logging.info(f"@MissionLocation({str(location)}, {lvl_name}, {active_loc})")
+        return lvl_name is not None and lvl_name == active_loc
+
+
     locations: WrappedArray[WrappedStruct] = helper.Locations
 
     header_outposts = ["Fyrestone", "JakobsCove", "Coliseum", "TBoneJunc", "TartarusStation", "Oasis"]
@@ -113,9 +138,16 @@ def hook_fast_travel_indent(
     for i, loc in enumerate(locations):
         if i > outpost_count:
             return  # Since we push unknown entries to the bottom we can short-circuit here
+        clean_name = loc.DisplayName.lstrip(f' *').rstrip()
         if str(loc.OutpostName) not in header_outposts:
-            loc.DisplayName = f"    {loc.DisplayName.strip()}"
+
+            if is_active_mission_location(loc.OutpostName):
+                loc.DisplayName = f"  * {clean_name}"
+            else:
+                loc.DisplayName = f"    {clean_name}"
+        elif is_active_mission_location(loc.OutpostName):
+            loc.DisplayName = f"* {clean_name}"
 
     helper.SendLocationData()
-    logging.info("Applied Fast Travel Indents")
+    # logging.info("Applied Fast Travel Indents")
     _has_applied_indents = True
