@@ -12,6 +12,7 @@ __all__: [str] = [
     "on_player_loaded",
     "hook_sort_fast_travels",
     "hook_sort_fast_travels_2",
+    "hook_indent_fast_travel_tab_changed",
     "hook_fast_travel_indent",
 ]
 
@@ -48,9 +49,6 @@ def hook_sort_fast_travels(
     xs.sort(key=cmp_to_key(compare_outpost))
 
 
-_has_applied_indents = False  # This is to avoid constantly modifying the list
-
-
 @hook(hook_func="WillowGame.RegistrationStationGFxMovie:HandleOpen")
 def hook_sort_fast_travels_2(
         obj: UObject,
@@ -74,9 +72,6 @@ def hook_sort_fast_travels_2(
     locations = wp.WorldInfo.GRI.FastTravelLocations
     locations.sort(key=cmp_to_key(compare_outpost))
 
-    # logging.info("Queued Fast Travel Indenting")
-    global _has_applied_indents
-    _has_applied_indents = False
     # Changes the rate at which OnTick is called; N times a second.
     obj.TickRateSeconds = 1.0 / 80.0
 
@@ -99,11 +94,13 @@ def hook_fast_travel_indent(
     if len(helper.Locations) == 0:
         return
 
+    # Hacky but if we detect an indented item then we can skip this
+    for loc in helper.Locations:
+        if loc.DisplayName.startswith("    "):
+            return
+
     # Once the location data is available we can revert back to normal tick-rate
     obj.TickRateSeconds = 1.0
-    global _has_applied_indents
-    if _has_applied_indents:
-        return
 
     tracker = obj.WPlayerOwner.WorldInfo.Game.MissionTracker
     lookup = obj.WPlayerOwner.GetWillowGlobals().GetRegistrationStationLookup()
@@ -115,18 +112,16 @@ def hook_fast_travel_indent(
     if tracker is not None and tracker.ActiveMission is not None:
         active_mission = tracker.ActiveMission
         active_waypoint = active_mission.TargetWaypointDefinition
-        # wp_level = "_None_" if active_waypoint is None else str(active_waypoint.PersistentLevelName)
-        # wp_sublevel = "_None_" if active_waypoint is None else str(active_waypoint.SubLevelName)
-        # logging.info(f"Active Mission: '{active_mission.MissionName}'; {wp_level}, {wp_sublevel}")
 
 
     def is_active_mission_location(location: UNameProperty) -> bool:
         nonlocal lookup
         nonlocal active_waypoint
+        if active_waypoint is None or lookup is None:
+            return False
         active_loc = str(active_waypoint.PersistentLevelName)
         path_name = lookup.GetPathName(location)
         lvl_name = get_level_name_from_outpost_path(path_name)
-        # logging.info(f"@MissionLocation({str(location)}, {lvl_name}, {active_loc})")
         return lvl_name is not None and lvl_name == active_loc
 
 
@@ -149,5 +144,17 @@ def hook_fast_travel_indent(
             loc.DisplayName = f"* {clean_name}"
 
     helper.SendLocationData()
-    # logging.info("Applied Fast Travel Indents")
-    _has_applied_indents = True
+
+
+@hook(hook_func="WillowGame.RegistrationStationGFxMovie:extSetTab", hook_type=Type.POST)
+def hook_indent_fast_travel_tab_changed(
+        obj: UObject,
+        args: WrappedStruct,
+        __ret: any,
+        __func: BoundFunction,
+) -> None:
+    if not _should_sort_fast_travels.value:
+        return
+
+    if str(args.NewTab).lower() == "teleport":
+        obj.TickRateSeconds = 1.0 / 80.0

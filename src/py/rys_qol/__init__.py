@@ -19,6 +19,7 @@ build_mod(
         on_player_loaded,
         hook_sort_fast_travels,
         hook_sort_fast_travels_2,
+        hook_indent_fast_travel_tab_changed,
         hook_fast_travel_indent
     ],
     commands=[],
