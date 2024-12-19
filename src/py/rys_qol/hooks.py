@@ -132,6 +132,7 @@ def hook_fast_travel_indent(
     outpost_count = len(ALL_WITHOUT_CHECKPOINTS)
     for i, loc in enumerate(locations):
         if i > outpost_count:
+            helper.SendLocationData()
             return  # Since we push unknown entries to the bottom we can short-circuit here
         clean_name = loc.DisplayName.lstrip(f' *').rstrip()
         if str(loc.OutpostName) not in header_outposts:
