@@ -77,6 +77,8 @@ ALL_WITHOUT_CHECKPOINTS = [
 
 
 def get_level_name_from_outpost_path(outpost_path: str) -> str | None:
+    if outpost_path is None:
+        return None
     xs = outpost_path.split(".")
     if len(xs) >= 2 and xs[1].startswith("TheWorld"):
         return xs[0]

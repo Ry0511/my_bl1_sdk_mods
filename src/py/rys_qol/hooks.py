@@ -102,24 +102,35 @@ def hook_fast_travel_indent(
     # Once the location data is available we can revert back to normal tick-rate
     obj.TickRateSeconds = 1.0
 
-    tracker = obj.WPlayerOwner.WorldInfo.Game.MissionTracker
-    lookup = obj.WPlayerOwner.GetWillowGlobals().GetRegistrationStationLookup()
-    active_mission: WrappedStruct | None = None
-    active_waypoint: WrappedStruct | None = None
-
     from .registration_list import get_level_name_from_outpost_path
+    from .willow_player_helper import get_globals, get_current_mission, EMissionStatus
+    lookup = get_globals().GetRegistrationStationLookup()
+    cur_mission = get_current_mission()
 
-    if tracker is not None and tracker.ActiveMission is not None:
-        active_mission = tracker.ActiveMission
-        active_waypoint = active_mission.TargetWaypointDefinition
+    if cur_mission is not None:
+        s, d = cur_mission
+        logging.info(f"@CurrentMission=( '{s.name}', '{d.MissionName}' )")
 
 
     def is_active_mission_location(location: UNameProperty) -> bool:
         nonlocal lookup
-        nonlocal active_waypoint
-        if active_waypoint is None or lookup is None:
+        nonlocal cur_mission
+
+        if cur_mission is None:
             return False
-        active_loc = str(active_waypoint.PersistentLevelName)
+
+        status, mission = cur_mission
+        waypoint: WrappedStruct | None = None
+
+        if status is EMissionStatus.MS_ReadyToTurnIn:
+            waypoint = mission.TurnInWaypointDefinition
+        else:
+            waypoint = mission.TargetWaypointDefinition
+
+        if waypoint is None:
+            return False
+
+        active_loc = str(waypoint.PersistentLevelName)
         path_name = lookup.GetPathName(location)
         lvl_name = get_level_name_from_outpost_path(path_name)
         return lvl_name is not None and lvl_name == active_loc
@@ -127,7 +138,9 @@ def hook_fast_travel_indent(
 
     locations: WrappedArray[WrappedStruct] = helper.Locations
 
-    header_outposts = ["Fyrestone", "JakobsCove", "Coliseum", "TBoneJunc", "TartarusStation", "Oasis"]
+    header_outposts = ["Fyrestone", "JakobsCove", "Coliseum",
+                       "TBoneJunc", "TartarusStation", "Oasis"]
+
     from .registration_list import ALL_WITHOUT_CHECKPOINTS
     outpost_count = len(ALL_WITHOUT_CHECKPOINTS)
     for i, loc in enumerate(locations):
