@@ -5,11 +5,12 @@ extreme with the option to disable as needed/wanted.
 
 # Version 2.0
 
-- Added
+- Additions
   - Fast Travel Sorting and Indenting (auto-enabled)
     - Current Mission Indicator in Fast-Travels (reqiures fast-travel-sorting)
 
-- Modified
+- Changes
+  - Save Restore Position didn't always work on key-press this should now be resolved
   - Save Restore Position; Now preserves view angle
   - Project Name; bl1_commander -> rys_qol
 
@@ -20,7 +21,7 @@ extreme with the option to disable as needed/wanted.
 
 Initial release; Originally called BL1 Commander.
 
-- Added
+- Additions
   - Save Restore Position
   - Quitting to Menu without saving
   - Modifying gamespeed and having the player ignore the speed
