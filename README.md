@@ -8,7 +8,7 @@ at [/src/upk/](./src/upk)
 - [rys_qol](./packaged/rys_qol-2.0.zip)
   - A variety of QoL changes for BL1
 
-- [rys_auto_save](./packaged/)
+- [rys_auto_save](./packaged/rys_auto_save-1.0.zip)
 
 
 ### UPK Mods
