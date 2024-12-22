@@ -1,7 +1,7 @@
 from mods_base import SETTINGS_DIR
 from mods_base import build_mod
 
-from .options import _should_sort_fast_travels
+from .options import _should_sort_fast_travels, _fix_auto_mission_select
 
 from .hooks import *
 from .keybinds import *
@@ -17,12 +17,13 @@ build_mod(
     ],
     hooks=[
         on_player_loaded,
+        hook_fix_auto_mission_select,
         hook_sort_fast_travels,
         hook_sort_fast_travels_2,
         hook_indent_fast_travel_tab_changed,
         hook_fast_travel_indent
     ],
     commands=[],
-    options=[_should_sort_fast_travels],
+    options=[_should_sort_fast_travels, _fix_auto_mission_select],
     settings_file=SETTINGS_DIR / "rys_qol.json",
 )
