@@ -1,0 +1,16 @@
+[project]
+name = "-Ry's Auto-Save"
+version = "1.0"
+authors = [{ name = "-Ry" }]
+description = "Implements Auto-Save Functionality"
+
+[packager]
+safe_name = "rys_auto_save"
+exclude_globs = []
+
+[tool.sdkmod]
+mod_type = "Standard"
+supported_games = "BL1"
+coop_support = "Unknown"
+auto_enable = "False"
+license = {name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
