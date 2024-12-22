@@ -9,6 +9,7 @@ at [/src/upk/](./src/upk)
   - A variety of QoL changes for BL1
 
 - [rys_auto_save](./packaged/rys_auto_save-1.0.zip)
+  - Configurable autosaving for BL1
 
 
 ### UPK Mods
