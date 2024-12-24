@@ -21,9 +21,9 @@ Context ctx{};
 
 namespace {
 
-int init_glfw(void);
-int init_imgui(void);
-int init_hooks(void);
+int init_glfw();
+int init_imgui();
+int init_hooks();
 
 }  // namespace
 
@@ -31,7 +31,7 @@ int init_hooks(void);
 //  | INIT |
 // ############################################################################//
 
-int initialise(void) noexcept {
+int initialise() noexcept {
     if (ctx.HasInitialised) {
         return 0;
     }
@@ -57,7 +57,7 @@ int initialise(void) noexcept {
     }
 }
 
-void terminate(void) noexcept {
+void terminate() noexcept {
     if (!ctx.HasInitialised) {
         return;
     }
@@ -67,7 +67,7 @@ void terminate(void) noexcept {
     hook_manager::Type hook_type = hook_manager::Type::PRE;
     hook_manager::remove_hook(hook_func, hook_type, hook_name);
 
-    GLFWwindow* window = static_cast<GLFWwindow*>(ctx.Window);
+    auto* window = static_cast<GLFWwindow*>(ctx.Window);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -79,8 +79,8 @@ void terminate(void) noexcept {
     LOG(INFO, "Object Explorer Shutdown");
 }
 
-void begin_frame(void) noexcept {
-    GLFWwindow* window = static_cast<GLFWwindow*>(ctx.Window);
+void begin_frame() noexcept {
+    auto* window = static_cast<GLFWwindow*>(ctx.Window);
     if (glfwGetCurrentContext() != window) {
         glfwMakeContextCurrent(window);
     }
@@ -93,8 +93,8 @@ void begin_frame(void) noexcept {
     ImGui::DockSpaceOverViewport();
 }
 
-void end_frame(void) noexcept {
-    GLFWwindow* window = static_cast<GLFWwindow*>(ctx.Window);
+void end_frame() noexcept {
+    auto* window = static_cast<GLFWwindow*>(ctx.Window);
     ImGui::Render();
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -119,9 +119,9 @@ void end_frame(void) noexcept {
 
 namespace {
 
-int init_glfw(void) {
+int init_glfw() {
     if (!glfwInit()) {
-        throw -1;
+        throw -1; // NOLINT(*-exception-baseclass)
     }
 
     glfwSetErrorCallback([](int error, const char* description) {
@@ -136,7 +136,7 @@ int init_glfw(void) {
     if (!ctx.Window) {
         LOG(ERROR, "Failed to create Object Explorer window");
         glfwTerminate();
-        throw -1;
+        throw -1; // NOLINT(*-exception-baseclass)
     }
 
     glfwMakeContextCurrent((GLFWwindow*)ctx.Window);
@@ -145,16 +145,16 @@ int init_glfw(void) {
     return 0;
 }
 
-int init_imgui(void) {
-    GLFWwindow* window = static_cast<GLFWwindow*>(ctx.Window);
+int init_imgui() {
+    auto* window = static_cast<GLFWwindow*>(ctx.Window);
 
     if (!IMGUI_CHECKVERSION()) {
-        throw -1;
+        throw -1; // NOLINT(*-exception-baseclass)
     }
     void* imgui_context = ImGui::CreateContext();
     if (!imgui_context) {
         LOG(ERROR, "Failed to create imgui context");
-        throw -1;
+        throw -1; // NOLINT(*-exception-baseclass)
     }
 
     ImGuiIO& io = ImGui::GetIO();
@@ -171,17 +171,17 @@ int init_imgui(void) {
 
     if (!ImGui_ImplGlfw_InitForOpenGL(window, true)) {
         LOG(ERROR, "Failed to initialise imgui glfw backend");
-        throw -1;
+        throw -1; // NOLINT(*-exception-baseclass)
     }
     if (!ImGui_ImplOpenGL3_Init("#version 330")) {
         LOG(ERROR, "Failed to initialise imgui gl3 backend");
-        throw -1;
+        throw -1; // NOLINT(*-exception-baseclass)
     }
 
     return 0;
 }
 
-int init_hooks(void) {
+int init_hooks() {
     // TODO: Find a better way to integrate into the games update loop this doesn't work if the game
     //  is paused.
 

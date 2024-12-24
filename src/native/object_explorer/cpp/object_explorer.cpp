@@ -22,7 +22,7 @@ struct GObjects_Query {
     UObject* Obj;          // The pointer when we accessed it
     std::string PathName;  // PathName for the object
 
-    operator bool() const noexcept {
+    explicit operator bool() const noexcept {
         const GObjects& objs = gobjects();
         return (Index < objs.size()) && (Obj == objs.obj_at(Index));
     }
@@ -70,16 +70,16 @@ struct RuntimeConfig {
 
 } cfg;
 
-void show_gobjects_list(void);
-void show_gobjects_selection(void);
-void show_debug_info(void);
-void show_error_popup(void);
+void show_gobjects_list();
+void show_gobjects_selection();
+void show_debug_info();
+void show_error_popup();
 
 // Builds a complex tree structure for the provided UObject; Lazily builds open nodes
 void show_editable_uobject_tree(UObject*);
 
-void show_query_controls(void);
-void update_query_objects(void);
+void show_query_controls();
+void update_query_objects();
 
 }  // namespace
 
@@ -121,7 +121,7 @@ void update() noexcept {
 
 namespace {
 
-void show_gobjects_list(void) {
+void show_gobjects_list() {
     if (!ImGui::Begin("GObjects")) {
         ImGui::End();
         return;
@@ -133,7 +133,7 @@ void show_gobjects_list(void) {
 
     if (ImGui::BeginChild("GObjects##QueryList", ImGui::GetContentRegionAvail())) {
         ImGuiListClipper clipper{};
-        clipper.Begin(objects.size());
+        clipper.Begin(static_cast<int>(objects.size()));
         cfg.GObjects_VisibleItemsCount = 0;
 
         while (clipper.Step()) {
@@ -171,7 +171,7 @@ void show_gobjects_list(void) {
 //  | OBJECT QUERY |
 // ############################################################################//
 
-void show_query_controls(void) {
+void show_query_controls() {
     auto child_window_flags = ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY;
     if (!ImGui::BeginChild(
             "GObjects List Controls",
@@ -194,7 +194,7 @@ void show_query_controls(void) {
     std::string* ptr = &cfg.GObjects_ObjectQuery;
     auto text_flags = ImGuiInputTextFlags_EnterReturnsTrue;
     ImGui::TableNextColumn();
-    ImGui::TableSetupColumn(0, ImGuiTableColumnFlags_WidthStretch);
+    ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthStretch);
     if (ImGui::InputText("Query##GObjects_ObjectQuery", ptr, text_flags)) {
         cfg.GObjects_ObjectQueryWide = str_to_wstr(cfg.GObjects_ObjectQuery);
         LOG(INFO, L"Query Changed to '{}'", cfg.GObjects_ObjectQueryWide);
@@ -203,7 +203,7 @@ void show_query_controls(void) {
 
     // Query Delta
     ImGui::TableNextColumn();
-    ImGui::TableSetupColumn(0, ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
     ImGui::Text("Delta %.2f ms", cfg.GObjects_ObjectQueryDelta * 1000.0F);
 
     // Query Strategy
@@ -212,7 +212,7 @@ void show_query_controls(void) {
     constexpr auto combo_flags = ImGuiComboFlags_WidthFitPreview;
 
     ImGui::TableNextColumn();
-    ImGui::TableSetupColumn(0, ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed);
     if (ImGui::BeginCombo(label, current_value, combo_flags)) {
         for (uint8_t i = 0; i < QUERY_STRATEGY_COUNT; ++i) {
             bool is_selection = (cfg.GObjects_ObjectQueryStrategy == i);
@@ -229,10 +229,10 @@ void show_query_controls(void) {
     ImGui::EndChild();
 }
 
-void update_query_objects(void) {
+void update_query_objects() {
     auto start = Clock::now();
 
-    auto collect_results = [](std::function<bool(UObject*)> filter) {
+    auto collect_results = [](const std::function<bool(UObject*)>& filter) {
         Instant before = Clock::now();
         cfg.GObjects_QueryObjects.clear();
         const GObjects& objs = gobjects();
@@ -298,7 +298,7 @@ void update_query_objects(void) {
 //  | OBJECT SELECTION |
 // ############################################################################//
 
-void show_gobjects_selection(void) {
+void show_gobjects_selection() {
     if (!ImGui::Begin("GObject Selection")) {
         ImGui::End();
         return;
@@ -328,19 +328,18 @@ void show_gobjects_selection(void) {
 //  | THE WORLD OBJECTS |
 // ############################################################################//
 
-void show_theworld_objects(void) {
+void show_theworld_objects() {
     if (ImGui::Begin("The World")) {
         ImGui::Text("Objects");
     }
     ImGui::End();
-    return;
 }
 
 // ############################################################################//
 //  | DEBUG INFO |
 // ############################################################################//
 
-void show_debug_info(void) {
+void show_debug_info() {
     if (!ImGui::Begin("Object Explorer")) {
         ImGui::End();
         return;
@@ -362,14 +361,14 @@ void show_debug_info(void) {
         }
 
         if (ImGui::TreeNode("Object Tree Defaulted Types")) {
-            for (std::string cls : cfg.ObjectTree_DefaultedTypes) {
+            for (const std::string& cls : cfg.ObjectTree_DefaultedTypes) {
                 ImGui::BulletText("%s", cls.c_str());
             }
             ImGui::TreePop();
         }
 
         if (ImGui::TreeNode("Errors")) {
-            for (uint8_t i = 0; i < cfg.Error_RingBuffer.size(); ++i) {
+            for (size_t i = 0; i < cfg.Error_RingBuffer.size(); ++i) {
                 ImGui::TextColored(
                     ImVec4{1.0F, 0.0F, 0.0F, 1.0F},
                     "[%d] - '%s'",
@@ -457,38 +456,40 @@ void tree_node_builder_default(UObject*, UProperty*);
 TreeNodeBuilder find_or_create_parser(UClass* cls) {
     auto& tree_node_builder_map = cfg.ObjectTree_TreeNodeBuilderMap;
 
-    if (!tree_node_builder_map.empty()) [[likely]] {
-        auto it = tree_node_builder_map.find(cls);
-        if (it != tree_node_builder_map.end()) {
-            return it->second;
-        }
-        return &tree_node_builder_default;
+    static bool once{false};
+
+    if (!once) {
+        auto insert_builder = [](std::wstring_view cls_path_name, TreeNodeBuilder builder) {
+            UClass* cls = find_class(cls_path_name);
+            if (!cls) {
+                LOG(DEV_WARNING, L"Failed to find class for '{}'", cls_path_name);
+                return;
+            }
+            cfg.ObjectTree_TreeNodeBuilderMap[cls] = builder;
+        };
+
+        // Composite
+        insert_builder(L"Core.ObjectProperty", &tree_node_builder_object_property);
+        insert_builder(L"Core.StructProperty", &tree_node_builder_struct_property);
+
+        // Leafs
+        insert_builder(L"Core.IntProperty", &tree_node_builder_int_property);
+        insert_builder(L"Core.FloatProperty", &tree_node_builder_float_property);
+        insert_builder(L"Core.ByteProperty", &tree_node_builder_byte_property);
+        insert_builder(L"Core.BoolProperty", &tree_node_builder_bool_property);
+
+        insert_builder(L"Core.StrProperty", &tree_node_builder_str_property);
+        insert_builder(L"Core.NameProperty", &tree_node_builder_name_property);
+
+        cfg.ObjectTree_DefaultedTypes.insert(wstr_to_str(cls->get_path_name()));
+        once = true;
     }
 
-    auto insert_builder = [](std::wstring_view cls_path_name, TreeNodeBuilder builder) {
-        UClass* cls = find_class(cls_path_name);
-        if (!cls) {
-            LOG(DEV_WARNING, L"Failed to find class for '{}'", cls_path_name);
-            return;
-        }
-        cfg.ObjectTree_TreeNodeBuilderMap[cls] = builder;
-    };
-
-    // Composite
-    insert_builder(L"Core.ObjectProperty", &tree_node_builder_object_property);
-    insert_builder(L"Core.StructProperty", &tree_node_builder_struct_property);
-
-    // Leafs
-    insert_builder(L"Core.IntProperty", &tree_node_builder_int_property);
-    insert_builder(L"Core.FloatProperty", &tree_node_builder_float_property);
-    insert_builder(L"Core.ByteProperty", &tree_node_builder_byte_property);
-    insert_builder(L"Core.BoolProperty", &tree_node_builder_bool_property);
-
-    insert_builder(L"Core.StrProperty", &tree_node_builder_str_property);
-    insert_builder(L"Core.NameProperty", &tree_node_builder_name_property);
-
-    cfg.ObjectTree_DefaultedTypes.insert(wstr_to_str(cls->get_path_name()));
-    return find_or_create_parser(cls);
+    auto it = tree_node_builder_map.find(cls);
+    if (it != tree_node_builder_map.end()) {
+        return it->second;
+    }
+    return &tree_node_builder_default;
 }
 
 void show_editable_uobject_tree(UObject* obj) {
@@ -504,6 +505,7 @@ void tree_node_builder_default(UObject* obj, UProperty* in_prop) {
     ImGui::Text(label.c_str());
 }
 
+// NOLINTNEXTLINE(*-no-recursion)
 void tree_node_builder_object_property(UObject* obj_in, UProperty* obj_prop) {
     // TODO: This one is extra messy
     // TODO: Crashes for struct UObject properties?
@@ -589,7 +591,7 @@ void tree_node_builder_object_property(UObject* obj_in, UProperty* obj_prop) {
 }
 
 void tree_node_builder_struct_property(UObject* obj, UProperty* prop) {
-    UStructProperty* struct_prop = reinterpret_cast<UStructProperty*>(prop);
+    auto* struct_prop = reinterpret_cast<UStructProperty*>(prop);
     UScriptStruct* inner = struct_prop->get_inner_struct();
 
     std::string label = std::format("{}##StructProp_{}", prop->Name, get_unique_label(obj, prop));
@@ -636,9 +638,9 @@ void tree_node_builder_struct_property(UObject* obj, UProperty* prop) {
 }
 
 void tree_node_builder_int_property(UObject* obj, UProperty* prop) {
-    constexpr auto limits = std::numeric_limits<int16_t>{};
-    constexpr int32_t MIN = static_cast<int32_t>(limits.min());
-    constexpr int32_t MAX = static_cast<int32_t>(limits.max());
+    using limits = std::numeric_limits<int16_t>;
+    constexpr auto MIN = static_cast<int32_t>(limits::min());
+    constexpr auto MAX = static_cast<int32_t>(limits::max());
     int32_t value = get_property<UIntProperty>(prop, obj);
 
     std::string label = std::format("{}##IntProp_S{}", prop->Name, get_unique_label(obj, prop));
@@ -649,9 +651,9 @@ void tree_node_builder_int_property(UObject* obj, UProperty* prop) {
 }
 
 void tree_node_builder_float_property(UObject* obj, UProperty* prop) {
-    constexpr auto limits = std::numeric_limits<int16_t>{};
-    constexpr float MIN = static_cast<float32_t>(limits.min());
-    constexpr float MAX = static_cast<float32_t>(limits.max());
+    using limits = std::numeric_limits<int16_t>;
+    constexpr auto MIN = static_cast<int32_t>(limits::min());
+    constexpr auto MAX = static_cast<int32_t>(limits::max());
     constexpr auto flags = ImGuiSliderFlags_NoRoundToFormat;
     float32_t value = get_property<UFloatProperty>(prop, obj);
 
@@ -663,9 +665,9 @@ void tree_node_builder_float_property(UObject* obj, UProperty* prop) {
 }
 
 void tree_node_builder_byte_property(UObject* obj, UProperty* prop) {
-    constexpr auto limits = std::numeric_limits<uint8_t>{};
-    constexpr int MIN = static_cast<int>(limits.min());
-    constexpr int MAX = static_cast<int>(limits.max());
+    using limits = std::numeric_limits<uint8_t>;
+    constexpr auto MIN = static_cast<int>(limits::min());
+    constexpr auto MAX = static_cast<int>(limits::max());
 
     int value = static_cast<int>(get_property<UByteProperty>(prop, obj));
 
@@ -704,7 +706,7 @@ void tree_node_builder_name_property(UObject* obj, UProperty* prop) {
         ImGui::Text(value.c_str());
 
         static_assert(sizeof(FName) == sizeof(int32_t) * 2);
-        int32_t* hack = reinterpret_cast<int32_t*>(&name);
+        auto* hack = reinterpret_cast<int32_t*>(&name);
         ImGui::Text("Index  %d", hack[0]);
         ImGui::Text("Number %d", hack[1]);
 
