@@ -1,0 +1,16 @@
+[project]
+name = "skill_tree_ui_tweaks"
+version = "1.0"
+authors = [{ name = "-Ry" }, { name = "sleepmaster" }]
+description = "Skill Tree UI Tweaks"
+
+[packager]
+safe_name = "skill_tree_ui_tweaks"
+exclude_globs = []
+
+[tool.sdkmod]
+mod_type = "Standard"
+supported_games = "BL1"
+coop_support = "Unknown"
+auto_enable = "False"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
