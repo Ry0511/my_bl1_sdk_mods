@@ -1,0 +1,16 @@
+[project]
+name = "rys_dynamic_game_scaling"
+version = "1.0"
+authors = [{ name = "-Ry" }]
+description = "Game scaling which scales based on your level when you turn in certain missions."
+
+[packager]
+safe_name = "rys_dynamic_game_scaling"
+exclude_globs = []
+
+[tool.sdkmod]
+mod_type = "Standard"
+supported_games = "BL1"
+coop_support = "Unknown"
+auto_enable = "False"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
