@@ -1,4 +1,4 @@
-import fnmatch
+from fnmatch import fnmatchcase
 from pathlib import Path
 import types
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -12,7 +12,15 @@ def package_dir_into_zip(
 ):
     for root, _, files in dir_path.walk():
         for f in files:
-            if not any(fnmatch.fnmatch(f, glob) for glob in exclude_globs):
+            p = Path(f)
+
+
+            def is_matching(glob: str) -> bool:
+                nonlocal p
+                return fnmatchcase(p.name, glob)
+
+
+            if not any(map(is_matching, exclude_globs)):
                 zip_file.write(root / f, arcname=Path(base_path) / f)
 
 
