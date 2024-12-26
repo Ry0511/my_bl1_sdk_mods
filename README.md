@@ -11,6 +11,9 @@ at [/src/upk/](./src/upk)
 - [rys_auto_save](./packaged/rys_auto_save-1.0.zip)
   - Configurable autosaving for BL1
 
+- [skill_tree_tweaks](./packaged/skill_tree_tweaks-1.0.zip)
+  - Quality of Life changes to skill trees see README in zip for install guide and features
+
 
 ### UPK Mods
 
