@@ -6,7 +6,7 @@ description = "Game scaling which scales based on your level when you turn in ce
 
 [packager]
 safe_name = "rys_dynamic_game_scaling"
-exclude_globs = []
+exclude_globs = ["*.pyc"]
 
 [tool.sdkmod]
 mod_type = "Standard"

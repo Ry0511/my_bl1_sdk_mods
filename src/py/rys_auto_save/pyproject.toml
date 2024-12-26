@@ -6,7 +6,7 @@ description = "Implements Auto-Save Functionality"
 
 [packager]
 safe_name = "rys_auto_save"
-exclude_globs = []
+exclude_globs = ["*.pyc"]
 
 [tool.sdkmod]
 mod_type = "Standard"

@@ -6,7 +6,7 @@ description = "QoL features and Cheats for BL1"
 
 [packager]
 safe_name = "rys_qol"
-exclude_globs = []
+exclude_globs = ["*.pyc"]
 
 [tool.sdkmod]
 name = "-Ry's QoL"

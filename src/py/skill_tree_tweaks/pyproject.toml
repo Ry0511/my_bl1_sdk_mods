@@ -6,7 +6,7 @@ description = "Skill Tree UI Tweaks"
 
 [packager]
 safe_name = "skill_tree_tweaks"
-exclude_globs = []
+exclude_globs = ["*.pyc"]
 
 [tool.sdkmod]
 mod_type = "Standard"
