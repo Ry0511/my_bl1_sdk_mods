@@ -8,6 +8,7 @@ from mods_base import get_pc
 __all__ = [
     "get_current_class_mod",
     "get_modified_skills",
+    "get_augmented_skills_dict",
     "is_skill_unlocked",
     "ESkillBranch",
     "for_each_skill",
@@ -60,6 +61,21 @@ def get_modified_skills(com_deck: UObject | None) -> list[tuple[UObject, int]]:
             break
 
     return xs
+
+
+def get_augmented_skills_dict(class_mod: UObject | None) -> dict[UObject, int]:
+    if class_mod is None:
+        return {}
+
+    modified = get_modified_skills(class_mod)
+    d = {}
+    for s, v in modified:
+        if s not in d:
+            d[s] = v
+        else:
+            d[s] += v
+
+    return d
 
 
 def is_skill_unlocked(player_skill: WrappedStruct) -> bool:
