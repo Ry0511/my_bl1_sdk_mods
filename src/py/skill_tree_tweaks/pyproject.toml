@@ -1,11 +1,11 @@
 [project]
-name = "skill_tree_ui_tweaks"
+name = "skill_tree_tweaks"
 version = "1.0"
 authors = [{ name = "-Ry" }, { name = "sleepmaster" }]
 description = "Skill Tree UI Tweaks"
 
 [packager]
-safe_name = "skill_tree_ui_tweaks"
+safe_name = "skill_tree_tweaks"
 exclude_globs = []
 
 [tool.sdkmod]
