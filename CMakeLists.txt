@@ -88,6 +88,8 @@ bl1_add_py_module(object_explorer src/native/object_explorer)
 target_link_libraries(object_explorer PRIVATE imgui_glfw_gl3)
 target_compile_definitions(object_explorer PRIVATE _CRT_SECURE_NO_WARNINGS)
 
+bl1_add_py_module(package_tools src/native/package_tools)
+
 bl1_add_basic_py_module("rys_qol" "src/py/rys_qol/")
 bl1_add_basic_py_module("rys_auto_save" "src/py/rys_auto_save/")
 bl1_add_basic_py_module("skill_tree_tweaks" "src/py/skill_tree_tweaks/")

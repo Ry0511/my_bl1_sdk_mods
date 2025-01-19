@@ -1,0 +1,15 @@
+[project]
+name = "Package Tools"
+version = "1.1"
+authors = [{ name = "-Ry" }]
+description = "Library containing utilities to access contents of a package"
+
+[packager]
+safe_name = "package_tools"
+exclude_globs = ["CMakeLists.txt", "*.cpp", "*.h"]
+
+[tool.sdkmod]
+mod_type = "Library"
+supported_games = "BL1"
+coop_support = "Unknown"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
