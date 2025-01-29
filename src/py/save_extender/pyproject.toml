@@ -1,0 +1,15 @@
+[project]
+name = "Save Extender"
+version = "1.0"
+authors = [{ name = "-Ry" }]
+description = "Utility to manage custom persistable data which is tied to a gamesave"
+
+[packager]
+safe_name = "save_extender"
+exclude_globs = ["*.pyc"]
+
+[tool.sdkmod]
+mod_type = "Library"
+supported_games = "BL1"
+coop_support = "Unknown"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
