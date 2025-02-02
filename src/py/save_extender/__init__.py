@@ -19,11 +19,10 @@ build_mod(
 # | TESTING |
 ################################################################################
 
-from dataclasses import dataclass
+from .utils import sfe_dataclass
 from .save_manager import *
 
-
-@dataclass
+@sfe_dataclass
 class MyData:
     some_str: str = "Some String"
     some_int: int = 12345
@@ -36,6 +35,3 @@ class MyData:
 
 
 _data = sfe_register(MyData, "test_data")
-
-
-_data.value.some_int = 999
