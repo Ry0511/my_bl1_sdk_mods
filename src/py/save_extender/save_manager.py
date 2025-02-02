@@ -54,6 +54,13 @@ def sfe_register(
     data_name: str,
     manager: DataManager = None
 ) -> PersistentData[_T]:
+    """
+    Registers the provided class as a datasource for the provided data name.
+    :param data_cls: The data class
+    :param data_name: The name of the data; Must only be alphanumeric with underscores and hyphens
+    :param manager: The manager of this datasource; Defaults to JSONDataManager if None.
+    :return: PersistentData
+    """
     if data_name is None:
         raise ValueError("None is an invalid data name")
 
@@ -69,6 +76,10 @@ def sfe_register(
 
 
 def sfe_get_data(data_name: str) -> Union[PersistentData[_T], None]:
+    """
+    :param data_name: The name of the data to get
+    :return: The PersistentData found or None if not found
+    """
     if data_name not in _data_register:
         return None
     else:

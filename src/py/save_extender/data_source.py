@@ -7,6 +7,11 @@ from abc import ABC, abstractmethod
 from .exceptions import *
 
 
+################################################################################
+# | BASE CLASS |
+################################################################################
+
+
 class DataManager(ABC):
     data_cls: Type[Any]
     data_name: str
