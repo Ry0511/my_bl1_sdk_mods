@@ -1,8 +1,9 @@
 from pathlib import Path
-from typing import *
+from dataclasses import dataclass
+from typing import TypeVar, Type, Dict, Any, Union
 
-from mods_base import MODS_DIR
 from unrealsdk import logging
+from mods_base import MODS_DIR
 from .data_source import DataManager, JSONDataManager
 
 __all__ = [
@@ -21,13 +22,10 @@ __all__ = [
 _T = TypeVar("_T")
 
 
+@dataclass
 class PersistentData[_T]:
     manager: DataManager
     value: _T
-
-    def __init__(self, manager: DataManager):
-        self.manager = manager
-        self.value = None
 
 
 EXTENDED_SAVE_DIR: Path = MODS_DIR / "_savedata"
@@ -38,7 +36,7 @@ _data_register: Dict[str, PersistentData[Any]] = {}
 
 def _get_savefile_dir(filename: str, create=True) -> Path:
     # Assuming this will work
-    save_dir = EXTENDED_SAVE_DIR / filename.split(".")[0]
+    save_dir = EXTENDED_SAVE_DIR / filename.split(".")[0].strip().replace(" ", "_")
     if create:
         save_dir.mkdir(parents=True, exist_ok=True)
     return save_dir
@@ -52,27 +50,26 @@ def _get_savefile_dir(filename: str, create=True) -> Path:
 def sfe_register(
     data_cls: Type[_T],
     data_name: str,
-    manager: DataManager = None
+    manager: DataManager = None,
+    overwrite: bool = False,
 ) -> PersistentData[_T]:
-    """
-    Registers the provided class as a datasource for the provided data name.
-    :param data_cls: The data class
-    :param data_name: The name of the data; Must only be alphanumeric with underscores and hyphens
-    :param manager: The manager of this datasource; Defaults to JSONDataManager if None.
-    :return: PersistentData
-    """
     if data_name is None:
         raise ValueError("None is an invalid data name")
 
-    if data_name in _data_register:
-        return _data_register[data_name]
+    # The caller really should check this; but i don't want to throw
+    if sfe_is_data_registered(data_name) and not overwrite:
+        return sfe_get_data(data_name)
 
     if manager is None:
         manager = JSONDataManager(data_cls, data_name)
 
-    data = PersistentData(manager)
+    data = PersistentData(manager, None)
     _data_register[data_name] = data
     return data
+
+
+def sfe_is_data_registered(data_name: str) -> bool:
+    return data_name in _data_register
 
 
 def sfe_get_data(data_name: str) -> Union[PersistentData[_T], None]:
@@ -94,6 +91,7 @@ def sfe_load_save(savefile: str) -> None:
 
     if _current_savefile is not None:
         sfe_save()
+
     _current_savefile = savefile
 
     savefile_dir = _get_savefile_dir(savefile)
@@ -106,17 +104,22 @@ def sfe_load_save(savefile: str) -> None:
             v.value = v.manager.create_or_default(None)
 
 
-def sfe_save() -> None:
-
+def sfe_save(data_name: str = None) -> None:
     if _current_savefile is None:
         logging.dev_warning("[SFE] Can't save current savefile is None")
         return
 
     savefile_dir = _get_savefile_dir(_current_savefile)
-    for _, v in _data_register.items():
 
+    # Saving a specific data object
+    if data_name is not None:
+        if data_name in _data_register:
+            k, v = _data_register[data_name]
+            v.manager.save_to_file(savefile_dir / v.manager.get_data_filename())
+        return
+
+    # Saving all data objects
+    for _, v in _data_register.items():
         if v.value is None:
             continue
-
-        data_file = savefile_dir / v.manager.get_data_filename()
-        v.manager.save_to_file(v.value, data_file)
+        v.manager.save_to_file(v.value, savefile_dir / v.manager.get_data_filename())

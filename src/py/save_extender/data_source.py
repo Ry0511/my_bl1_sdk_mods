@@ -120,10 +120,18 @@ class JSONDataManager(DataManager):
         try:
             x = self.data_cls()
             as_json = json.dumps(x, default=JSONDataManager._default_to_dict)
-            from_json = json.loads(as_json)
+            from_json: Dict[str, Any] = json.loads(as_json)
 
-            if from_json is None:
+            if from_json is None or not isinstance(from_json, dict) or len(from_json) == 0:
                 raise SFEInvalidDataClass(f"Failed to convert JSON; '{as_json}' to class instance")
+
+            # Should contain all arguments
+            __all_args = self.data_cls(**from_json)
+
+            # Does not contain all; mismatching keys are problematic. This should be a separate
+            #  issue that needs more attention.
+            from_json.popitem()
+            __missing_args = self.data_cls(**from_json)
 
         except Exception as ex:
             err = SFEInvalidDataClass(ex) if not isinstance(ex, SFEBaseException) else ex
