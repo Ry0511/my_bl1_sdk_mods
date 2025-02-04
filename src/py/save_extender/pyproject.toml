@@ -1,6 +1,6 @@
 [project]
 name = "Save Extender"
-version = "1.0"
+version = "0.0"
 authors = [{ name = "-Ry" }]
 description = "Utility to manage custom persistable data which is tied to a gamesave"
 
