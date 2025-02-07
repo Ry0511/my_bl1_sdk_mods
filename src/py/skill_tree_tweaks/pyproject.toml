@@ -1,8 +1,8 @@
 [project]
-name = "skill_tree_tweaks"
+name = "Skilltree UI Fix"
 version = "1.0"
 authors = [{ name = "-Ry" }, { name = "sleepmaster" }]
-description = "Skill Tree UI Tweaks"
+description = "Fixes the skill tree by showing when a class mod augments a skill"
 
 [packager]
 safe_name = "skill_tree_tweaks"
