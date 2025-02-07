@@ -1,6 +1,6 @@
 from mods_base import hook
 from unrealsdk.hooks import Type
-from unrealsdk.unreal import *
+from unrealsdk.unreal import UObject, WrappedStruct, BoundFunction, WrappedArray
 
 from unrealsdk import logging, find_object, load_package
 
@@ -8,7 +8,6 @@ __all__ = [
     "hook_commit_map_change",
     "hook_level_loaded"
 ]
-
 
 @hook(hook_func="WillowGame.WillowGFxMenuHelperSaveGame:BeginGetSaveList")
 def hook_commit_map_change(__obj: UObject, __args: WrappedStruct, __ret, __func: BoundFunction) -> None:
@@ -78,7 +77,6 @@ def hook_commit_map_change(__obj: UObject, __args: WrappedStruct, __ret, __func:
 
     the_globals.ObjectFlags |= 0x4000
     logging.info("@DynamicGameScaling; Package Contents Injected!")
-
 
 @hook(hook_func="WillowGame.WillowPlayerController:SpawningProcessComplete", hook_type=Type.POST_UNCONDITIONAL)
 def hook_level_loaded(obj: UObject, __args: WrappedStruct, __ret, __func: BoundFunction) -> None:
