@@ -1,3 +1,4 @@
+import mods_base
 from mods_base import hook
 from unrealsdk.hooks import Type
 from unrealsdk.unreal import UObject, WrappedStruct, BoundFunction, WrappedArray
@@ -6,8 +7,10 @@ from unrealsdk import logging, find_object, load_package
 
 __all__ = [
     "hook_commit_map_change",
-    "hook_level_loaded"
+    "hook_level_loaded",
+    "hook_on_mission_complete",
 ]
+
 
 @hook(hook_func="WillowGame.WillowGFxMenuHelperSaveGame:BeginGetSaveList")
 def hook_commit_map_change(__obj: UObject, __args: WrappedStruct, __ret, __func: BoundFunction) -> None:
@@ -78,6 +81,7 @@ def hook_commit_map_change(__obj: UObject, __args: WrappedStruct, __ret, __func:
     the_globals.ObjectFlags |= 0x4000
     logging.info("@DynamicGameScaling; Package Contents Injected!")
 
+
 @hook(hook_func="WillowGame.WillowPlayerController:SpawningProcessComplete", hook_type=Type.POST_UNCONDITIONAL)
 def hook_level_loaded(obj: UObject, __args: WrappedStruct, __ret, __func: BoundFunction) -> None:
     logging.info("@WillowPlayerController:SpawningProcessComplete")
@@ -95,3 +99,55 @@ def hook_level_loaded(obj: UObject, __args: WrappedStruct, __ret, __func: BoundF
         if d not in custom_scaling_skills:
             continue
         logging.info(f"@ScalingByRegion=( '{skill.Grade}', '{d._path_name()}' )")
+
+
+@hook(hook_func="WillowGame.MissionTracker:GlobalCompleteMission", hook_type=Type.POST_UNCONDITIONAL)
+def hook_on_mission_complete(__obj: UObject, args: WrappedStruct, ret, __func: BoundFunction):
+    if not ret:
+        return
+
+    from . import utils, data
+
+    m: UObject = args.InMission
+    pname = str(m._path_name())
+    scaling = data.scaling_data()
+
+    logging.info(f"Mission Completed: '{m.MissionName}'; '{pname}'")
+
+    # 100% a better way lol; TODO: Clean this shit up
+    if pname.startswith(utils._arid_mission_prefix):
+        scaling.region_scaling[utils.GameRegion.Arid.value].awesome_level += 0.33
+
+    elif pname.startswith(utils._dahl_mission_prefix):
+        scaling.region_scaling[utils.GameRegion.Dahl.value].awesome_level += 0.33
+
+    elif pname.startswith(utils._scrap_mission_prefix):
+        scaling.region_scaling[utils.GameRegion.Dahl.value].awesome_level += 0.33
+        scaling.region_scaling[utils.GameRegion.Scrap.value].awesome_level += 0.33
+
+    elif pname.startswith(utils._thor_mission_prefix):
+        scaling.region_scaling[utils.GameRegion.Arid.value].awesome_level += 0.33
+        scaling.region_scaling[utils.GameRegion.Dahl.value].awesome_level += 0.33
+        scaling.region_scaling[utils.GameRegion.Scrap.value].awesome_level += 0.33
+        scaling.region_scaling[utils.GameRegion.Thor.value].awesome_level += 0.33
+
+    if pname not in utils._gamestage_scaling_missions:
+        return
+
+    pc = mods_base.get_pc()
+    cur_level = pc.PlayerReplicationInfo.ExpLevel
+
+    for region, value in utils._gamestage_scaling_missions[pname]:
+        if isinstance(region, utils.GameRegion):
+            region = region.value
+
+        # TODO: This may eventually be possible
+        if region not in scaling.region_scaling:
+            logging.dev_warning(f"Skipping Region Scaling for: '{region}'")
+            continue
+
+        # Assign to the region the new scaling value if it is larger
+        reg: data.ScalingModifier = scaling.region_scaling[region]
+        new_value = cur_level + value
+        if new_value > reg.gamestage.cur_:
+            reg.gamestage.assign(new_value)
