@@ -12,7 +12,6 @@ build_mod(
     cls=Library,
     commands=[
         cmd_set,
-        cmd_obj_set,
-        cmd_test_obj_set
+        cmd_test
     ]
 )

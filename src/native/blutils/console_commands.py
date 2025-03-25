@@ -7,8 +7,7 @@ import blutils
 
 __all__: [str] = [
     "cmd_set",
-    "cmd_obj_set",
-    "cmd_test_obj_set",
+    "cmd_test",
 ]
 
 
@@ -33,3 +32,18 @@ cmd_set.parser.add_argument("prop", type=str)
 cmd_set.parser.add_argument("value", type=str)
 cmd_set.parser.add_argument("--import_flags", type=int, default=0x0)
 cmd_set.parser.add_argument("--obj_flags", type=int, default=0x4000)
+
+
+@command("test")
+def cmd_test(args: Namespace) -> None:
+    try:
+        from pathlib import Path
+        f = Path(__file__).parent / "tests" / "import_object.txt"
+        text = f.read_text(encoding="utf-8")
+
+        xs = blutils.import_object("gd_weap_combat_shotgun.Title", text)
+        for x in xs:
+            logging.info(f"OBJ -> ", x)
+
+    except ValueError as ex:
+        logging.error(ex)

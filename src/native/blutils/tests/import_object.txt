@@ -1,0 +1,31 @@
+Begin Object Class=WeaponNamePartDefinition Name=TitleU_TKBaha_TKsWave
+   // Creates object as 'TitleU_TKBaha_TKsWave:AttributePresentationDefinition_10'
+   // referenced below
+   Begin Object Class=AttributePresentationDefinition Name=AttributePresentationDefinition_10
+      BasePriority=5.000000
+      NoConstraintText="Ride the Wave, Dude!"
+      bDontDisplayNumber=True
+      TextColor=(B=70,G=70,R=220,A=255)
+      Name="AttributePresentationDefinition_10"
+      ObjectArchetype=AttributePresentationDefinition'WillowGame.Default__AttributePresentationDefinition'
+   End Object
+   Begin Object Class=Behavior_Explode Name=Behavior_Explode_0
+      Name="Behavior_Explode_0"
+      ObjectArchetype=Behavior_Explode'WillowGame.Default__Behavior_Explode'
+   End Object
+   bNameIsUnique=True
+   Priority=5.000000
+   PartName="T.K's Wave"
+   CashValueModifier=(BaseValueAttribute=InventoryAttributeDefinition'gd_Balance_Inventory.Cost_Weapon.WeaponPartCost4_Rare',BaseValueScaleConstant=2.000000)
+   Rarity=(BaseValueAttribute=InventoryAttributeDefinition'gd_Balance_Inventory.Rarity_Weapon.WeaponPartRarity4_Rare')
+   ZoomWeaponAttributeEffects(0)=(BaseModifierValue=(BaseValueScaleConstant=1.000000))
+   ZoomWeaponAttributeEffects(1)=(BaseModifierValue=(BaseValueScaleConstant=1.000000))
+   ZoomWeaponAttributeEffects(2)=(BaseModifierValue=(BaseValueScaleConstant=1.000000))
+   WeaponCardAttributes(0)=
+   WeaponCardAttributes(1)=
+   WeaponCardAttributes(2)=
+   CustomPresentations(0)=AttributePresentationDefinition'gd_weap_combat_shotgun.Title.TitleU_TKBaha_TKsWave:AttributePresentationDefinition_10'
+   WeaponBehaviors=(OnCreate=(Behavior_Explode'gd_weap_combat_shotgun.Title.TitleU_TKBaha_TKsWave:Behavior_Explode_0'))
+   Name="TitleU_TKBaha_TKsWave"
+   ObjectArchetype=WeaponNamePartDefinition'WillowGame.Default__WeaponNamePartDefinition'
+End Object

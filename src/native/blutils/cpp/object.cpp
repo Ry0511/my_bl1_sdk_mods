@@ -14,6 +14,11 @@
 #include "unrealsdk/unreal/wrappers/gobjects.h"
 #include "unrealsdk/utils.h"
 
+#include "antlr/gen/ue3_text_obj_lexer.h"
+#include "antlr/gen/ue3_text_obj_parser.h"
+#include "antlr/gen/ue3_text_obj_parserBaseListener.h"
+#include "antlr4-runtime.h"
+
 ////////////////////////////////////////////////////////////////////////////////
 // | INTERNAL |
 ////////////////////////////////////////////////////////////////////////////////
@@ -88,6 +93,8 @@ bool _uproperty_import_text(UProperty* prop, const wchar_t* text, uint32_t flags
 
 namespace blutils {
 
+using namespace _blutils;
+
 bool import_text(
     UObject* obj,
     UProperty* prop,
@@ -100,6 +107,47 @@ bool import_text(
         obj->ObjectFlags |= obj_flags;
     }
     return ok;
+}
+
+std::vector<UObject*> import_object(const std::wstring& base_pkg, const std::string& text) {
+    using namespace antlr4;
+
+    ANTLRInputStream input{text};
+    ue3_text_obj_lexer lexer{&input};
+    CommonTokenStream tokens{&lexer};
+
+    ue3_text_obj_parser parser{&tokens};
+    tree::ParseTree* tree = parser.program();
+
+    struct X : ue3_text_obj_parserBaseListener {
+        std::string bp;
+
+        explicit X(const std::wstring& str) : bp(utils::narrow(str)) {}
+
+        void enterProgram(ue3_text_obj_parser::ProgramContext* ctx) override {
+            auto roots = ctx->begin_object();
+            if (roots.empty()) {
+                LOG(INFO, "No Begin Objects detected at root program");
+                return;
+            }
+
+            auto root = roots.front();
+            LOG(INFO,
+                "Object to modify: '{}.{}'",
+                bp,
+                root->name_identifier()->identifier()->getText());
+        }
+    };
+
+    X x{base_pkg};
+    tree::ParseTreeWalker::DEFAULT.walk(&x, tree);
+
+    auto s = tree->toStringTree(&parser, true);
+    LOG(INFO, "[PARSE_TREE]");
+    LOG(INFO, "{}", s);
+    LOG(INFO, "[PARSE_TREE]");
+
+    return {};
 }
 
 std::optional<UObject*> find_object(const std::wstring& obj_path_name, bool bthrow) {

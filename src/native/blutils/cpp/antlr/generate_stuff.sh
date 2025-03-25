@@ -18,4 +18,4 @@ java -jar "$antlr_jar" -Dlanguage=Cpp "$BASE_DIR/ue3_text_obj_lexer.g4" -package
 
 # Create Parser
 echo "Generating parser into '$out_dir'"
-java -jar "$antlr_jar" -Dlanguage=Cpp "$BASE_DIR/ue3_text_obj_parser.g4" -package "_blutils" -o "$out_dir"
+java -jar "$antlr_jar" -Dlanguage=Cpp -visitor "$BASE_DIR/ue3_text_obj_parser.g4" -package "_blutils" -o "$out_dir"

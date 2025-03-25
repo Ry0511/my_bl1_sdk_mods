@@ -39,8 +39,7 @@ obj_value: obj_ref
          | INTEGER_LITERAL
          | STRING_LITERAL
          | DECIMAL_LITERAL
-         | TRUE
-         | FALSE
+         | BOOL_LITERAL
          | identifier
          ;
 

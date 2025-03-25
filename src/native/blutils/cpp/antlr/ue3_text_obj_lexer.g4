@@ -33,8 +33,7 @@ KW_CLASS : 'Class';
 KW_NAME  : 'Name';
 KW_END   : 'End';
 
-TRUE  : 'True';
-FALSE : 'False';
+BOOL_LITERAL: 'True' | 'False';
 
 EQUAL : '=';
 MINUS : '-';

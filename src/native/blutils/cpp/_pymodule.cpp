@@ -17,5 +17,6 @@ PYBIND11_MODULE(blutils, m) {
         "obj_flags"_a
     );
 
+    m.def("import_object", &blutils::import_object, "base_pkg"_a, "text"_a);
     m.def("find_object", &blutils::find_object, "obj_path_name"_a, "bthrow"_a);
 }

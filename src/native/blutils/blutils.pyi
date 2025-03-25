@@ -1,4 +1,4 @@
-from typing import Union
+from typing import *
 from unrealsdk.unreal import *
 
 
@@ -20,16 +20,11 @@ def import_text(
     """
 
 
-def set_uprop_class(
-    prop: UObjectProperty,
-    cls: UClass
-) -> None:
-    """
-    Sets a UObjectProperties underlying class
-    :param prop:
-    :param cls:
-    :return:
-    """
+def import_object(
+    base_pkg: str,
+    text: str
+) -> List[UObject]:
+    ...
 
 
 def find_object(obj_path_name: str, bthrow=False) -> Union[UObject, None]:
