@@ -54,6 +54,10 @@ struct RuntimeConfig {
     float GObjects_ObjectQueryDelta{};
     EQueryStrategy GObjects_ObjectQueryStrategy{STARTS_WITH};
 
+    std::vector<GObjects_Query> TheWorld_QueryObjects{};
+    float TheWorld_QueryDelta{0.0F};
+    float TheWorld_QueryAge{0.0F};
+
     // This is lazily built as new classes are found/discovered
     std::unordered_map<UClass*, TreeNodeBuilder> ObjectTree_TreeNodeBuilderMap{};
     std::set<std::string> ObjectTree_DefaultedTypes{};
@@ -74,12 +78,14 @@ void show_gobjects_list();
 void show_gobjects_selection();
 void show_debug_info();
 void show_error_popup();
+void show_theworld_objects();
 
 // Builds a complex tree structure for the provided UObject; Lazily builds open nodes
 void show_editable_uobject_tree(UObject*);
 
 void show_query_controls();
 void update_query_objects();
+void query_gobjects(std::vector<GObjects_Query>&, const std::function<bool(UObject*)>&);
 
 }  // namespace
 
@@ -100,6 +106,7 @@ void update() noexcept {
         TRY_SHOW(show_gobjects_selection);
         ImGui::PopStyleVar();
         TRY_SHOW(show_debug_info);
+        TRY_SHOW(show_theworld_objects);
         show_error_popup();
 
         // Generic Exception
@@ -329,9 +336,69 @@ void show_gobjects_selection() {
 // ############################################################################//
 
 void show_theworld_objects() {
-    if (ImGui::Begin("The World")) {
-        ImGui::Text("Objects");
+    if (!ImGui::Begin("The World")) {
+        ImGui::End();
+        return;
     }
+
+    cfg.TheWorld_QueryAge += ImGui::GetIO().DeltaTime;
+
+    if (cfg.TheWorld_QueryAge > 60.0F || cfg.TheWorld_QueryObjects.empty()) {
+        cfg.TheWorld_QueryAge = 0.0F;
+        auto begin = Clock::now();
+        query_gobjects(cfg.TheWorld_QueryObjects, [](UObject* obj) {
+            if (obj == nullptr) {
+                return false;
+            }
+            std::wstring path_name = obj->get_path_name();
+            return path_name.find(L"TheWorld.") != std::wstring::npos;
+        });
+        cfg.TheWorld_QueryDelta = FloatDuration{Clock::now() - begin}.count();
+
+        std::sort(
+            cfg.TheWorld_QueryObjects.begin(),
+            cfg.TheWorld_QueryObjects.end(),
+            [](const GObjects_Query& a, const GObjects_Query& b) {
+                std::greater<std::string_view> cmp{};
+                return cmp(a.PathName, b.PathName);
+            }
+        );
+    }
+
+    ImGui::Text(std::format("TheWorld ({:.2f}s)", cfg.TheWorld_QueryAge).c_str());
+    ImGui::SameLine();
+    ImGui::Text(std::format("Delta {:.2f}", cfg.TheWorld_QueryDelta).c_str());
+
+    const std::vector<GObjects_Query>& objects = cfg.TheWorld_QueryObjects;
+
+    if (ImGui::BeginChild("Query Objects##QueryObjects", ImGui::GetContentRegionAvail())) {
+        ImGuiListClipper clipper{};
+        clipper.Begin(static_cast<int>(objects.size()));
+
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                const GObjects_Query& query = objects[i];
+
+                // Still show that it was there but this object is no longer valid
+                if (!query) {
+                    ImGui::PushID(i);
+                    ImVec4 red{1.0F, 0.0F, 0.0F, 1.0F};
+                    ImGui::TextColored(red, query.PathName.c_str());
+                    ImGui::PopID();
+                    continue;
+                }
+
+                ImGui::PushID(i);
+                if (ImGui::Selectable(query.PathName.c_str())) {
+                    cfg.GObjects_SelectedIndex = query.Index;
+                    cfg.GObjects_SelectedObject = query.Obj;
+                }
+                ImGui::PopID();
+            }
+        }
+    }
+    ImGui::EndChild();
+
     ImGui::End();
 }
 
@@ -430,6 +497,18 @@ std::string get_unique_label(UObject* obj, UProperty* prop) {
         prop->ArrayDim,
         prop->Offset_Internal
     );
+}
+
+void query_gobjects(std::vector<GObjects_Query>& xs, const std::function<bool(UObject*)>& filter) {
+    xs.clear();
+    const GObjects& objs = gobjects();
+    for (size_t i = 0; i < objs.size(); ++i) {
+        UObject* obj = objs.obj_at(i);
+        if (filter(obj)) {
+            xs.emplace_back(i, obj, wstr_to_str(obj->get_path_name()));
+        }
+    }
+    xs.shrink_to_fit();
 }
 
 // ############################################################################//

@@ -3,7 +3,6 @@ from mods_base import build_mod
 
 from .options import *
 from .hooks import *
-from . import data
 
 build_mod(
     keybinds=[],
@@ -17,7 +16,7 @@ build_mod(
     settings_file=SETTINGS_DIR / "rys_dynamic_game_scaling.json",
 )
 
-# Register Serialised Data
-from save_extender import sfe_register
+from save_extender import *
+from . import data
 
-data._dgs_save_data = sfe_register(data.ScalingData, "dynamic_game_scaling", overwrite=True)
+data._dgs_save_data = sfe_register(data.ScalingData, "dynamic_game_scaling")

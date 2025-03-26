@@ -1,21 +1,23 @@
 from mods_base import build_mod, ModType, Library
 
+from .data import PersistentData
+from .serialize_core import *
+from .sfe_core import *
 from .hooks import *
-from .save_manager import *
-from .utils import *
-from .data_source import *
 
-# Common imports
 __all__ = [
-    "sfe_dataclass",
-    "sfe_save",
-    "sfe_register",
-    "sfe_load_save",
-    "sfe_get_data",
     "PersistentData",
+    "sfe_register",
+    "sfe_load",
+    "sfe_save",
+    "SupportsToDict",
+    "SupportsFactoryCreate",
 ]
 
 EXTENDED_SAVE_DIR.mkdir(parents=True, exist_ok=True)
+
+if not EXTENDED_SAVE_DIR.is_dir():
+    raise RuntimeError(f"Failed to create/validate extended save directory: '{EXTENDED_SAVE_DIR.resolve()}'")
 
 build_mod(
     cls=Library,

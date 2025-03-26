@@ -1,7 +1,7 @@
 from unrealsdk import logging
 from mods_base.hook import *
 
-from .save_manager import *
+from .sfe_core import sfe_load, sfe_save
 
 __all__ = [
     "hook_on_save_loaded",
@@ -38,7 +38,7 @@ def hook_on_save_loaded(
         logging.dev_warning(_sfe_invalid_save_error.format(savefile))
         return
 
-    sfe_load_save(str(savefile))
+    sfe_load(savefile.split(".")[0])
 
 
 ################################################################################

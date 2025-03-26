@@ -1,0 +1,16 @@
+[project]
+name = "UPK Patcher"
+version = "1.0"
+authors = [{ name = "-Ry" }]
+description = ""
+
+[packager]
+safe_name = "upk_patcher"
+exclude_globs = ["*.pyc"]
+
+[tool.sdkmod]
+mod_type = "Standard"
+supported_games = "BL1"
+coop_support = "Unknown"
+auto_enable = "False"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }

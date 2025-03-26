@@ -1,0 +1,16 @@
+[project]
+name = "UPK Loader"
+version = "1.0"
+authors = [{ name = "-Ry" }]
+description = "Automatically loads .upk files from specified directories"
+
+[packager]
+safe_name = "skill_tree_tweaks"
+exclude_globs = ["*.pyc"]
+
+[tool.sdkmod]
+mod_type = "Library"
+supported_games = "BL1"
+coop_support = "Unknown"
+auto_enable = "False"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }

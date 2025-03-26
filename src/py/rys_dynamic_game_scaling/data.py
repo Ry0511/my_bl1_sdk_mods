@@ -1,7 +1,7 @@
 from typing import Dict
-from dataclasses import field
+from dataclasses import dataclass, field
 
-from save_extender import sfe_dataclass, PersistentData
+from save_extender import PersistentData
 from .utils import GameRegion
 
 __all__ = [
@@ -12,7 +12,7 @@ __all__ = [
 ]
 
 
-@sfe_dataclass
+@dataclass
 class BoundedFloat:
     min_: float = 0.0
     max_: float = 72.0
@@ -35,10 +35,10 @@ class BoundedFloat:
             self.clamp()
 
 
-@sfe_dataclass
+@dataclass
 class ScalingModifier:
     gamestage: BoundedFloat
-    awesome_level: float = 0.0
+    awesome_level: float = field(default=0.0)
 
 
 def _default_dict_factory() -> Dict[str, ScalingModifier]:
@@ -54,15 +54,25 @@ def _default_dict_factory() -> Dict[str, ScalingModifier]:
     }
 
 
-@sfe_dataclass
+@dataclass
 class ScalingData:
     version: tuple[int, int] = field(default=(1, 0))
-    region_scaling: Dict[str, ScalingModifier] \
-        = field(default_factory=_default_dict_factory)
+    region_scaling: Dict[str, ScalingModifier] = field(default_factory=_default_dict_factory)
+
+    def __post_init__(self):
+        # Seems backwards but we essentially collapse the loaded data into the factory result which
+        #  will ensure we have everything in the default dict.
+        d = _default_dict_factory()
+        for k, v in self.region_scaling.items():
+            if isinstance(v, dict):
+                d[k] = ScalingModifier(**v)
+        self.region_scaling = d
 
 
 _dgs_save_data: PersistentData[ScalingData] | None = None
 
 
 def scaling_data() -> ScalingData:
+    if _dgs_save_data is None or _dgs_save_data.value is None:
+        raise RuntimeError("Savefile has not been loaded")
     return _dgs_save_data.value
