@@ -60,10 +60,11 @@ function(bl1_add_py_module target dir)
     add_dependencies(${PROJECT_NAME} ${target})
 
     # Install
+    string(REGEX REPLACE "/$" "" dir ${dir})
     get_filename_component(BL1_DIR_NAME ${dir} NAME)
     set(INSTALL_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/${BL1_MODS_PRESET}/${BL1_DIR_NAME}")
     install(TARGETS ${target} DESTINATION ${INSTALL_DIR})
-    install(FILES ${DIR_CONTENT} DESTINATION ${INSTALL_DIR})
+    install(DIRECTORY "${dir}/"  DESTINATION  ${INSTALL_DIR})
 
     # Packaging
     bl1_create_packager(${target} ${INSTALL_DIR})
@@ -84,12 +85,12 @@ endfunction()
 
 # Leaked project
 add_subdirectory(./src/native/object_explorer)
-bl1_add_py_module(object_explorer src/native/object_explorer)
+bl1_add_py_module(object_explorer "src/native/object_explorer")
 target_link_libraries(object_explorer PRIVATE imgui_glfw_gl3)
 target_compile_definitions(object_explorer PRIVATE _CRT_SECURE_NO_WARNINGS)
 
-bl1_add_py_module(package_tools src/native/package_tools)
-bl1_add_py_module(blutils src/native/blutils)
+bl1_add_py_module(package_tools "src/native/package_tools")
+bl1_add_py_module(blutils "src/native/blutils")
 
 # You need to install these yourself if building
 find_package(antlr4-runtime REQUIRED PATHS $ENV{ANTLR_RUNTIME_INSTALL_DIR})
