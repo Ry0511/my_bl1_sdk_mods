@@ -1,3 +1,4 @@
 [submodule "vendor/pyunrealsdk"]
 	path = vendor/pyunrealsdk
 	url = https://github.com/Ry0511/pyunrealsdk
+	branch = master
