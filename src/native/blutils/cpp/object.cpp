@@ -109,43 +109,49 @@ bool import_text(
     return ok;
 }
 
-std::vector<UObject*> import_object(const std::wstring& base_pkg, const std::string& text) {
+std::vector<UObject*> import_object(const std::wstring&, const std::string& text) {
     using namespace antlr4;
 
     ANTLRInputStream input{text};
     ue3_text_obj_lexer lexer{&input};
     CommonTokenStream tokens{&lexer};
 
-    ue3_text_obj_parser parser{&tokens};
-    tree::ParseTree* tree = parser.program();
-
-    struct X : ue3_text_obj_parserBaseListener {
-        std::string bp;
-
-        explicit X(const std::wstring& str) : bp(utils::narrow(str)) {}
-
-        void enterProgram(ue3_text_obj_parser::ProgramContext* ctx) override {
-            auto roots = ctx->begin_object();
-            if (roots.empty()) {
-                LOG(INFO, "No Begin Objects detected at root program");
-                return;
-            }
-
-            auto root = roots.front();
-            LOG(INFO,
-                "Object to modify: '{}.{}'",
-                bp,
-                root->name_identifier()->qualified_identifier()->getText());
+    struct ErrorListener : antlr4::BaseErrorListener {
+       private:
+        void syntaxError(
+            Recognizer*,
+            Token* offending_symbol,
+            size_t line,
+            size_t char_pos,
+            const std::string& msg,
+            std::exception_ptr
+        ) override {
+            LOG(ERROR, "Error at line {} at position {}; {}", line, char_pos, msg);
         }
     };
 
-    X x{base_pkg};
-    tree::ParseTreeWalker::DEFAULT.walk(&x, tree);
+    ue3_text_obj_parser parser{&tokens};
 
-    auto s = tree->toStringTree(&parser, true);
-    LOG(INFO, "[PARSE_TREE]");
-    LOG(INFO, "{}", s);
-    LOG(INFO, "[PARSE_TREE]");
+    ErrorListener err_listener{};
+    parser.addErrorListener(&err_listener);
+
+    // Iterate through program
+    ue3_text_obj_parser::ProgramContext* root = parser.program();
+    size_t error_count = parser.getNumberOfSyntaxErrors();
+
+    // Skip on errors
+    if (error_count > 0) {
+        LOG(ERROR, "Encountered '{}' errors during parsing; Skipping...", error_count);
+        return {};
+    }
+
+    // Parse top level objects definitions
+    for (ue3_text_obj_parser::Begin_objectContext* ctx : root->begin_object()) {
+        LOG(INFO,
+            "CreateObject=( '{}', '{}' )",
+            ctx->class_identifier()->getText(),
+            ctx->name_identifier()->getText());
+    }
 
     return {};
 }
