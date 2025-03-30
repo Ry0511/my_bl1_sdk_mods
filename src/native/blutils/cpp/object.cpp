@@ -135,7 +135,7 @@ std::vector<UObject*> import_object(const std::wstring& base_pkg, const std::str
             LOG(INFO,
                 "Object to modify: '{}.{}'",
                 bp,
-                root->name_identifier()->identifier()->getText());
+                root->name_identifier()->qualified_identifier()->getText());
         }
     };
 

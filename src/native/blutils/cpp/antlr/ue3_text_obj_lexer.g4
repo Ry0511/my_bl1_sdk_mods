@@ -20,7 +20,8 @@ LINE_COMMENT    : '//' ~[\r\n]*
 DECIMAL_LITERAL : SIGN? DIGIT+ '.' DIGIT+;
 
 // Not sure if this is absolutely correct
-STRING_LITERAL: '"' (~["\\] | ESC_SEQ)* '"';
+STRING_LITERAL: DQUOTE (~["\\] | ESC_SEQ)* DQUOTE;
+// NAME_LITERAL  : SQUOTE (~['] | ESC_SEQ)* SQUOTE; Bit more complex
 
 LPAREN    : '(';
 RPAREN    : ')';
@@ -32,6 +33,7 @@ KW_OBJECT: 'Object';
 KW_CLASS : 'Class';
 KW_NAME  : 'Name';
 KW_END   : 'End';
+KW_NONE  : 'None';
 
 BOOL_LITERAL: 'True' | 'False';
 
@@ -44,6 +46,7 @@ DQUOTE: '"';
 COMMA : ',';
 DOT   : '.';
 COLON : ':';
+SYM_AT: '@';
 
 IDENTIFIER:	[a-zA-Z_][a-zA-Z0-9_]*;
 

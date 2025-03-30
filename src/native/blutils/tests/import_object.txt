@@ -1,4 +1,6 @@
-Begin Object Class=WeaponNamePartDefinition Name=TitleU_TKBaha_TKsWave
+Begin Object
+    Class=WeaponNamePartDefinition
+    Name=TitleU_TKBaha_TKsWave
    // Creates object as 'TitleU_TKBaha_TKsWave:AttributePresentationDefinition_10'
    // referenced below
    Begin Object Class=AttributePresentationDefinition Name=AttributePresentationDefinition_10
@@ -18,7 +20,11 @@ Begin Object Class=WeaponNamePartDefinition Name=TitleU_TKBaha_TKsWave
    PartName="T.K's Wave"
    CashValueModifier=(BaseValueAttribute=InventoryAttributeDefinition'gd_Balance_Inventory.Cost_Weapon.WeaponPartCost4_Rare',BaseValueScaleConstant=2.000000)
    Rarity=(BaseValueAttribute=InventoryAttributeDefinition'gd_Balance_Inventory.Rarity_Weapon.WeaponPartRarity4_Rare')
-   ZoomWeaponAttributeEffects(0)=(BaseModifierValue=(BaseValueScaleConstant=1.000000))
+   ZoomWeaponAttributeEffects(0)=(BaseModifierValue=
+                                    (
+                                        BaseValueScaleConstant=1.000000
+                                    )
+                                 )
    ZoomWeaponAttributeEffects(1)=(BaseModifierValue=(BaseValueScaleConstant=1.000000))
    ZoomWeaponAttributeEffects(2)=(BaseModifierValue=(BaseValueScaleConstant=1.000000))
    WeaponCardAttributes(0)=
