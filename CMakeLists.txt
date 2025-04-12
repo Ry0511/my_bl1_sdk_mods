@@ -93,10 +93,15 @@ bl1_add_py_module(package_tools "src/native/package_tools")
 bl1_add_py_module(blutils "src/native/blutils")
 
 # You need to install these yourself if building
-find_package(antlr4-runtime REQUIRED PATHS $ENV{ANTLR_RUNTIME_INSTALL_DIR})
-include_directories( ${ANTLR4_INCLUDE_DIR} )
-add_dependencies( blutils antlr4_static )
-target_link_libraries( blutils PRIVATE antlr4_static)
+if (${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    find_package(antlr4-runtime REQUIRED PATHS "$ENV{ANTLR_RUNTIME_INSTALL_DIR}/release")
+else ()
+    find_package(antlr4-runtime REQUIRED PATHS "$ENV{ANTLR_RUNTIME_INSTALL_DIR}/debug")
+endif ()
+
+include_directories(${ANTLR4_INCLUDE_DIR})
+add_dependencies(blutils antlr4_static)
+target_link_libraries(blutils PRIVATE antlr4_static)
 
 bl1_add_basic_py_module("rys_qol" "src/py/rys_qol/")
 bl1_add_basic_py_module("rys_auto_save" "src/py/rys_auto_save/")

@@ -120,7 +120,7 @@ std::vector<UObject*> import_object(const std::wstring&, const std::string& text
        private:
         void syntaxError(
             Recognizer*,
-            Token* offending_symbol,
+            Token*,
             size_t line,
             size_t char_pos,
             const std::string& msg,
