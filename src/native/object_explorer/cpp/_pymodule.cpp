@@ -10,17 +10,11 @@ PYBIND11_MODULE(object_explorer, m) {
 
     m.def("initialise", []() {
         LOG(INFO, "Initialising object explorer...");
-        int res = object_explorer::initialise();
-        if (res < 0) {
-            LOG(ERROR, "Fatal error occured during initialisation process...");
-        } else if (res > 0) {
-            LOG(WARNING, "Non fatal error occured during initialisation process..");
-        }
-        return res;
+        object_explorer::initialise();
     });
 
     m.def("terminate", []() {
         LOG(INFO, "Terminating object explorer...");
-        object_explorer::terminate();
+        object_explorer::shutdown();
     });
 }

@@ -39,36 +39,25 @@ using Clock = std::chrono::steady_clock;
 using Instant = std::chrono::steady_clock::time_point;
 using FloatDuration = std::chrono::duration<float>;
 
-struct Context {
-    void* Window;                           // Window Handle
-    int Width, Height;                      // Window Size
-    bool HasInitialised;                    // GLFW + ImGui Init statee
-    Instant LastTickTime;                   // Last time we rendered/updated the ui
-    float LastRenderDelta;                  // Time it took to render the last ui frame
-    float TargetFramerate = 1.0F / 120.0F;  // The target framerate delta
-};
+constexpr int OBJECT_EXPLORER_VER_MAJOR = 0;
+constexpr int OBJECT_EXPLORER_VER_MINOR = 0;
 
-extern Context ctx;
+inline std::string version() noexcept {
+  return fmt::format("{}.{}", OBJECT_EXPLORER_VER_MAJOR, OBJECT_EXPLORER_VER_MINOR);
+}
 
-// ############################################################################//
-//  | UTILS |
-// ############################################################################//
+void initialise(void);
+void shutdown(void);
 
-std::string wstr_to_str(const std::wstring& wstr) noexcept;
-std::wstring str_to_wstr(const std::string& str) noexcept;
+void begin_frame(void);
+void end_frame(void);
+void update(void);
 
-void create_view_object_tree(UObject*) noexcept;
+void draw_object_tree(void);
+void draw_object_viewer(void);
 
-// ############################################################################//
-//  | INIT |
-// ############################################################################//
-
-int initialise(void) noexcept;
-void terminate(void) noexcept;
-
-void begin_frame(void) noexcept;
-void update(void) noexcept;
-void end_frame(void) noexcept;
+bool draw_uobject_view(UObject* obj);
+bool draw_property_view(UObject* obj, UProperty* prop);
 
 }  // namespace object_explorer
 
