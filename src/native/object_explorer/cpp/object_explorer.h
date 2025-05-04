@@ -16,19 +16,6 @@
 #include "unrealsdk/unreal/structs/fname.h"
 #include "unrealsdk/unreal/wrappers/gobjects.h"
 
-#include "unrealsdk/unreal/classes/properties/copyable_property.h"
-#include "unrealsdk/unreal/classes/properties/uarrayproperty.h"
-#include "unrealsdk/unreal/classes/properties/uboolproperty.h"
-#include "unrealsdk/unreal/classes/properties/ubyteproperty.h"
-#include "unrealsdk/unreal/classes/properties/uobjectproperty.h"
-#include "unrealsdk/unreal/classes/properties/ustrproperty.h"
-#include "unrealsdk/unreal/classes/properties/ustructproperty.h"
-#include "unrealsdk/unreal/classes/uscriptstruct.h"
-
-#define IMGUI_USER_CONFIG "_imconfig_.h"
-#include "imgui.h"
-#include "misc/cpp/imgui_stdlib.h"
-
 namespace object_explorer {
 
 using namespace unrealsdk;

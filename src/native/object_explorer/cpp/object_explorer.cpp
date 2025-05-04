@@ -6,20 +6,37 @@
 
 #include "object_explorer.h"
 
+#include "unrealsdk/unreal/classes/properties/copyable_property.h"
+#include "unrealsdk/unreal/classes/properties/uarrayproperty.h"
+#include "unrealsdk/unreal/classes/properties/uboolproperty.h"
+#include "unrealsdk/unreal/classes/properties/ubyteproperty.h"
+#include "unrealsdk/unreal/classes/properties/uclassproperty.h"
+#include "unrealsdk/unreal/classes/properties/uobjectproperty.h"
+#include "unrealsdk/unreal/classes/properties/ustrproperty.h"
+#include "unrealsdk/unreal/classes/properties/ustructproperty.h"
+
 #include "GLFW/glfw3.h"
 
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include "imgui_internal.h"
 
+#define IMGUI_USER_CONFIG "_imconfig_.h"
+#include "imgui.h"
+
+
+namespace unrealsdk::unreal {
+class UDelegateProperty;
+class UInterfaceProperty;
+class UComponentProperty;
+}  // namespace unrealsdk::unreal
 namespace object_explorer {
-
 ////////////////////////////////////////////////////////////////////////////////
 // | CONSTANTS |
 ////////////////////////////////////////////////////////////////////////////////
 
-static const std::wstring update_func_name = L"Engine.Actor:Tick";
-static const std::wstring update_func_id = L"object_explorer_update_func";
+// This always gets ticked which is what we want
+static const std::wstring tick_fn_name = L"Engine.GameViewportClient:Tick";
+static const std::wstring tick_fn_id = L"object_explorer_tick_fn";
 
 ////////////////////////////////////////////////////////////////////////////////
 // | VARIABLES |
@@ -38,15 +55,22 @@ struct UnrealCoreProperties {
     UClass* ByteProperty{nullptr};
     UClass* ComponentProperty{nullptr};
     UClass* InterfaceProperty{nullptr};
+    UClass* MapProperty{nullptr};
+    UClass* DelegateProperty{nullptr};
 };
 
 struct RuntimeInfo {
-    std::unique_ptr<UnrealCoreProperties> CoreProperties;
+    GLFWwindow* MainWindow{nullptr};
+    ImGuiContext* ImGuiContext{nullptr};
+    std::unique_ptr<UnrealCoreProperties> CoreProperties{nullptr};
 };
 
 static RuntimeInfo g_RuntimeInfo{};
-static GLFWwindow* g_Window = nullptr;
-static ImGuiContext* g_ImGuiContext = nullptr;
+static std::thread g_InitThread{};
+static std::atomic_bool g_HasInitialised{false};
+static std::atomic_bool g_ShutdownRequested{false};
+
+// TODO: Figure out how the fuck this synchronisation stuff is supposed to work.
 
 using flag_t = uint8_t;
 static flag_t system_init_flags = 0;
@@ -65,22 +89,7 @@ constexpr flag_t FOE_TICK_HOOKED         = 1 << 4;
 // | STARTUP |
 ////////////////////////////////////////////////////////////////////////////////
 
-static bool _tick_callback(const hook_manager::Details& /* details */) {
-    // TODO: Limit tick rate to reasonable limit
-    static auto last_tick = Clock::now() + std::chrono::seconds{1};
-    const float target_frame_rate = 1.0F / 120.0F;
-    using FloatDuration = std::chrono::duration<float>;
-
-    const auto now = Clock::now();
-
-    if (FloatDuration(now - last_tick).count() < target_frame_rate) {
-        return false;
-    }
-
-    last_tick = now;
-    begin_frame();
-    update();
-    end_frame();
+static bool _tick_callback(const hook_manager::Details& /*details*/) {
 
     return false;
 }
@@ -90,32 +99,27 @@ static void _glfw_error_callback(int error, const char* description) {
 }
 
 static void _init_glfw3() {
-    if (!glfwInit()) {
+    if (glfwInit() != GLFW_TRUE) {
         throw std::runtime_error{"Failed to initialise glfw"};
     }
 
     glfwSetErrorCallback(&_glfw_error_callback);
 
-    glfwWindowHint(GLFW_RED_BITS, 8);
-    glfwWindowHint(GLFW_GREEN_BITS, 8);
-    glfwWindowHint(GLFW_BLUE_BITS, 8);
-    glfwWindowHint(GLFW_ALPHA_BITS, 8);
-    glfwWindowHint(GLFW_STENCIL_BITS, 0);
-    glfwWindowHint(GLFW_DEPTH_BITS, 8);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    g_Window = glfwCreateWindow(800, 600, "Object Explorer", nullptr, nullptr);
-    if (!g_Window) {
+    g_RuntimeInfo.MainWindow = glfwCreateWindow(800, 600, "Object Explorer", nullptr, nullptr);
+    if (g_RuntimeInfo.MainWindow == nullptr) {
         glfwTerminate();
         throw std::runtime_error{"Failed to create main window"};
     }
 
-    glfwMakeContextCurrent(g_Window);
+    glfwShowWindow(g_RuntimeInfo.MainWindow);
+    glfwMakeContextCurrent(g_RuntimeInfo.MainWindow);
     glfwSwapInterval(1);
     system_init_flags |= FGLFW_INIT;
 }
@@ -125,8 +129,8 @@ static void _init_imgui() {
         throw std::runtime_error{"Failed to initialise imgui"};
     }
 
-    g_ImGuiContext = ImGui::CreateContext();
-    if (g_ImGuiContext == nullptr) {
+    g_RuntimeInfo.ImGuiContext = ImGui::CreateContext();
+    if (g_RuntimeInfo.ImGuiContext == nullptr) {
         throw std::runtime_error{"Failed to create imgui context"};
     }
 
@@ -140,11 +144,11 @@ static void _init_imgui() {
     ImGui::StyleColorsDark();
 
     io.ConfigErrorRecovery = true;
-    io.ConfigErrorRecoveryEnableAssert = true;
+    io.ConfigErrorRecoveryEnableAssert = false;
     io.ConfigErrorRecoveryEnableDebugLog = true;
     io.ConfigErrorRecoveryEnableTooltip = true;
 
-    if (!ImGui_ImplGlfw_InitForOpenGL(g_Window, true)) {
+    if (!ImGui_ImplGlfw_InitForOpenGL(g_RuntimeInfo.MainWindow, true)) {
         throw std::runtime_error{"Failed to initialise imgui glfw backend"};
     }
     system_init_flags |= FIMGUI_INIT_GLFW_FOR_GL;
@@ -157,25 +161,18 @@ static void _init_imgui() {
 };
 
 static void _init_object_explorer() {
-    bool has_hooked = hook_manager::add_hook(
-        update_func_name,
-        hook_manager::Type::PRE,
-        update_func_id,
-        &_tick_callback
-    );
+    bool has_hooked =
+        hook_manager::add_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id, &_tick_callback);
 
     if (!has_hooked) {
-        throw std::runtime_error{"Failed to add hook"};
+        throw std::runtime_error{fmt::format("Failed to add hook to '{}'", tick_fn_name)};
     }
     system_init_flags |= FOE_TICK_HOOKED;
 
-    g_RuntimeInfo = RuntimeInfo{};
     g_RuntimeInfo.CoreProperties = std::make_unique<UnrealCoreProperties>();
-
     auto& props = *g_RuntimeInfo.CoreProperties;
 
     // clang-format off
-    // TODO: MapProperty, DelegateProperty
     props.ArrayProperty     = find_class(L"Core.ArrayProperty"_fn);
     props.ClassProperty     = find_class(L"Core.ClassProperty"_fn);
     props.StructProperty    = find_class(L"Core.StructProperty"_fn);
@@ -188,22 +185,51 @@ static void _init_object_explorer() {
     props.ByteProperty      = find_class(L"Core.ByteProperty"_fn);
     props.ComponentProperty = find_class(L"Core.ComponentProperty"_fn);
     props.InterfaceProperty = find_class(L"Core.InterfaceProperty"_fn);
+    props.MapProperty       = find_class(L"Core.MapProperty"_fn);
+    props.DelegateProperty  = find_class(L"Core.DelegateProperty"_fn);
     // clang-format on
 }
 
 void initialise() {
     try {
-        _init_glfw3();
-        _init_imgui();
-        _init_object_explorer();
+        g_InitThread = std::thread{[]() -> void {
+            g_RuntimeInfo = RuntimeInfo{};
+            _init_glfw3();
+            _init_imgui();
+            _init_object_explorer();
+            g_HasInitialised = true;
 
-        const char* glfw_version = glfwGetVersionString();
-        const char* gl_version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
-        const char* imgui_version = ImGui::GetVersion();
-        LOG(INFO, "Object Explorer v{} Initialised", object_explorer::version());
-        LOG(INFO, " >  {}", gl_version);
-        LOG(INFO, " >  {}", glfw_version);
-        LOG(INFO, " >  {}", imgui_version);
+            const char* glfw_version = glfwGetVersionString();
+            const char* gl_version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+            const char* imgui_version = ImGui::GetVersion();
+            LOG(INFO, "Object Explorer v{} Initialised", object_explorer::version());
+            LOG(INFO, " >  {}", gl_version);
+            LOG(INFO, " >  {}", glfw_version);
+            LOG(INFO, " >  {}", imgui_version);
+
+            while (g_HasInitialised && !glfwWindowShouldClose(g_RuntimeInfo.MainWindow)) {
+
+                if (g_ShutdownRequested.load()) {
+                    shutdown();
+                    return;
+                }
+
+                if (g_HasInitialised) {
+                    begin_frame();
+                    update();
+                    end_frame();
+                }
+
+                if (glfwWindowShouldClose(g_RuntimeInfo.MainWindow)) {
+                    glfwSetWindowShouldClose(g_RuntimeInfo.MainWindow, GLFW_TRUE);
+                    g_ShutdownRequested.store(true);
+                }
+
+                std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            }
+        }};
+
+        g_InitThread.detach();
 
     } catch (const std::runtime_error& ex) {
         // We don't deinitialise things here
@@ -214,9 +240,13 @@ void initialise() {
 }
 
 void shutdown() {
+    if (std::this_thread::get_id() != g_InitThread.get_id()) {
+        g_ShutdownRequested.store(true);
+        return;
+    }
     LOG(INFO, "Shutting down Object Explorer...");
 
-    hook_manager::remove_hook(update_func_name, hook_manager::Type::PRE, update_func_id);
+    hook_manager::remove_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id);
 
     if (system_init_flags & FIMGUI_INIT_GL3) {
         ImGui_ImplOpenGL3_Shutdown();
@@ -227,28 +257,90 @@ void shutdown() {
     }
 
     if (system_init_flags & FIMGUI_INIT_CONTEXT) {
-        ImGui::DestroyContext(g_ImGuiContext);
+        ImGui::DestroyContext(g_RuntimeInfo.ImGuiContext);
     }
-    g_ImGuiContext = nullptr;
+    g_RuntimeInfo.ImGuiContext = nullptr;
 
-    if ((system_init_flags & FGLFW_INIT) && g_Window != nullptr) {
-        glfwDestroyWindow(g_Window);
+    if ((system_init_flags & FGLFW_INIT) && g_RuntimeInfo.MainWindow != nullptr) {
+        glfwDestroyWindow(g_RuntimeInfo.MainWindow);
     }
     glfwTerminate();
 
     g_RuntimeInfo = RuntimeInfo{};
+    g_ShutdownRequested.store(false);
 
     // Reset flags
     system_init_flags = 0;
+    g_HasInitialised = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // | UPDATE LOOP |
 ////////////////////////////////////////////////////////////////////////////////
 
-void begin_frame() {}
-void end_frame() {}
-void update() {}
+void begin_frame() {
+    auto* window = g_RuntimeInfo.MainWindow;
+    if (glfwGetCurrentContext() != window) {
+        glfwMakeContextCurrent(window);
+    }
+
+    glfwPollEvents();
+
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    ImGui::DockSpaceOverViewport();
+}
+
+void end_frame() {
+    auto* window = g_RuntimeInfo.MainWindow;
+
+    ImGui::Render();
+
+    int width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+    glViewport(0, 0, width, height);
+    glClearColor(0.1F, 0.1F, 0.1F, 1.0F);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    glfwSwapBuffers(window);
+
+    const ImGuiIO& io = ImGui::GetIO();
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+        ImGui::UpdatePlatformWindows();
+        ImGui::RenderPlatformWindowsDefault();
+        glfwMakeContextCurrent(window);
+    }
+}
+
+void update() {
+    ImGui::ShowDemoWindow();
+
+    if (ImGui::Begin("All Objects")) {
+        const GObjects& objects = gobjects();
+        ImGuiListClipper clipper{};
+        clipper.Begin(static_cast<int>(objects.size()));
+
+        while (clipper.Step()) {
+            for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+                UObject* obj = objects.obj_at(static_cast<size_t>(i));
+
+                if (obj == nullptr) {
+                    ImGui::TextColored({1.0F, 0.0F, 0.0F, 1.0F}, "NULL");
+                } else {
+                    std::string text = std::format("{}", obj->get_path_name());
+                    ImGui::Text(text.c_str());
+                    if (ImGui::IsItemClicked()) {
+                        LOG(INFO, "Clicked on {}", obj->get_path_name());
+                    }
+                }
+            }
+        }
+    }
+
+    ImGui::End();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // | HELPERS |
@@ -258,14 +350,118 @@ void draw_object_tree() {}
 
 void draw_object_viewer() {}
 
-bool draw_uobject_view(UObject* /*obj*/) {}
+bool draw_uobject_view(UObject* /*obj*/) {
+    return true;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // | UPROPERTY RENDERERS |
 ////////////////////////////////////////////////////////////////////////////////
 
-static void _draw_ustr_prop();
+static void draw_arrayproperty(UObject* src, UArrayProperty* prop);
+static void draw_classproperty(UObject* src, UClassProperty* prop);
+static void draw_structproperty(UObject* src, UStructProperty* prop);
+static void draw_objectproperty(UObject* src, UObjectProperty* prop);
+static void draw_nameproperty(UObject* src, UNameProperty* prop);
+static void draw_strproperty(UObject* src, UStrProperty* prop);
+static void draw_intproperty(UObject* src, UIntProperty* prop);
+static void draw_floatproperty(UObject* src, UFloatProperty* prop);
+static void draw_boolproperty(UObject* src, UBoolProperty* prop);
+static void draw_byteproperty(UObject* src, UByteProperty* prop);
+static void draw_componentproperty(UObject* src, UComponentProperty* prop);
+static void draw_interfaceproperty(UObject* src, UInterfaceProperty* prop);
+static void draw_mapproperty(UObject* src, UProperty* prop);
+static void draw_delegateproperty(UObject* src, UDelegateProperty* prop);
 
-bool draw_property_view(UObject* /* obj */, UProperty* /* prop */) {}
+bool draw_property_view(UObject* obj) {
+    if (obj == nullptr) {
+        return false;
+    }
+
+    const UnrealCoreProperties& props = *g_RuntimeInfo.CoreProperties;
+    for (UProperty* p : obj->Class->properties()) {
+        const UClass* cls = p->Class;
+
+        // clang-format off
+        if (cls == props.ArrayProperty)     { draw_arrayproperty(    obj, reinterpret_cast<UArrayProperty*>(p));     continue; }
+        if (cls == props.ClassProperty)     { draw_classproperty(    obj, reinterpret_cast<UClassProperty*>(p));     continue; }
+        if (cls == props.StructProperty)    { draw_structproperty(   obj, reinterpret_cast<UStructProperty*>(p));    continue; }
+        if (cls == props.ObjectProperty)    { draw_objectproperty(   obj, reinterpret_cast<UObjectProperty*>(p));    continue; }
+        if (cls == props.NameProperty)      { draw_nameproperty(     obj, reinterpret_cast<UNameProperty*>(p));      continue; }
+        if (cls == props.StrProperty)       { draw_strproperty(      obj, reinterpret_cast<UStrProperty*>(p));       continue; }
+        if (cls == props.IntProperty)       { draw_intproperty(      obj, reinterpret_cast<UIntProperty*>(p));       continue; }
+        if (cls == props.FloatProperty)     { draw_floatproperty(    obj, reinterpret_cast<UFloatProperty*>(p));     continue; }
+        if (cls == props.BoolProperty)      { draw_boolproperty(     obj, reinterpret_cast<UBoolProperty*>(p));      continue; }
+        if (cls == props.ByteProperty)      { draw_byteproperty(     obj, reinterpret_cast<UByteProperty*>(p));      continue; }
+        if (cls == props.ComponentProperty) { draw_componentproperty(obj, reinterpret_cast<UComponentProperty*>(p)); continue; }
+        if (cls == props.InterfaceProperty) { draw_interfaceproperty(obj, reinterpret_cast<UInterfaceProperty*>(p)); continue; }
+        if (cls == props.MapProperty)       { draw_mapproperty(      obj, reinterpret_cast<UProperty*>(p));          continue; }
+        if (cls == props.DelegateProperty)  { draw_delegateproperty( obj, reinterpret_cast<UDelegateProperty*>(p));  continue; }
+        // clang-format on
+    }
+
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | DRAW PROPERTY IMPL |
+////////////////////////////////////////////////////////////////////////////////
+
+void draw_arrayproperty(UObject* src, UArrayProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_classproperty(UObject* src, UClassProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_structproperty(UObject* src, UStructProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_objectproperty(UObject* src, UObjectProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_nameproperty(UObject* src, UNameProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_strproperty(UObject* src, UStrProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_intproperty(UObject* src, UIntProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_floatproperty(UObject* src, UFloatProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_boolproperty(UObject* src, UBoolProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_byteproperty(UObject* src, UByteProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_componentproperty(UObject* src, UComponentProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_interfaceproperty(UObject* src, UInterfaceProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_mapproperty(UObject* src, UProperty* prop) {
+    (void)src;
+    (void)prop;
+};
+void draw_delegateproperty(UObject* src, UDelegateProperty* prop) {
+    (void)src;
+    (void)prop;
+};
 
 }  // namespace object_explorer

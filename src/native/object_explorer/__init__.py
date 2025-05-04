@@ -2,7 +2,6 @@
 # This does not need to be a PythonSDK mod lol; Can and might move it into ./Plugins
 #
 
-from unrealsdk import logging
 from mods_base import build_mod
 from .object_explorer import initialise, terminate
 
