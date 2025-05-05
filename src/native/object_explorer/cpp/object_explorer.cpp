@@ -11,9 +11,11 @@
 #include "unrealsdk/unreal/classes/properties/uboolproperty.h"
 #include "unrealsdk/unreal/classes/properties/ubyteproperty.h"
 #include "unrealsdk/unreal/classes/properties/uclassproperty.h"
+#include "unrealsdk/unreal/classes/properties/ucomponentproperty.h"
+#include "unrealsdk/unreal/classes/properties/udelegateproperty.h"
+#include "unrealsdk/unreal/classes/properties/uinterfaceproperty.h"
 #include "unrealsdk/unreal/classes/properties/uobjectproperty.h"
 #include "unrealsdk/unreal/classes/properties/ustrproperty.h"
-#include "unrealsdk/unreal/classes/properties/ustructproperty.h"
 
 #include "GLFW/glfw3.h"
 
@@ -21,15 +23,11 @@
 #include "imgui_impl_opengl3.h"
 
 #define IMGUI_USER_CONFIG "_imconfig_.h"
+#include <unrealsdk/unreal/wrappers/weak_pointer.h>
 #include "imgui.h"
 
-
-namespace unrealsdk::unreal {
-class UDelegateProperty;
-class UInterfaceProperty;
-class UComponentProperty;
-}  // namespace unrealsdk::unreal
 namespace object_explorer {
+
 ////////////////////////////////////////////////////////////////////////////////
 // | CONSTANTS |
 ////////////////////////////////////////////////////////////////////////////////
@@ -42,6 +40,8 @@ static const std::wstring tick_fn_id = L"object_explorer_tick_fn";
 // | VARIABLES |
 ////////////////////////////////////////////////////////////////////////////////
 
+// Worth checking to see if these have a consistent memory address I would assume they are class
+//  static variables. If so we can just reinterpret the addresses.
 struct UnrealCoreProperties {
     UClass* ArrayProperty{nullptr};
     UClass* ClassProperty{nullptr};
@@ -60,17 +60,45 @@ struct UnrealCoreProperties {
 };
 
 struct RuntimeInfo {
+    // Startup
+    std::thread ApplicationThread{};
     GLFWwindow* MainWindow{nullptr};
     ImGuiContext* ImGuiContext{nullptr};
+    std::atomic_bool HasInitialised{false};
+    std::atomic_bool ShutdownRequested{false};
+
+    // Loop Signal
+    std::atomic_flag TickPingPongFlag{};
+    std::atomic_bool TickIsShuttingDown{false};
+
+    // Runtime
     std::unique_ptr<UnrealCoreProperties> CoreProperties{nullptr};
+
+   public:
+    inline void reset() noexcept {
+        ApplicationThread = std::thread{};
+        MainWindow = nullptr;
+        ImGuiContext = nullptr;
+        HasInitialised.store(false);
+        ShutdownRequested.store(false);
+
+        TickPingPongFlag.clear();
+        TickIsShuttingDown.store(false);
+
+        CoreProperties = nullptr;
+    }
+
+    inline bool is_app_thread() const noexcept {
+        return std::this_thread::get_id() == ApplicationThread.get_id();
+    }
 };
 
+// Internal runtime state
 static RuntimeInfo g_RuntimeInfo{};
-static std::thread g_InitThread{};
-static std::atomic_bool g_HasInitialised{false};
-static std::atomic_bool g_ShutdownRequested{false};
 
-// TODO: Figure out how the fuck this synchronisation stuff is supposed to work.
+// The mutex used when initialising and deinitialising
+static std::mutex g_SystemMutex{};
+static std::condition_variable g_SystemCondVar{};
 
 using flag_t = uint8_t;
 static flag_t system_init_flags = 0;
@@ -90,8 +118,45 @@ constexpr flag_t FOE_TICK_HOOKED         = 1 << 4;
 ////////////////////////////////////////////////////////////////////////////////
 
 static bool _tick_callback(const hook_manager::Details& /*details*/) {
+    auto& info = g_RuntimeInfo;
+
+    // Wait until false... Because that makes sense
+    info.TickPingPongFlag.wait(true);
+    info.TickPingPongFlag.test_and_set();
+    info.TickPingPongFlag.notify_one();
 
     return false;
+}
+
+static void _app_loop() noexcept {
+    while (true) {
+        auto& info = g_RuntimeInfo;
+
+        // Wait until true...
+        info.TickPingPongFlag.wait(false);
+
+        // Handle any shutdown requests
+        if (glfwWindowShouldClose(info.MainWindow) == GLFW_TRUE) {
+            g_RuntimeInfo.ShutdownRequested.store(true, std::memory_order_release);
+        }
+
+        // Invoke any shutdown requests
+        if (info.ShutdownRequested.load()) {
+
+            info.TickIsShuttingDown.store(true);
+            info.TickPingPongFlag.clear();
+            info.TickPingPongFlag.notify_one();
+            shutdown();
+            return;
+        }
+
+        begin_frame();
+        update();
+        end_frame();
+
+        info.TickPingPongFlag.clear();
+        info.TickPingPongFlag.notify_one();
+    }
 }
 
 static void _glfw_error_callback(int error, const char* description) {
@@ -161,13 +226,6 @@ static void _init_imgui() {
 };
 
 static void _init_object_explorer() {
-    bool has_hooked =
-        hook_manager::add_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id, &_tick_callback);
-
-    if (!has_hooked) {
-        throw std::runtime_error{fmt::format("Failed to add hook to '{}'", tick_fn_name)};
-    }
-    system_init_flags |= FOE_TICK_HOOKED;
 
     g_RuntimeInfo.CoreProperties = std::make_unique<UnrealCoreProperties>();
     auto& props = *g_RuntimeInfo.CoreProperties;
@@ -188,16 +246,31 @@ static void _init_object_explorer() {
     props.MapProperty       = find_class(L"Core.MapProperty"_fn);
     props.DelegateProperty  = find_class(L"Core.DelegateProperty"_fn);
     // clang-format on
+
+    bool has_hooked =
+        hook_manager::add_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id, &_tick_callback);
+
+    if (!has_hooked) {
+        throw std::runtime_error{fmt::format("Failed to add hook to '{}'", tick_fn_name)};
+    }
+    system_init_flags |= FOE_TICK_HOOKED;
 }
 
 void initialise() {
+    //TODO: Look at the initialise and shutdown synchronisation a bit more as it is untested.
     try {
-        g_InitThread = std::thread{[]() -> void {
-            g_RuntimeInfo = RuntimeInfo{};
+        g_RuntimeInfo.ApplicationThread = std::thread{[]() -> void {
+            std::unique_lock<std::mutex> guard{g_SystemMutex};
+
+            // On the off-chance we acquired the guard before the shutdown function does we will
+            //  wait until it shuts the system down before we initialise the system again.
+            g_SystemCondVar.wait(guard, [&]() { return !g_RuntimeInfo.ShutdownRequested.load(); });
+
+            g_RuntimeInfo.reset();
             _init_glfw3();
             _init_imgui();
             _init_object_explorer();
-            g_HasInitialised = true;
+            g_RuntimeInfo.HasInitialised = true;
 
             const char* glfw_version = glfwGetVersionString();
             const char* gl_version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
@@ -207,29 +280,12 @@ void initialise() {
             LOG(INFO, " >  {}", glfw_version);
             LOG(INFO, " >  {}", imgui_version);
 
-            while (g_HasInitialised && !glfwWindowShouldClose(g_RuntimeInfo.MainWindow)) {
-
-                if (g_ShutdownRequested.load()) {
-                    shutdown();
-                    return;
-                }
-
-                if (g_HasInitialised) {
-                    begin_frame();
-                    update();
-                    end_frame();
-                }
-
-                if (glfwWindowShouldClose(g_RuntimeInfo.MainWindow)) {
-                    glfwSetWindowShouldClose(g_RuntimeInfo.MainWindow, GLFW_TRUE);
-                    g_ShutdownRequested.store(true);
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(16));
-            }
+            guard.unlock();
+            g_SystemCondVar.notify_all();
+            _app_loop();
         }};
 
-        g_InitThread.detach();
+        g_RuntimeInfo.ApplicationThread.detach();
 
     } catch (const std::runtime_error& ex) {
         // We don't deinitialise things here
@@ -240,38 +296,51 @@ void initialise() {
 }
 
 void shutdown() {
-    if (std::this_thread::get_id() != g_InitThread.get_id()) {
-        g_ShutdownRequested.store(true);
+
+    if (!g_RuntimeInfo.HasInitialised.load()) {
         return;
     }
-    LOG(INFO, "Shutting down Object Explorer...");
 
-    hook_manager::remove_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id);
-
-    if (system_init_flags & FIMGUI_INIT_GL3) {
-        ImGui_ImplOpenGL3_Shutdown();
+    if (!g_RuntimeInfo.is_app_thread()) {
+        g_RuntimeInfo.ShutdownRequested.store(true);
+        return;
     }
 
-    if (system_init_flags & FIMGUI_INIT_GLFW_FOR_GL) {
-        ImGui_ImplGlfw_Shutdown();
+    {
+        std::unique_lock guard{g_SystemMutex};
+
+        if (!g_RuntimeInfo.ShutdownRequested.load()) {
+            return;
+        }
+
+        LOG(INFO, "Shutting down Object Explorer...");
+
+        hook_manager::remove_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id);
+
+        if (system_init_flags & FIMGUI_INIT_GL3) {
+            ImGui_ImplOpenGL3_Shutdown();
+        }
+
+        if (system_init_flags & FIMGUI_INIT_GLFW_FOR_GL) {
+            ImGui_ImplGlfw_Shutdown();
+        }
+
+        if (system_init_flags & FIMGUI_INIT_CONTEXT) {
+            ImGui::DestroyContext(g_RuntimeInfo.ImGuiContext);
+        }
+        g_RuntimeInfo.ImGuiContext = nullptr;
+
+        if ((system_init_flags & FGLFW_INIT) && g_RuntimeInfo.MainWindow != nullptr) {
+            glfwDestroyWindow(g_RuntimeInfo.MainWindow);
+        }
+        glfwTerminate();
+
+        // Reset globals
+        g_RuntimeInfo.reset();
+        system_init_flags = 0;
     }
 
-    if (system_init_flags & FIMGUI_INIT_CONTEXT) {
-        ImGui::DestroyContext(g_RuntimeInfo.ImGuiContext);
-    }
-    g_RuntimeInfo.ImGuiContext = nullptr;
-
-    if ((system_init_flags & FGLFW_INIT) && g_RuntimeInfo.MainWindow != nullptr) {
-        glfwDestroyWindow(g_RuntimeInfo.MainWindow);
-    }
-    glfwTerminate();
-
-    g_RuntimeInfo = RuntimeInfo{};
-    g_ShutdownRequested.store(false);
-
-    // Reset flags
-    system_init_flags = 0;
-    g_HasInitialised = false;
+    g_SystemCondVar.notify_all();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -283,8 +352,6 @@ void begin_frame() {
     if (glfwGetCurrentContext() != window) {
         glfwMakeContextCurrent(window);
     }
-
-    glfwPollEvents();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -304,6 +371,8 @@ void end_frame() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    glfwPollEvents();
     glfwSwapBuffers(window);
 
     const ImGuiIO& io = ImGui::GetIO();
@@ -330,9 +399,10 @@ void update() {
                     ImGui::TextColored({1.0F, 0.0F, 0.0F, 1.0F}, "NULL");
                 } else {
                     std::string text = std::format("{}", obj->get_path_name());
-                    ImGui::Text(text.c_str());
-                    if (ImGui::IsItemClicked()) {
-                        LOG(INFO, "Clicked on {}", obj->get_path_name());
+                    static WeakPointer last_selected{nullptr};
+
+                    if (ImGui::Selectable(text.c_str(), last_selected && obj == *last_selected)) {
+                        last_selected = obj;
                     }
                 }
             }
