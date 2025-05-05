@@ -26,6 +26,8 @@
 #include <unrealsdk/unreal/wrappers/weak_pointer.h>
 #include "imgui.h"
 
+#define OELOG(level, msg, ...) LOG(level, "[OBJECT_EXPLORER] ~ {}", fmt::format(msg, __VA_ARGS__))
+
 namespace object_explorer {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,6 +64,7 @@ struct UnrealCoreProperties {
 struct RuntimeInfo {
     // Startup
     std::thread ApplicationThread{};
+    std::thread::id ApplicationThreadID{};
     GLFWwindow* MainWindow{nullptr};
     ImGuiContext* ImGuiContext{nullptr};
     std::atomic_bool HasInitialised{false};
@@ -69,7 +72,6 @@ struct RuntimeInfo {
 
     // Loop Signal
     std::atomic_flag TickPingPongFlag{};
-    std::atomic_bool TickIsShuttingDown{false};
 
     // Runtime
     std::unique_ptr<UnrealCoreProperties> CoreProperties{nullptr};
@@ -83,13 +85,12 @@ struct RuntimeInfo {
         ShutdownRequested.store(false);
 
         TickPingPongFlag.clear();
-        TickIsShuttingDown.store(false);
 
         CoreProperties = nullptr;
     }
 
     inline bool is_app_thread() const noexcept {
-        return std::this_thread::get_id() == ApplicationThread.get_id();
+        return std::this_thread::get_id() == ApplicationThreadID;
     }
 };
 
@@ -120,7 +121,18 @@ constexpr flag_t FOE_TICK_HOOKED         = 1 << 4;
 static bool _tick_callback(const hook_manager::Details& /*details*/) {
     auto& info = g_RuntimeInfo;
 
-    // Wait until false... Because that makes sense
+    if (!info.HasInitialised.load()) {
+        OELOG(INFO, "Tick callback executed whilst not initialised?");
+        return false;
+    }
+
+    // Avoid waiting on shutdown
+    if (info.ShutdownRequested.load()) {
+        info.TickPingPongFlag.test_and_set();
+        info.TickPingPongFlag.notify_one();
+        return false;
+    }
+
     info.TickPingPongFlag.wait(true);
     info.TickPingPongFlag.test_and_set();
     info.TickPingPongFlag.notify_one();
@@ -132,7 +144,6 @@ static void _app_loop() noexcept {
     while (true) {
         auto& info = g_RuntimeInfo;
 
-        // Wait until true...
         info.TickPingPongFlag.wait(false);
 
         // Handle any shutdown requests
@@ -142,11 +153,9 @@ static void _app_loop() noexcept {
 
         // Invoke any shutdown requests
         if (info.ShutdownRequested.load()) {
-
-            info.TickIsShuttingDown.store(true);
+            shutdown();
             info.TickPingPongFlag.clear();
             info.TickPingPongFlag.notify_one();
-            shutdown();
             return;
         }
 
@@ -226,7 +235,6 @@ static void _init_imgui() {
 };
 
 static void _init_object_explorer() {
-
     g_RuntimeInfo.CoreProperties = std::make_unique<UnrealCoreProperties>();
     auto& props = *g_RuntimeInfo.CoreProperties;
 
@@ -257,20 +265,24 @@ static void _init_object_explorer() {
 }
 
 void initialise() {
-    //TODO: Look at the initialise and shutdown synchronisation a bit more as it is untested.
     try {
         g_RuntimeInfo.ApplicationThread = std::thread{[]() -> void {
             std::unique_lock<std::mutex> guard{g_SystemMutex};
 
+            if (g_RuntimeInfo.HasInitialised.load()) {
+                return;
+            }
+
             // On the off-chance we acquired the guard before the shutdown function does we will
             //  wait until it shuts the system down before we initialise the system again.
-            g_SystemCondVar.wait(guard, [&]() { return !g_RuntimeInfo.ShutdownRequested.load(); });
+            g_SystemCondVar.wait(guard, []() { return !g_RuntimeInfo.ShutdownRequested.load(); });
 
             g_RuntimeInfo.reset();
+            g_RuntimeInfo.ApplicationThreadID = std::this_thread::get_id();
             _init_glfw3();
             _init_imgui();
             _init_object_explorer();
-            g_RuntimeInfo.HasInitialised = true;
+            g_RuntimeInfo.HasInitialised.store(true);
 
             const char* glfw_version = glfwGetVersionString();
             const char* gl_version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
@@ -296,24 +308,20 @@ void initialise() {
 }
 
 void shutdown() {
-
     if (!g_RuntimeInfo.HasInitialised.load()) {
+        OELOG(INFO, "Shutdown requested but not initialised");
         return;
     }
 
     if (!g_RuntimeInfo.is_app_thread()) {
+        LOG(INFO, "Shutdown requested from non-app thread");
         g_RuntimeInfo.ShutdownRequested.store(true);
         return;
     }
 
     {
+        LOG(INFO, "Shutting down");
         std::unique_lock guard{g_SystemMutex};
-
-        if (!g_RuntimeInfo.ShutdownRequested.load()) {
-            return;
-        }
-
-        LOG(INFO, "Shutting down Object Explorer...");
 
         hook_manager::remove_hook(tick_fn_name, hook_manager::Type::PRE, tick_fn_id);
 
@@ -403,6 +411,7 @@ void update() {
 
                     if (ImGui::Selectable(text.c_str(), last_selected && obj == *last_selected)) {
                         last_selected = obj;
+                        OELOG(INFO, "Object Selected: {}", obj->get_path_name());
                     }
                 }
             }
