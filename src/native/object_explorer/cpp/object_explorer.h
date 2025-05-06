@@ -40,6 +40,8 @@ void begin_frame(void);
 void end_frame(void);
 void update(void);
 
+void draw_debug_window(void);
+void draw_all_objects_view(void);
 void draw_object_tree(void);
 void draw_object_viewer(void);
 

@@ -16,6 +16,7 @@
 #include "unrealsdk/unreal/classes/properties/uinterfaceproperty.h"
 #include "unrealsdk/unreal/classes/properties/uobjectproperty.h"
 #include "unrealsdk/unreal/classes/properties/ustrproperty.h"
+#include "unrealsdk/unreal/wrappers/weak_pointer.h"
 
 #include "GLFW/glfw3.h"
 
@@ -23,12 +24,16 @@
 #include "imgui_impl_opengl3.h"
 
 #define IMGUI_USER_CONFIG "_imconfig_.h"
-#include <unrealsdk/unreal/wrappers/weak_pointer.h>
 #include "imgui.h"
+
+#include "imgui_internal.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 #define OELOG(level, msg, ...) LOG(level, "[OBJECT_EXPLORER] ~ {}", fmt::format(msg, __VA_ARGS__))
 
 namespace object_explorer {
+
+// TODO: This needs to be ripped apart and put into several source files.
 
 ////////////////////////////////////////////////////////////////////////////////
 // | CONSTANTS |
@@ -45,7 +50,6 @@ static const std::wstring tick_fn_id = L"object_explorer_tick_fn";
 // Worth checking to see if these have a consistent memory address I would assume they are class
 //  static variables. If so we can just reinterpret the addresses.
 struct UnrealCoreProperties {
-    UClass* ArrayProperty{nullptr};
     UClass* ClassProperty{nullptr};
     UClass* StructProperty{nullptr};
     UClass* ObjectProperty{nullptr};
@@ -59,6 +63,7 @@ struct UnrealCoreProperties {
     UClass* InterfaceProperty{nullptr};
     UClass* MapProperty{nullptr};
     UClass* DelegateProperty{nullptr};
+    UClass* PackageClass{nullptr};
 };
 
 struct RuntimeInfo {
@@ -133,9 +138,12 @@ static bool _tick_callback(const hook_manager::Details& /*details*/) {
         return false;
     }
 
-    info.TickPingPongFlag.wait(true);
+    // Tell the _app_loop to perform one frame
     info.TickPingPongFlag.test_and_set();
     info.TickPingPongFlag.notify_one();
+
+    // Wait until the _app_loop has completed its frame
+    info.TickPingPongFlag.wait(true);
 
     return false;
 }
@@ -236,23 +244,28 @@ static void _init_imgui() {
 
 static void _init_object_explorer() {
     g_RuntimeInfo.CoreProperties = std::make_unique<UnrealCoreProperties>();
-    auto& props = *g_RuntimeInfo.CoreProperties;
+    UnrealCoreProperties& props = *g_RuntimeInfo.CoreProperties;
+
+    // TODO: Might be able to replace these via a call to FName{"CLASS_NAME"}
+    //  i.e.,
+    //    static const auto package_cls = FName{"Package"};
+    //
 
     // clang-format off
-    props.ArrayProperty     = find_class(L"Core.ArrayProperty"_fn);
-    props.ClassProperty     = find_class(L"Core.ClassProperty"_fn);
-    props.StructProperty    = find_class(L"Core.StructProperty"_fn);
-    props.ObjectProperty    = find_class(L"Core.ObjectProperty"_fn);
-    props.NameProperty      = find_class(L"Core.NameProperty"_fn);
-    props.StrProperty       = find_class(L"Core.StrProperty"_fn);
-    props.IntProperty       = find_class(L"Core.IntProperty"_fn);
-    props.FloatProperty     = find_class(L"Core.FloatProperty"_fn);
-    props.BoolProperty      = find_class(L"Core.BoolProperty"_fn);
-    props.ByteProperty      = find_class(L"Core.ByteProperty"_fn);
-    props.ComponentProperty = find_class(L"Core.ComponentProperty"_fn);
-    props.InterfaceProperty = find_class(L"Core.InterfaceProperty"_fn);
-    props.MapProperty       = find_class(L"Core.MapProperty"_fn);
-    props.DelegateProperty  = find_class(L"Core.DelegateProperty"_fn);
+    props.ClassProperty     = find_class(L"Core.ClassProperty");
+    props.StructProperty    = find_class(L"Core.StructProperty");
+    props.ObjectProperty    = find_class(L"Core.ObjectProperty");
+    props.NameProperty      = find_class(L"Core.NameProperty");
+    props.StrProperty       = find_class(L"Core.StrProperty");
+    props.IntProperty       = find_class(L"Core.IntProperty");
+    props.FloatProperty     = find_class(L"Core.FloatProperty");
+    props.BoolProperty      = find_class(L"Core.BoolProperty");
+    props.ByteProperty      = find_class(L"Core.ByteProperty");
+    props.ComponentProperty = find_class(L"Core.ComponentProperty");
+    props.InterfaceProperty = find_class(L"Core.InterfaceProperty");
+    props.MapProperty       = find_class(L"Core.MapProperty");
+    props.DelegateProperty  = find_class(L"Core.DelegateProperty");
+    props.PackageClass      = find_class(L"Core.Package");
     // clang-format on
 
     bool has_hooked =
@@ -288,9 +301,9 @@ void initialise() {
             const char* gl_version = reinterpret_cast<const char*>(glGetString(GL_VERSION));
             const char* imgui_version = ImGui::GetVersion();
             LOG(INFO, "Object Explorer v{} Initialised", object_explorer::version());
-            LOG(INFO, " >  {}", gl_version);
-            LOG(INFO, " >  {}", glfw_version);
-            LOG(INFO, " >  {}", imgui_version);
+            LOG(INFO, " >  OpenGL {}", gl_version);
+            LOG(INFO, " >  GLFW   {}", glfw_version);
+            LOG(INFO, " >  ImGui  {}", imgui_version);
 
             guard.unlock();
             g_SystemCondVar.notify_all();
@@ -393,25 +406,147 @@ void end_frame() {
 
 void update() {
     ImGui::ShowDemoWindow();
+    auto draw_view = [](auto&& fn) -> void {
+        ImGuiErrorRecoveryState state{};
+        try {
+            ImGui::ErrorRecoveryStoreState(&state);
+            fn();
+        } catch (...) {
+            ImGui::ErrorRecoveryTryToRecoverState(&state);
+        }
+    };
+
+    draw_view(&draw_debug_window);
+    draw_view(&draw_all_objects_view);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | DEBUG VIEW |
+////////////////////////////////////////////////////////////////////////////////
+
+void draw_debug_window() {
+    if (!ImGui::Begin("Debug")) {
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::CollapsingHeader("Runtime Info Properties", ImGuiTreeNodeFlags_DefaultOpen)) {
+        const auto tree_text = [](const std::string&& title, const std::string&& value) -> void {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted(title.c_str());
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextUnformatted(value.c_str());
+        };
+
+        constexpr auto table_flags = ImGuiTableFlags_Resizable;
+        if (ImGui::BeginTable("##RuntimeInfo_KV_View", 2, table_flags)) {
+            ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthStretch);
+            ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
+
+            const auto& info = g_RuntimeInfo;
+
+            // clang-format off
+            tree_text("ApplicationThread",   fmt::format("{:p}", (void*)&info.ApplicationThread  ));
+            tree_text("ApplicationThreadID", fmt::format("{:p}", (void*)&info.ApplicationThreadID));
+            tree_text("MainWindow",          fmt::format("{:p}", (void*)info.MainWindow          ));
+            tree_text("ImGuiContext",        fmt::format("{:p}", (void*)info.ImGuiContext        ));
+            tree_text("HasInitialised",      fmt::format("{}",   info.HasInitialised.load()      ));
+            tree_text("ShutdownRequested",   fmt::format("{}",   info.ShutdownRequested.load()   ));
+            tree_text("TickPingPongFlag",    fmt::format("{}",   info.TickPingPongFlag.test()    ));
+            // clang-format on
+
+            if (ImGui::TreeNode("CoreProperties")) {
+                const auto& props = *g_RuntimeInfo.CoreProperties;
+                // clang-format off
+                tree_text("ClassProperty",     fmt::format("{:p}", (void*)props.ClassProperty    ));
+                tree_text("StructProperty",    fmt::format("{:p}", (void*)props.StructProperty   ));
+                tree_text("ObjectProperty",    fmt::format("{:p}", (void*)props.ObjectProperty   ));
+                tree_text("NameProperty",      fmt::format("{:p}", (void*)props.NameProperty     ));
+                tree_text("StrProperty",       fmt::format("{:p}", (void*)props.StrProperty      ));
+                tree_text("IntProperty",       fmt::format("{:p}", (void*)props.IntProperty      ));
+                tree_text("FloatProperty",     fmt::format("{:p}", (void*)props.FloatProperty    ));
+                tree_text("BoolProperty",      fmt::format("{:p}", (void*)props.BoolProperty     ));
+                tree_text("ByteProperty",      fmt::format("{:p}", (void*)props.ByteProperty     ));
+                tree_text("ComponentProperty", fmt::format("{:p}", (void*)props.ComponentProperty));
+                tree_text("InterfaceProperty", fmt::format("{:p}", (void*)props.InterfaceProperty));
+                tree_text("MapProperty",       fmt::format("{:p}", (void*)props.MapProperty      ));
+                tree_text("DelegateProperty",  fmt::format("{:p}", (void*)props.DelegateProperty ));
+                tree_text("PackageClass",      fmt::format("{:p}", (void*)props.PackageClass     ));
+                // clang-format on
+                ImGui::TreePop();
+            }
+
+            ImGui::EndTable();
+        }
+    }
+
+    if (ImGui::CollapsingHeader("Metrics", ImGuiTreeNodeFlags_DefaultOpen)) {}
+
+    ImGui::End();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | ALL OBJECTS VIEW |
+////////////////////////////////////////////////////////////////////////////////
+
+void draw_all_objects_view() {
+    // TODO: Clarify the design
 
     if (ImGui::Begin("All Objects")) {
-        const GObjects& objects = gobjects();
+        constexpr auto text_input_flags =
+            ImGuiInputTextFlags_EscapeClearsAll | ImGuiInputTextFlags_EnterReturnsTrue;
+
+        static std::string query{};
+        static std::vector<WeakPointer> filtered_objects{};
+        static bool only_package_children = false;
+
+        const GObjects& all_objects = gobjects();
+
+        bool check_box_changed = ImGui::Checkbox("Only Package Children", &only_package_children);
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+        bool query_str_changed = ImGui::InputText("Query", &query, text_input_flags);
+
+        if (check_box_changed || query_str_changed) {
+            filtered_objects.clear();
+            std::wstring wide_query = utils::widen(query);
+
+            const auto should_collect = [&wide_query](const UObject* const obj) {
+                return obj != nullptr && obj->Outer != nullptr
+                       && (!only_package_children
+                           || (only_package_children
+                               && obj->Outer->Class == g_RuntimeInfo.CoreProperties->PackageClass))
+                       && obj->get_path_name().find(wide_query) != std::wstring::npos;
+            };
+
+            // Collect all objects matching the query
+            for (size_t i = 0; i < all_objects.size(); ++i) {
+                UObject* obj = all_objects.obj_at(i);
+                if (should_collect(obj)) {
+                    filtered_objects.emplace_back(obj);
+                }
+            }
+
+            filtered_objects.shrink_to_fit();
+        }
+
         ImGuiListClipper clipper{};
-        clipper.Begin(static_cast<int>(objects.size()));
+        clipper.Begin(static_cast<int>(filtered_objects.size()));
 
         while (clipper.Step()) {
             for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
-                UObject* obj = objects.obj_at(static_cast<size_t>(i));
+                const WeakPointer& obj = filtered_objects[i];
 
-                if (obj == nullptr) {
+                if (!obj) {
                     ImGui::TextColored({1.0F, 0.0F, 0.0F, 1.0F}, "NULL");
                 } else {
-                    std::string text = std::format("{}", obj->get_path_name());
-                    static WeakPointer last_selected{nullptr};
+                    std::string text = std::format("{}", (*obj)->get_path_name());
+                    static WeakPointer last_selected{};
 
-                    if (ImGui::Selectable(text.c_str(), last_selected && obj == *last_selected)) {
+                    if (ImGui::Selectable(text.c_str(), last_selected && *last_selected == *obj)) {
                         last_selected = obj;
-                        OELOG(INFO, "Object Selected: {}", obj->get_path_name());
+                        OELOG(INFO, "Object Selected: {}", (*obj)->get_path_name());
                     }
                 }
             }
@@ -462,7 +597,6 @@ bool draw_property_view(UObject* obj) {
         const UClass* cls = p->Class;
 
         // clang-format off
-        if (cls == props.ArrayProperty)     { draw_arrayproperty(    obj, reinterpret_cast<UArrayProperty*>(p));     continue; }
         if (cls == props.ClassProperty)     { draw_classproperty(    obj, reinterpret_cast<UClassProperty*>(p));     continue; }
         if (cls == props.StructProperty)    { draw_structproperty(   obj, reinterpret_cast<UStructProperty*>(p));    continue; }
         if (cls == props.ObjectProperty)    { draw_objectproperty(   obj, reinterpret_cast<UObjectProperty*>(p));    continue; }
@@ -486,10 +620,6 @@ bool draw_property_view(UObject* obj) {
 // | DRAW PROPERTY IMPL |
 ////////////////////////////////////////////////////////////////////////////////
 
-void draw_arrayproperty(UObject* src, UArrayProperty* prop) {
-    (void)src;
-    (void)prop;
-};
 void draw_classproperty(UObject* src, UClassProperty* prop) {
     (void)src;
     (void)prop;
