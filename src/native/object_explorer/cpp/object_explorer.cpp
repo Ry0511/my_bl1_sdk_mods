@@ -593,7 +593,7 @@ struct ObjectTreeNode {
 std::optional<std::vector<ObjectTreeNode>> g_OuterTreeNodes{};
 
 // NOLINTNEXTLINE(*-no-recursion)
-void impl_draw_outer_tree_view(ObjectTreeNode& node, int depth) {
+void impl_draw_outer_tree_view(ObjectTreeNode* parent, ObjectTreeNode& node, int depth) {
     // Root is null, reset the node
     if (!node.Root) {
         ImGui::TextColored({1.0F, 0.0F, 0.0F, 1.0F}, "NULL");
@@ -603,12 +603,12 @@ void impl_draw_outer_tree_view(ObjectTreeNode& node, int depth) {
 
     constexpr auto flags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere;
     const UObject* const root = *node.Root;
-    std::string name = fmt::format("{}##outer_tree_view_{}", (std::string)root->Name, depth);
+    std::string name = fmt::format("{}##{:p}{}", (std::string)root->Name, (void*)parent, depth);
 
     if (ImGui::TreeNodeEx(name.c_str(), flags)) {
-        node.load_children(); // Lazily load
+        node.load_children();  // Lazily load
         for (ObjectTreeNode& child : *node.Children) {
-            impl_draw_outer_tree_view(child, depth + 1);
+            impl_draw_outer_tree_view(&node, child, depth + 1);
         }
         ImGui::TreePop();
 
@@ -627,25 +627,28 @@ void draw_outer_tree_view() {
         g_OuterTreeNodes = std::nullopt;
     }
 
-    if (!g_OuterTreeNodes.has_value()) {
-        g_OuterTreeNodes = std::make_optional<std::vector<ObjectTreeNode>>();
-        g_OuterTreeNodes->reserve(128);
+    if (ImGui::BeginChild("Tree View")) {
+        if (!g_OuterTreeNodes.has_value()) {
+            g_OuterTreeNodes = std::make_optional<std::vector<ObjectTreeNode>>();
+            g_OuterTreeNodes->reserve(128);
 
-        const GObjects& all_objects = gobjects();
-        for (const UObject* obj : all_objects) {
-            if (obj != nullptr && obj->Outer == nullptr) {
-                g_OuterTreeNodes->emplace_back(obj, std::nullopt);
+            const GObjects& all_objects = gobjects();
+            for (const UObject* obj : all_objects) {
+                if (obj != nullptr && obj->Outer == nullptr && obj->Class->Name == L"Package"_fn) {
+                    g_OuterTreeNodes->emplace_back(obj, std::nullopt);
+                }
             }
+            g_OuterTreeNodes->shrink_to_fit();
         }
-        g_OuterTreeNodes->shrink_to_fit();
-    }
 
-    // Draw root nodes
-    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
-    for (ObjectTreeNode& node : *g_OuterTreeNodes) {
-        impl_draw_outer_tree_view(node, 0);
+        // Draw root nodes
+        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
+        for (ObjectTreeNode& node : *g_OuterTreeNodes) {
+            impl_draw_outer_tree_view(nullptr, node, 0);
+        }
+        ImGui::PopStyleVar();
     }
-    ImGui::PopStyleVar();
+    ImGui::EndChild();
 
     ImGui::End();
 }
