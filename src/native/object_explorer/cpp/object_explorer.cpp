@@ -416,15 +416,16 @@ void update() {
         }
     };
 
-    draw_view(&draw_debug_window);
+    draw_view(&draw_debug_view);
     draw_view(&draw_all_objects_view);
+    draw_view(&draw_outer_tree_view);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // | DEBUG VIEW |
 ////////////////////////////////////////////////////////////////////////////////
 
-void draw_debug_window() {
+void draw_debug_view() {
     if (!ImGui::Begin("Debug")) {
         ImGui::End();
         return;
@@ -557,6 +558,99 @@ void draw_all_objects_view() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// | ALL OUTER TREE |
+////////////////////////////////////////////////////////////////////////////////
+
+struct ObjectTreeNode {
+    WeakPointer Root;
+    std::optional<std::vector<ObjectTreeNode>> Children;
+
+    void load_children() {
+        if (Children.has_value() || !Root) {
+            return;
+        }
+
+        Children = std::make_optional<std::vector<ObjectTreeNode>>();
+        Children->reserve(64);
+
+        // Collect children... wait
+        const GObjects& all_objects = gobjects();
+        for (const UObject* obj : all_objects) {
+            if (obj != nullptr && obj->Outer == *Root) {
+                Children->emplace_back(obj, std::nullopt);
+            }
+        }
+        Children->shrink_to_fit();
+    }
+
+    void reset() {
+        if (Children.has_value()) {
+            Children.reset();
+        }
+    }
+};
+
+std::optional<std::vector<ObjectTreeNode>> g_OuterTreeNodes{};
+
+// NOLINTNEXTLINE(*-no-recursion)
+void impl_draw_outer_tree_view(ObjectTreeNode& node, int depth) {
+    // Root is null, reset the node
+    if (!node.Root) {
+        ImGui::TextColored({1.0F, 0.0F, 0.0F, 1.0F}, "NULL");
+        node.reset();
+        return;
+    }
+
+    constexpr auto flags = ImGuiTreeNodeFlags_NavLeftJumpsBackHere;
+    const UObject* const root = *node.Root;
+    std::string name = fmt::format("{}##outer_tree_view_{}", (std::string)root->Name, depth);
+
+    if (ImGui::TreeNodeEx(name.c_str(), flags)) {
+        node.load_children(); // Lazily load
+        for (ObjectTreeNode& child : *node.Children) {
+            impl_draw_outer_tree_view(child, depth + 1);
+        }
+        ImGui::TreePop();
+
+    } else {
+        node.reset();
+    }
+}
+
+void draw_outer_tree_view() {
+    if (!ImGui::Begin("Object Tree")) {
+        ImGui::End();
+        return;
+    }
+
+    if (ImGui::Button("Refresh")) {
+        g_OuterTreeNodes = std::nullopt;
+    }
+
+    if (!g_OuterTreeNodes.has_value()) {
+        g_OuterTreeNodes = std::make_optional<std::vector<ObjectTreeNode>>();
+        g_OuterTreeNodes->reserve(128);
+
+        const GObjects& all_objects = gobjects();
+        for (const UObject* obj : all_objects) {
+            if (obj != nullptr && obj->Outer == nullptr) {
+                g_OuterTreeNodes->emplace_back(obj, std::nullopt);
+            }
+        }
+        g_OuterTreeNodes->shrink_to_fit();
+    }
+
+    // Draw root nodes
+    ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
+    for (ObjectTreeNode& node : *g_OuterTreeNodes) {
+        impl_draw_outer_tree_view(node, 0);
+    }
+    ImGui::PopStyleVar();
+
+    ImGui::End();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // | HELPERS |
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -567,110 +661,5 @@ void draw_object_viewer() {}
 bool draw_uobject_view(UObject* /*obj*/) {
     return true;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// | UPROPERTY RENDERERS |
-////////////////////////////////////////////////////////////////////////////////
-
-static void draw_arrayproperty(UObject* src, UArrayProperty* prop);
-static void draw_classproperty(UObject* src, UClassProperty* prop);
-static void draw_structproperty(UObject* src, UStructProperty* prop);
-static void draw_objectproperty(UObject* src, UObjectProperty* prop);
-static void draw_nameproperty(UObject* src, UNameProperty* prop);
-static void draw_strproperty(UObject* src, UStrProperty* prop);
-static void draw_intproperty(UObject* src, UIntProperty* prop);
-static void draw_floatproperty(UObject* src, UFloatProperty* prop);
-static void draw_boolproperty(UObject* src, UBoolProperty* prop);
-static void draw_byteproperty(UObject* src, UByteProperty* prop);
-static void draw_componentproperty(UObject* src, UComponentProperty* prop);
-static void draw_interfaceproperty(UObject* src, UInterfaceProperty* prop);
-static void draw_mapproperty(UObject* src, UProperty* prop);
-static void draw_delegateproperty(UObject* src, UDelegateProperty* prop);
-
-bool draw_property_view(UObject* obj) {
-    if (obj == nullptr) {
-        return false;
-    }
-
-    const UnrealCoreProperties& props = *g_RuntimeInfo.CoreProperties;
-    for (UProperty* p : obj->Class->properties()) {
-        const UClass* cls = p->Class;
-
-        // clang-format off
-        if (cls == props.ClassProperty)     { draw_classproperty(    obj, reinterpret_cast<UClassProperty*>(p));     continue; }
-        if (cls == props.StructProperty)    { draw_structproperty(   obj, reinterpret_cast<UStructProperty*>(p));    continue; }
-        if (cls == props.ObjectProperty)    { draw_objectproperty(   obj, reinterpret_cast<UObjectProperty*>(p));    continue; }
-        if (cls == props.NameProperty)      { draw_nameproperty(     obj, reinterpret_cast<UNameProperty*>(p));      continue; }
-        if (cls == props.StrProperty)       { draw_strproperty(      obj, reinterpret_cast<UStrProperty*>(p));       continue; }
-        if (cls == props.IntProperty)       { draw_intproperty(      obj, reinterpret_cast<UIntProperty*>(p));       continue; }
-        if (cls == props.FloatProperty)     { draw_floatproperty(    obj, reinterpret_cast<UFloatProperty*>(p));     continue; }
-        if (cls == props.BoolProperty)      { draw_boolproperty(     obj, reinterpret_cast<UBoolProperty*>(p));      continue; }
-        if (cls == props.ByteProperty)      { draw_byteproperty(     obj, reinterpret_cast<UByteProperty*>(p));      continue; }
-        if (cls == props.ComponentProperty) { draw_componentproperty(obj, reinterpret_cast<UComponentProperty*>(p)); continue; }
-        if (cls == props.InterfaceProperty) { draw_interfaceproperty(obj, reinterpret_cast<UInterfaceProperty*>(p)); continue; }
-        if (cls == props.MapProperty)       { draw_mapproperty(      obj, reinterpret_cast<UProperty*>(p));          continue; }
-        if (cls == props.DelegateProperty)  { draw_delegateproperty( obj, reinterpret_cast<UDelegateProperty*>(p));  continue; }
-        // clang-format on
-    }
-
-    return true;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// | DRAW PROPERTY IMPL |
-////////////////////////////////////////////////////////////////////////////////
-
-void draw_classproperty(UObject* src, UClassProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_structproperty(UObject* src, UStructProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_objectproperty(UObject* src, UObjectProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_nameproperty(UObject* src, UNameProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_strproperty(UObject* src, UStrProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_intproperty(UObject* src, UIntProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_floatproperty(UObject* src, UFloatProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_boolproperty(UObject* src, UBoolProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_byteproperty(UObject* src, UByteProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_componentproperty(UObject* src, UComponentProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_interfaceproperty(UObject* src, UInterfaceProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_mapproperty(UObject* src, UProperty* prop) {
-    (void)src;
-    (void)prop;
-};
-void draw_delegateproperty(UObject* src, UDelegateProperty* prop) {
-    (void)src;
-    (void)prop;
-};
 
 }  // namespace object_explorer

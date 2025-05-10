@@ -30,7 +30,7 @@ constexpr int OBJECT_EXPLORER_VER_MAJOR = 0;
 constexpr int OBJECT_EXPLORER_VER_MINOR = 0;
 
 inline std::string version() noexcept {
-  return fmt::format("{}.{}", OBJECT_EXPLORER_VER_MAJOR, OBJECT_EXPLORER_VER_MINOR);
+    return fmt::format("{}.{}", OBJECT_EXPLORER_VER_MAJOR, OBJECT_EXPLORER_VER_MINOR);
 }
 
 void initialise(void);
@@ -40,13 +40,21 @@ void begin_frame(void);
 void end_frame(void);
 void update(void);
 
-void draw_debug_window(void);
-void draw_all_objects_view(void);
-void draw_object_tree(void);
-void draw_object_viewer(void);
+////////////////////////////////////////////////////////////////////////////////
+// | APPLICATION VIEWS |
+////////////////////////////////////////////////////////////////////////////////
 
-bool draw_uobject_view(UObject* obj);
-bool draw_property_view(UObject* obj, UProperty* prop);
+void draw_debug_view(void);
+void draw_all_objects_view(void);
+void draw_outer_tree_view(void);
+void draw_edit_object_view(void);
+
+////////////////////////////////////////////////////////////////////////////////
+// | SINGLE OBJECT RENDERS |
+////////////////////////////////////////////////////////////////////////////////
+
+int draw_obj_as_package_tree(UObject* pkg);
+int draw_editable_property(UObject* src, UProperty* prop);
 
 }  // namespace object_explorer
 
