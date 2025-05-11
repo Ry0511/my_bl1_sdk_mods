@@ -64,6 +64,7 @@ struct UnrealCoreProperties {
     UClass* MapProperty{nullptr};
     UClass* DelegateProperty{nullptr};
     UClass* PackageClass{nullptr};
+    UClass* ClassClass{nullptr};
 };
 
 struct RuntimeInfo {
@@ -266,6 +267,7 @@ static void _init_object_explorer() {
     props.MapProperty       = find_class(L"Core.MapProperty");
     props.DelegateProperty  = find_class(L"Core.DelegateProperty");
     props.PackageClass      = find_class(L"Core.Package");
+    props.ClassClass        = find_class(L"Core.Class");
     // clang-format on
 
     bool has_hooked =
@@ -561,6 +563,9 @@ void draw_all_objects_view() {
 // | ALL OUTER TREE |
 ////////////////////////////////////////////////////////////////////////////////
 
+static UClass* g_OuterClassFilter = nullptr;
+static UClass* g_ClassFilter = nullptr;
+
 struct ObjectTreeNode {
     WeakPointer Root;
     std::optional<std::vector<ObjectTreeNode>> Children;
@@ -571,15 +576,19 @@ struct ObjectTreeNode {
         }
 
         Children = std::make_optional<std::vector<ObjectTreeNode>>();
-        Children->reserve(64);
+        Children->reserve(32);
 
         // Collect children... wait
         const GObjects& all_objects = gobjects();
         for (const UObject* obj : all_objects) {
-            if (obj != nullptr && obj->Outer == *Root) {
+            if (obj != nullptr && obj->Outer == *Root
+                && (!g_ClassFilter || obj->Class == g_ClassFilter)) {
                 Children->emplace_back(obj, std::nullopt);
             }
         }
+
+        std::sort(Children->begin(), Children->end(), &ObjectTreeNode::sort_func);
+
         Children->shrink_to_fit();
     }
 
@@ -587,6 +596,18 @@ struct ObjectTreeNode {
         if (Children.has_value()) {
             Children.reset();
         }
+    }
+
+    static bool sort_func(const ObjectTreeNode& lhs, const ObjectTreeNode& rhs) {
+        // clang-format off
+        if (!lhs.Root && !rhs.Root) return false;
+        if (!lhs.Root) return false;
+        if (!rhs.Root) return true;
+        // clang-format on
+
+        UClass* left = (*lhs.Root)->Class;
+        UClass* right = (*rhs.Root)->Class;
+        return left->Name.operator std::wstring() < right->Name.operator std::wstring();
     }
 };
 
@@ -618,6 +639,8 @@ void impl_draw_outer_tree_view(ObjectTreeNode* parent, ObjectTreeNode& node, int
 }
 
 void draw_outer_tree_view() {
+    static std::string query_str{};
+
     if (!ImGui::Begin("Object Tree")) {
         ImGui::End();
         return;
@@ -627,6 +650,44 @@ void draw_outer_tree_view() {
         g_OuterTreeNodes = std::nullopt;
     }
 
+    constexpr auto combo_flags = ImGuiComboFlags_PopupAlignLeft | ImGuiComboFlags_WidthFitPreview;
+    const char* filter_options[] = {"All", "Packages", "Classes"};
+    static int filter_idx = 0;
+
+    ImGui::SameLine();
+    if (ImGui::BeginCombo("Filter", filter_options[filter_idx], combo_flags)) {
+        for (int i = 0; i < IM_ARRAYSIZE(filter_options); ++i) {
+            if (ImGui::Selectable(filter_options[i], filter_idx == i)) {
+                if (filter_idx != i) {
+                    g_OuterTreeNodes = std::nullopt;
+                }
+
+                const auto& info = *g_RuntimeInfo.CoreProperties;
+                filter_idx = i;
+
+                switch (filter_idx) {
+                    case 0:  // All
+                        g_OuterClassFilter = nullptr;
+                        g_ClassFilter = nullptr;
+                        break;
+                    case 1:  // Packages
+                        g_OuterClassFilter = info.PackageClass;
+                        g_ClassFilter = nullptr;
+                        break;
+                    case 2:  // Classes
+                        g_OuterClassFilter = nullptr;
+                        g_ClassFilter = g_RuntimeInfo.CoreProperties->ClassClass;
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        ImGui::EndCombo();
+    }
+
+    // TODO: Rethink this
     if (ImGui::BeginChild("Tree View")) {
         if (!g_OuterTreeNodes.has_value()) {
             g_OuterTreeNodes = std::make_optional<std::vector<ObjectTreeNode>>();
@@ -634,22 +695,60 @@ void draw_outer_tree_view() {
 
             const GObjects& all_objects = gobjects();
             for (const UObject* obj : all_objects) {
-                if (obj != nullptr && obj->Outer == nullptr && obj->Class->Name == L"Package"_fn) {
-                    g_OuterTreeNodes->emplace_back(obj, std::nullopt);
+                if (obj == nullptr || obj->Outer != nullptr) {
+                    continue;
                 }
+                g_OuterTreeNodes->emplace_back(obj, std::nullopt);
             }
+
+            std::sort(
+                g_OuterTreeNodes->begin(),
+                g_OuterTreeNodes->end(),
+                &ObjectTreeNode::sort_func
+            );
             g_OuterTreeNodes->shrink_to_fit();
         }
 
         // Draw root nodes
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
-        for (ObjectTreeNode& node : *g_OuterTreeNodes) {
-            impl_draw_outer_tree_view(nullptr, node, 0);
+        for (auto it = g_OuterTreeNodes->begin(); it != g_OuterTreeNodes->end();) {
+            ObjectTreeNode& node = *it;
+
+            // Render as null text
+            if (!node.Root) {
+                ++it;
+                impl_draw_outer_tree_view(nullptr, node, 0);
+                continue;
+            }
+
+            // Render under grouped classes
+            const UClass* cls = (*node.Root)->Class;
+            std::string name = cls->Name;
+
+            if (ImGui::TreeNodeEx(name.c_str())) {
+                do {
+                    impl_draw_outer_tree_view(nullptr, node, 0);
+                    if (++it == g_OuterTreeNodes->end()) {
+                        break;
+                    }
+                    node = *it;
+                } while (!node.Root || (*node.Root)->Class == cls);
+                ImGui::TreePop();
+
+                // Skip
+            } else {
+                do {
+                    if (++it == g_OuterTreeNodes->end()) {
+                        break;
+                    }
+                    node = *it;
+                } while (!node.Root || (*node.Root)->Class == cls);
+            }
         }
         ImGui::PopStyleVar();
     }
-    ImGui::EndChild();
 
+    ImGui::EndChild();
     ImGui::End();
 }
 
@@ -665,4 +764,4 @@ bool draw_uobject_view(UObject* /*obj*/) {
     return true;
 }
 
-}  // namespace object_explorer
+}  // namespace object_explorerobject_explorer_EXPORTS
