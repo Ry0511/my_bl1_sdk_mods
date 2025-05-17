@@ -8,33 +8,57 @@
 
 namespace bl1_text_mods {
 
-bool TextModLexer::read_number() noexcept {
+////////////////////////////////////////////////////////////////////////////////
+// | LEXING ERROR |
+////////////////////////////////////////////////////////////////////////////////
+
+std::array<str, 2> LexingError::error_with_caret() const {
+    TXT_MOD_ASSERT(has_context(), "Error has no context; validate with has_context()");
+
+    std::array<str, 2> info{};
+    info[0] = error_line();
+
+    // Position indicator
+    info[1] = str(pos_in_line(), ' ');
+    info[1][pos_in_line() - 1] = '^';
+
+    return info;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | LEXER |
+////////////////////////////////////////////////////////////////////////////////
+
+bool TextModLexer::read_number() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    size_t next = m_Position + 1;
-    if (!std::isdigit(peek())) {
-        if (!(peek() == TXT('-') && !eof() && std::isdigit(peek(1)))) {
-            return false;
-        }
-        m_Position++;  // Advance past the hyphen
+    // Not a digit and not a minus
+    if (!std::isdigit(peek()) && peek() != TXT('-')) {
+        return false;
     }
 
-    // Parses as: -?[0-9]+ (. [0-9]+)?
-    bool dot_found = false;
+    // If current char is a hyphen then the next char must be a digit
+    if (peek() == TXT('-') && (eof(1) || !std::isdigit(peek(1)))) {
+        throw_error_with_context("Expected digit after -");
+    }
 
-    // Advance stream
-    read_while([this, &dot_found](txt_char c) {
-        size_t next = m_Position + 1;
-
-        // Dot not found, current char is a dot, and next char is a digit
-        if (!dot_found && c == TXT('.') && next < m_Text.size() && std::isdigit(m_Text[next])) {
-            dot_found = true;
-            return true;
+    // Consume
+    const auto skip_digits = [this]() {
+        while (std::isdigit(peek())) {
+            m_Position++;
         }
+    };
 
-        // Continue while a digit
-        return std::isdigit(c) != 0;
-    });
+    m_Position++;
+    skip_digits();
+
+    if (peek() == TXT('.')) {
+        if (eof(1) || !std::isdigit(peek(1))) {
+            throw_error_with_context("Expected digit after .");
+        }
+        m_Position++;
+        skip_digits();
+    }
 
     m_Token->Kind = TokenKind::Number;
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
@@ -87,10 +111,12 @@ bool TextModLexer::read_line_comment() noexcept {
 bool TextModLexer::read_multiline_comment() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    auto next = m_Position + 1;
+    size_t start = m_Position;
+    size_t next = m_Position + 1;
+
     if (next < m_Text.size() && m_Text[next] == TXT('*')) {
         m_Position += 2;  // Skip past: /*
-
+        // TODO: This bypasses line counting logic
         auto pos = m_Text.find(TXT("*/"), m_Position);
 
         // Have we found the: */
@@ -101,9 +127,10 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
             return true;
         }
 
-        throw std::runtime_error("Unterminated multi-line comment");
+        throw LexingError{"Unterminated multiline comment"};
     }
-    throw std::runtime_error("Invalid multiline comment sequence / expecting /*");
+
+    throw_error_with_context("invalid sequence expecting /*");
 }
 
 bool TextModLexer::read_string_literal() noexcept(false) {
@@ -112,7 +139,7 @@ bool TextModLexer::read_string_literal() noexcept(false) {
     read_while([](txt_char c) { return c != TXT('\"') && c != TXT('\n') && c != TXT('\r'); });
 
     if (this->eof()) {
-        throw std::runtime_error("Unterminated string literal");
+        throw_error_with_context("Unterminated string literal");
     }
     m_Position++;  // Skip "
     m_Token->Kind = TokenKind::StringLiteral;
@@ -126,7 +153,7 @@ bool TextModLexer::read_name_literal() noexcept(false) {
     read_while([](txt_char c) { return c != TXT('\'') && c != TXT('\n') && c != TXT('\r'); });
 
     if (this->eof()) {
-        throw std::runtime_error("Unterminated name literal");
+        throw_error_with_context("Unterminated name literal");
     }
     m_Position++;  // Skip '
     m_Token->Kind = TokenKind::NameLiteral;
@@ -149,9 +176,10 @@ bool TextModLexer::read_token(Token* token) {
 
     for (; m_Position < m_Text.size(); ++m_Position) {
         switch (m_Text[m_Position]) {
-            case TXT(' '):
             case TXT('\n'):
             case TXT('\r'):
+                ++m_CurrentLine;
+            case TXT(' '):
             case TXT('\t'):
                 m_Start = m_Position + 1;
                 continue;  // Skip
@@ -201,9 +229,7 @@ bool TextModLexer::read_token(Token* token) {
                     return true;
                 }
 
-                throw std::runtime_error(
-                    std::format("Unknown character '{}' at position {}", str{peek()}, m_Position)
-                );
+                throw_error_with_context("Unknown token");
             }
         }
     }

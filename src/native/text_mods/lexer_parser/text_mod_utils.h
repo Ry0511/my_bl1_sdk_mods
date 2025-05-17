@@ -9,8 +9,6 @@
 #include <format>
 #include <string>
 
-#include <windows.h>
-
 /**
 
 Note that this was taken directly from:

@@ -33,8 +33,14 @@ public:
                 TXT_LOG("Reached end of input");
                 return;
             }
-        } catch (const std::runtime_error& err) {
+        } catch (const LexingError& err) {
             TXT_LOG("Failed to parse text: '{}'", err.what());
+            if (err.has_context()) {
+                TXT_LOG("Error caused by: ");
+                for (const str& line : err.error_with_caret()) {
+                    TXT_LOG(" > {}", line);
+                }
+            }
         }
     }
 };

@@ -6,6 +6,8 @@
 
 #include "text_mod_utils.h"
 
+#include <windows.h>
+
 namespace bl1_text_mods::utils {
 
 std::string narrow(std::wstring_view wstr) {
