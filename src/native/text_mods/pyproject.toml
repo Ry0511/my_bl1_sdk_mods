@@ -1,0 +1,15 @@
+[project]
+name = "Text Mods"
+version = "0.0"
+authors = [{ name = "-Ry" }]
+description = "Text mods for BL1"
+
+[packager]
+safe_name = "text_mods"
+exclude_globs = ["CMakeLists.txt", "*.cpp", "*.h"]
+
+[tool.sdkmod]
+mod_type = "Library"
+supported_games = "BL1"
+coop_support = "Unknown"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
