@@ -54,7 +54,15 @@ class TextModLexer {
         }
     }
 
-    [[nodiscard]] inline str_view peek() const noexcept { return m_Text.substr(m_Position, 1); }
+    /**
+     * Grabs the character from the current position in the stream.
+     * @param offset
+     * @return
+     */
+    [[nodiscard]] inline txt_char peek(size_t offset = 0) const noexcept {
+        TXT_MOD_ASSERT(m_Position + offset < m_Text.size(), "peek out of bounds");
+        return m_Text[m_Position + offset];
+    }
 
    private:
     inline bool read_simple(TokenKind kind) noexcept {

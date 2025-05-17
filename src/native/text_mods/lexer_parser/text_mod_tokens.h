@@ -9,35 +9,36 @@
 #include "text_mod_common.h"
 
 namespace bl1_text_mods {
+
 using token_int = int;
 
+// clang-format off
+
 enum class TokenKind : token_int {
-    Kw_Set = 0,        // Set keyword
-    Kw_None,           // None keyword
-    Kw_Level,          // level keyword
-    LeftParen,         // (
-    RightParen,        // )
-    Dot,               // .
-    Colon,             // :
-    Slash,             // /
-    Star,              // *
-    Comma,             // ,
-    LeftBracket,       // [
-    RightBracket,      // ]
-    Number,            // [0-9]+ ( DOT [0-9]+ )?
-    Equal,             // =
-    Identifier,        // a-zA-Z0-9
-    StringLiteral,     // ".*?"
-    NameLiteral,       // '.*?'
-    LineComment,       // # ...
-    MultiLineComment,  // /* ... */
-    END_OF_INPUT       // EOF
+    Kw_Set = 0       , // Set keyword
+    Kw_None          , // None keyword
+    Kw_Level         , // level keyword
+    LeftParen        , // (
+    RightParen       , // )
+    Dot              , // .
+    Colon            , // :
+    Slash            , // /
+    Star             , // *
+    Comma            , // ,
+    LeftBracket      , // [
+    RightBracket     , // ]
+    Number           , // [0-9]+ ( DOT [0-9]+ )?
+    Equal            , // =
+    Identifier       , // a-zA-Z0-9
+    StringLiteral    , // ".*?"
+    NameLiteral      , // '.*?'
+    LineComment      , // # ...
+    MultiLineComment , // /* ... */
+    END_OF_INPUT     , // EOF
 };
 
 constexpr token_int begin_kw_token = static_cast<token_int>(TokenKind::Kw_Set);
 constexpr token_int end_kw_token = static_cast<token_int>(TokenKind::Kw_Level);
-
-// clang-format off
 
 constexpr str_view token_kind_names[]{
     TXT("set")             , // set keyword

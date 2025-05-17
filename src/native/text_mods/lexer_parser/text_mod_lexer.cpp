@@ -11,11 +11,15 @@ namespace bl1_text_mods {
 bool TextModLexer::read_number() noexcept {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    if (!std::isdigit(m_Text[m_Position])) {
-        return false;
+    size_t next = m_Position + 1;
+    if (!std::isdigit(peek())) {
+        if (!(peek() == TXT('-') && !eof() && std::isdigit(peek(1)))) {
+            return false;
+        }
+        m_Position++;  // Advance past the hyphen
     }
 
-    // Parse as: [0-9]+ (. [0-9]+)?
+    // Parses as: -?[0-9]+ (. [0-9]+)?
     bool dot_found = false;
 
     // Advance stream
@@ -166,6 +170,9 @@ bool TextModLexer::read_token(Token* token) {
 
             case TXT('='):
                 return read_simple(TokenKind::Equal);
+
+            case TXT(':'):
+                return read_simple(TokenKind::Colon);
 
             case TXT('['):
                 return read_simple(TokenKind::LeftBracket);
