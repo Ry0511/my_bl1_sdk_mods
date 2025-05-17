@@ -4,6 +4,7 @@
 // Author     : -Ry
 //
 
+#include "text_mod_common.h"
 #include "text_mod_lexer.h"
 #include "text_mod_parser.h"
 

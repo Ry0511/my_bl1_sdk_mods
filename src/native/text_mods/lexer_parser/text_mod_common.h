@@ -11,6 +11,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <cassert>
+#include <cstdint>
 #include <format>
 #include <functional>
 #include <iostream>
@@ -18,12 +19,14 @@
 #include <string_view>
 #include <vector>
 
+#include "text_mod_utils.h"
+
 ////////////////////////////////////////////////////////////////////////////////
 // | DEFINES |
 ////////////////////////////////////////////////////////////////////////////////
 
 #define TXT_LOG(msg, ...) \
-    std::cout << std::format("[{}] " msg, __FUNCTION__, __VA_ARGS__) << std::endl
+    std::cout << std::format("[{}] " msg "\n", __FUNCTION__, __VA_ARGS__)
 
 #define TXT_MOD_ASSERT(p, msg, ...)    \
     do {                               \
@@ -39,6 +42,8 @@
 
 namespace bl1_text_mods {
 
+using std::size_t;
+
 // clang-format off
 
 #ifdef TEXT_MODS_USE_WCHAR
@@ -47,7 +52,7 @@ using str      = std::wstring;
 using str_view = std::wstring_view;
 using txt_char = wchar_t;
 
-#define TEXT(str) L ## str
+#define TXT(str) L ## str
 
 #else
 
@@ -55,7 +60,7 @@ using str      = std::string;
 using str_view = std::string_view;
 using txt_char = char;
 
-#define TEXT(str) str
+#define TXT(str) str
 
 #endif
 
@@ -65,7 +70,7 @@ using txt_char = char;
 // | TEST DATA |
 ////////////////////////////////////////////////////////////////////////////////
 
-constexpr str_view test_str = TEXT(R"(
+constexpr str_view test_str = TXT(R"(
 
 # A comment
 set Foo.Bar.Baz MyProperty 50

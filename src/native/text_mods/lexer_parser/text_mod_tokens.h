@@ -40,26 +40,26 @@ constexpr token_int end_kw_token = static_cast<token_int>(TokenKind::Kw_Level);
 // clang-format off
 
 constexpr str_view token_kind_names[]{
-    TEXT("set")             , // set keyword
-    TEXT("None")            , // None keyword
-    TEXT("level")           , // level keyword
-    TEXT("LeftParen")       , // (
-    TEXT("RightParen")      , // )
-    TEXT("Dot")             , // .
-    TEXT("Colon")           , // :
-    TEXT("Slash")           , // /
-    TEXT("Star")            , // *
-    TEXT("Comma")           , // ,
-    TEXT("LeftBracket")     , // [
-    TEXT("RightBracket")    , // ]
-    TEXT("Number")          , // [0-9]+ ( DOT [0-9]+ )?
-    TEXT("Equal")           , // =
-    TEXT("Identifier")      , // a-zA-Z0-9
-    TEXT("StringLiteral")   , // ".*?"
-    TEXT("NameLiteral")     , // '.*?'
-    TEXT("LineComment")     , // # ...
-    TEXT("MultiLineComment"), // /* ... */
-    TEXT("END_OF_INPUT")    , // EOF
+    TXT("set")             , // set keyword
+    TXT("None")            , // None keyword
+    TXT("level")           , // level keyword
+    TXT("LeftParen")       , // (
+    TXT("RightParen")      , // )
+    TXT("Dot")             , // .
+    TXT("Colon")           , // :
+    TXT("Slash")           , // /
+    TXT("Star")            , // *
+    TXT("Comma")           , // ,
+    TXT("LeftBracket")     , // [
+    TXT("RightBracket")    , // ]
+    TXT("Number")          , // [0-9]+ ( DOT [0-9]+ )?
+    TXT("Equal")           , // =
+    TXT("Identifier")      , // a-zA-Z0-9
+    TXT("StringLiteral")   , // ".*?"
+    TXT("NameLiteral")     , // '.*?'
+    TXT("LineComment")     , // # ...
+    TXT("MultiLineComment"), // /* ... */
+    TXT("END_OF_INPUT")    , // EOF
 };
 
 // clang-format on
@@ -75,10 +75,10 @@ struct Token {
     explicit constexpr Token() noexcept : Kind(TokenKind::END_OF_INPUT), Text() {};
     explicit constexpr Token(TokenKind kind, str_view text) noexcept : Kind(kind), Text(text) {};
 
-    [[nodiscard]] str token_as_str() const noexcept {
+    [[nodiscard]] std::string token_as_str() const noexcept {
         auto index = static_cast<std::size_t>(Kind);
         str_view token_kind_name = token_kind_names[index];
-        return std::format(TEXT("{:<17} = '{}'"), token_kind_name, Text);
+        return std::format("{:<17} = '{}'", str{token_kind_name}, str{Text});
     }
 
     // Text Compare

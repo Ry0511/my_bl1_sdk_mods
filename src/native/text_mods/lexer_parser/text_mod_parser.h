@@ -26,19 +26,15 @@ public:
             Token token{};
 
             while (m_Lexer->read_token(&token)) {
-#ifdef TEXT_MODS_USE_WCHAR
-                std::wcout << token.token_as_str() << std::endl;
-#else
-                std::cout << token.token_as_str() << std::endl;
-#endif
+                TXT_LOG("{}", token.token_as_str());
             }
 
             if (token == TOK_EOF) {
-                std::wcout << TEXT("Reached end of input") << std::endl;
+                TXT_LOG("Reached end of input");
                 return;
             }
         } catch (const std::runtime_error& err) {
-            std::cout << "Failed to parse text with error: " << err.what() << std::endl;
+            TXT_LOG("Failed to parse text: '{}'", err.what());
         }
     }
 };

@@ -1,0 +1,37 @@
+//
+// Date       : 17/05/2025
+// Project    : bl1_sdk_mods
+// Author     : -Ry
+//
+
+#pragma once
+
+#include <format>
+#include <string>
+
+#include <windows.h>
+
+/**
+
+Note that this was taken directly from:
+  .../unrealsdk/src/unrealsdk/utils.cpp
+
+ */
+
+namespace bl1_text_mods::utils {
+
+static_assert(sizeof(wchar_t) == sizeof(char16_t), "wchar_t is different size to char16_t");
+
+std::string narrow(std::wstring_view wstr) noexcept(false);
+std::wstring widen(std::string_view str) noexcept(false);
+
+} // namespace bl1_text_mods::utils
+
+
+template <>
+struct std::formatter<std::wstring> : std::formatter<std::string> {
+    auto format(const std::wstring& str, std::format_context& ctx) const {
+        using namespace bl1_text_mods;
+        return formatter<std::string>::format(utils::narrow(str), ctx);
+    }
+};
