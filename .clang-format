@@ -15,7 +15,7 @@ AllowAllParametersOfDeclarationOnNextLine: false
 
 AllowShortBlocksOnASingleLine: Empty
 BreakBeforeBinaryOperators: NonAssignment
-ColumnLimit: 100
+ColumnLimit: 120
 IndentWidth: 4
 InsertBraces: true
 SortIncludes: CaseInsensitive
