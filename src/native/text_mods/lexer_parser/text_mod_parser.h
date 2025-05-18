@@ -29,16 +29,19 @@ public:
                 TXT_LOG("{}", token.token_as_str());
             }
 
-            if (token == TOK_EOF) {
+            if (token == token_eof) {
                 TXT_LOG("Reached end of input");
                 return;
             }
-        } catch (const LexingError& err) {
+        } catch (const ErrorWithContext& err) {
             TXT_LOG("Failed to parse text: '{}'", err.what());
             if (err.has_context()) {
-                TXT_LOG("Error caused by: ");
-                for (const str& line : err.error_with_caret()) {
-                    TXT_LOG(" > {}", line);
+                for (const auto& line : *err.context_lines()) {
+                    TXT_LOG(" > {:}", line.substr(0, 50)); // Only show the first 50 chars of each line
+                }
+                if (err.has_error_line()) {
+                    TXT_LOG(" > {}", err.error_line());
+                    TXT_LOG(" > {}", err.error_caret());
                 }
             }
         }

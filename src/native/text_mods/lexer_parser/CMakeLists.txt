@@ -15,6 +15,7 @@ target_sources(
         text_mod_parser.cpp
         text_mod_utils.h
         text_mod_utils.cpp
+        text_mod_errors.h
 )
 
 target_include_directories(bl1_text_mods PUBLIC ./)

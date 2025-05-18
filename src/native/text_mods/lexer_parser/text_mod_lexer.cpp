@@ -9,23 +9,6 @@
 namespace bl1_text_mods {
 
 ////////////////////////////////////////////////////////////////////////////////
-// | LEXING ERROR |
-////////////////////////////////////////////////////////////////////////////////
-
-std::array<str, 2> LexingError::error_with_caret() const {
-    TXT_MOD_ASSERT(has_context(), "Error has no context; validate with has_context()");
-
-    std::array<str, 2> info{};
-    info[0] = error_line();
-
-    // Position indicator
-    info[1] = str(pos_in_line(), ' ');
-    info[1][pos_in_line() - 1] = '^';
-
-    return info;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // | LEXER |
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -33,7 +16,7 @@ bool TextModLexer::read_number() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
     // Not a digit and not a minus
-    if (!std::isdigit(peek()) && peek() != TXT('-')) {
+    if ((std::isdigit(peek()) == 0) && peek() != TXT('-')) {
         return false;
     }
 
@@ -67,7 +50,7 @@ bool TextModLexer::read_number() noexcept(false) {
 
 bool TextModLexer::read_identifier() noexcept {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
-    if (!std::isalpha(m_Text[m_Position])) {
+    if (std::isalpha(m_Text[m_Position]) == 0) {
         return false;
     }
 
@@ -89,8 +72,8 @@ bool TextModLexer::read_identifier() noexcept {
     };
 
     // See if the token matches any known keywords
-    for (auto i = begin_kw_token; i <= end_kw_token; ++i) {
-        const str_view& name = token_kind_names[i];
+    for (auto i = static_cast<int>(begin_kw_token); i <= static_cast<int>(end_kw_token); ++i) {
+        const str_view& name = token_kind_names.at(i);
         if (icase_cmp(name, m_Token->Text)) {
             m_Token->Kind = static_cast<TokenKind>(i);
             return true;
@@ -101,7 +84,7 @@ bool TextModLexer::read_identifier() noexcept {
 }
 
 bool TextModLexer::read_line_comment() noexcept {
-    size_t start = m_Position;
+    const size_t start = m_Position;
     read_while([](txt_char c) { return c != TXT('\n') && c != TXT('\r'); });
     m_Token->Kind = TokenKind::LineComment;
     m_Token->Text = m_Text.substr(start, m_Position - start);
@@ -111,26 +94,32 @@ bool TextModLexer::read_line_comment() noexcept {
 bool TextModLexer::read_multiline_comment() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    size_t start = m_Position;
-    size_t next = m_Position + 1;
-
-    if (next < m_Text.size() && m_Text[next] == TXT('*')) {
-        m_Position += 2;  // Skip past: /*
-        // TODO: This bypasses line counting logic
-        auto pos = m_Text.find(TXT("*/"), m_Position);
-
-        // Have we found the: */
-        if (pos != str::npos) {
-            m_Token->Kind = TokenKind::MultiLineComment;
-            m_Token->Text = m_Text.substr(m_Start, (pos - m_Start) + 2);
-            m_Position = pos + 2;
-            return true;
-        }
-
-        throw LexingError{"Unterminated multiline comment"};
+    if (eof(1) || peek(1) != TXT('*')) {
+        throw_error_with_context("Expecting /*");
     }
 
-    throw_error_with_context("invalid sequence expecting /*");
+    m_Position += 2;  // Skip /*
+
+    for (; m_Position < m_Text.size(); ++m_Position) {
+        const txt_char ch = peek(); // NOLINT(*-identifier-length)
+        if (ch == TXT('\n')) {
+            ++m_CurrentLine;
+            continue;
+        }
+
+        if (ch == TXT('*') && !eof(1) && peek(1) == TXT('/')) {
+            m_Position += 2;  // Skip */
+            m_Token->Kind = TokenKind::MultiLineComment;
+            m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+            return true;
+        }
+    }
+
+    if (eof()) {
+        throw_error_with_context("Unterminated multiline comment");
+    }
+
+    throw_error_with_context("Unknown lexing error");
 }
 
 bool TextModLexer::read_string_literal() noexcept(false) {
@@ -164,7 +153,7 @@ bool TextModLexer::read_name_literal() noexcept(false) {
 bool TextModLexer::read_token(Token* token) {
     if (this->eof()) {
         // eof
-        token->Kind = TokenKind::END_OF_INPUT;
+        token->Kind = TokenKind::EndOfInput;
         token->Text = str_view{};
         return false;
     }
