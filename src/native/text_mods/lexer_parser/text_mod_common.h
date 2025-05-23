@@ -10,18 +10,7 @@
 // | INCLUDES |
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <array>
-#include <cassert>
-#include <cstdint>
-#include <format>
-#include <functional>
-#include <iostream>
-#include <optional>
-#include <string>
-#include <string_view>
-#include <utility>
-#include <vector>
-
+#include "pch.h"
 #include "text_mod_utils.h"
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -7,6 +7,8 @@ target_compile_definitions(bl1_text_mods PUBLIC -DTEXT_MODS_USE_WCHAR)
 # Only need this for utils; Use DTEXT_MODS_STANDALONE for building as a separate module
 target_link_libraries(bl1_text_mods PRIVATE unrealsdk)
 
+target_precompile_headers(bl1_text_mods PRIVATE ./pch.h)
+
 target_sources(
         bl1_text_mods
         PRIVATE
