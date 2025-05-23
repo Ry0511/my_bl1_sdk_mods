@@ -36,7 +36,7 @@ public:
         } catch (const ErrorWithContext& err) {
             TXT_LOG("Failed to parse text: '{}'", err.what());
             if (err.has_context()) {
-                for (const auto& line : *err.context_lines()) {
+                for (const auto& line : err.context_lines()) {
                     TXT_LOG(" > {:}", line.substr(0, 50)); // Only show the first 50 chars of each line
                 }
                 if (err.has_error_line()) {

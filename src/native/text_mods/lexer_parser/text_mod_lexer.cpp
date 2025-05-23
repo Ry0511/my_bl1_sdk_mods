@@ -21,7 +21,7 @@ bool TextModLexer::read_number() noexcept(false) {
     }
 
     // If current char is a hyphen then the next char must be a digit
-    if (peek() == TXT('-') && (eof(1) || !std::isdigit(peek(1)))) {
+    if (peek() == TXT('-') && (eof(1) || (std::isdigit(peek(1)) == 0))) {
         throw_error_with_context("Expected digit after -");
     }
 
@@ -36,7 +36,7 @@ bool TextModLexer::read_number() noexcept(false) {
     skip_digits();
 
     if (peek() == TXT('.')) {
-        if (eof(1) || !std::isdigit(peek(1))) {
+        if (eof(1) || (std::isdigit(peek(1)) == 0)) {
             throw_error_with_context("Expected digit after .");
         }
         m_Position++;
@@ -50,6 +50,7 @@ bool TextModLexer::read_number() noexcept(false) {
 
 bool TextModLexer::read_identifier() noexcept {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
+
     if (std::isalpha(m_Text[m_Position]) == 0) {
         return false;
     }
@@ -101,7 +102,7 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
     m_Position += 2;  // Skip /*
 
     for (; m_Position < m_Text.size(); ++m_Position) {
-        const txt_char ch = peek(); // NOLINT(*-identifier-length)
+        const txt_char ch = peek();  // NOLINT(*-identifier-length)
         if (ch == TXT('\n')) {
             ++m_CurrentLine;
             continue;
@@ -218,11 +219,14 @@ bool TextModLexer::read_token(Token* token) {
                     return true;
                 }
 
+                // Anything unknown should be an assertion error but I can't guarantee this
+                //  currently since there is a knowledge gap.
                 throw_error_with_context("Unknown token");
             }
         }
     }
 
+    // Pretty sure this can't be reached
     return false;
 }
 

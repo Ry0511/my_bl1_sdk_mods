@@ -37,7 +37,7 @@ enum class TokenKind : token_int {
     RightBracket     , // ]
     Number           , // [0-9]+ ( DOT [0-9]+ )?
     Equal            , // =
-    Identifier       , // a-zA-Z0-9
+    Identifier       , // [a-zA-Z][\w\d_]+
     StringLiteral    , // ".*?"
     NameLiteral      , // '.*?'
     LineComment      , // # ...

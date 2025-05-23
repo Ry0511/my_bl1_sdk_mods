@@ -16,11 +16,11 @@
 #include <format>
 #include <functional>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-#include <optional>
 
 #include "text_mod_utils.h"
 
@@ -30,11 +30,17 @@
 
 #define TXT_LOG(msg, ...) std::cout << std::format("[{}] " msg "\n", __FUNCTION__, __VA_ARGS__)
 
+#ifdef _MSC_VER
+#define TXT_ASSERT_FAIL __debugbreak()
+#else
+TXT_ASSERT_FAIL assert(false)
+#endif
+
 #define TXT_MOD_ASSERT(p, msg, ...)    \
     do {                               \
         if (!(p)) {                    \
             TXT_LOG(msg, __VA_ARGS__); \
-            __debugbreak();            \
+            TXT_ASSERT_FAIL;           \
         }                              \
     } while (false)
 

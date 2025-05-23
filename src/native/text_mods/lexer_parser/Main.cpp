@@ -12,8 +12,9 @@
 // | MAIN |
 ////////////////////////////////////////////////////////////////////////////////
 
+using namespace bl1_text_mods;
+
 int main() {
-    using namespace bl1_text_mods;
     TextModLexer lexer{test_str};
     TextModParser parser{&lexer};
     parser.parse_string();

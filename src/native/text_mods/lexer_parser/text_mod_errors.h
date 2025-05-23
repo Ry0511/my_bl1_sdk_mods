@@ -47,7 +47,7 @@ class ErrorWithContext : public std::runtime_error {
    public:
     [[nodiscard]] size_t line_number() const noexcept { return m_LineNumber; }
     [[nodiscard]] size_t pos_in_line() const noexcept { return m_PosInLine; }
-    [[nodiscard]] const LineContext& context_lines() const noexcept { return *m_ContextLines; }
+    [[nodiscard]] const LineContext::value_type& context_lines() const noexcept { return *m_ContextLines; }
     [[nodiscard]] const str& error_line() const noexcept { return *m_ErrorLine; }
 
     [[nodiscard]] std::string error_caret() const noexcept {

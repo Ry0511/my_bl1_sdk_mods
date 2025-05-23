@@ -9,6 +9,10 @@
 #include <format>
 #include <string>
 
+#ifndef TEXT_MODS_STANDALONE
+#include "unrealsdk/utils.h"
+#endif
+
 /**
 
 Note that this was taken directly from:
@@ -20,11 +24,21 @@ namespace bl1_text_mods::utils {
 
 static_assert(sizeof(wchar_t) == sizeof(char16_t), "wchar_t is different size to char16_t");
 
+#ifdef TEXT_MODS_STANDALONE
+
 std::string narrow(std::wstring_view wstr) noexcept(false);
 std::wstring widen(std::string_view str) noexcept(false);
 
+#else
+
+using namespace unrealsdk::utils;
+
+#endif
+
 } // namespace bl1_text_mods::utils
 
+
+#ifdef TEXT_MODS_STANDALONE
 
 template <>
 struct std::formatter<std::wstring> : std::formatter<std::string> {
@@ -33,3 +47,5 @@ struct std::formatter<std::wstring> : std::formatter<std::string> {
         return formatter<std::string>::format(utils::narrow(str), ctx);
     }
 };
+
+#endif

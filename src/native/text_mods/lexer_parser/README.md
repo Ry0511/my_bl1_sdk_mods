@@ -7,6 +7,9 @@ since I don't fully know what the requirements are.
 
 ### Comments
 
+These are non-standard and are built into the lexer effectively they are escape sequences that we 
+will ignore during processing.
+
 ```text
 # Single Line Comment
 
@@ -38,9 +41,9 @@ set Object Property (
         A=255
     ),
     X=,
-    Y=( ),
-    Z(0)=10,
-    W[0]=10,
+    Y=(),
+    Z(0)=10, // Dynamic array access assignment
+    W[0]=10, // Static array access assignment
 )
 ```
 
@@ -55,11 +58,8 @@ level None set Object Property ValueExpression
 ### BL1 Object Definitions
 
 The only reason for a complex Lexer & Parser is because I don't know if there is a builtin way to
-handle object definitions like the one shown below (and also because if we have multi-line set
-commands we need a way to identify the ValueExpression part of the command). However, we can create
-a parser for these ourself and decompose them into a series of construct objects and import text/set
-calls. This also allows us to manage the lifetimes of these objects either keeping them alive forever
-or creating them on demand.
+handle object definitions like the one shown below. These definitions define not just the outermos 
+object but all child objects as well.
 
 These object definitions can be obtained using 'Copy to Clipboard' in the property view window for
 the object in the unreal editor.
@@ -68,7 +68,7 @@ Things to note about these definitions
 1. They can refer to an existing object, in which, we mutate the object
 2. The definition may contain child definitions which may or may not exist
 3. There is no good way to get the package from the object definition so we will extend the 
-    definition to include the package
+    definition to include the package. Child object definitions can rely on the parent for the package
 
 ```text
 Begin Object Class=WeaponPartDefinition Name=barrel5_Jakobs_Unforgiven
