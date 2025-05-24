@@ -9,7 +9,7 @@
 #include <format>
 #include <string>
 
-#ifndef TEXT_MODS_STANDALONE
+#if defined(TEXT_MODS_UNREALSDK)
 #include "unrealsdk/utils.h"
 #endif
 
@@ -24,12 +24,16 @@ namespace bl1_text_mods::utils {
 
 static_assert(sizeof(wchar_t) == sizeof(char16_t), "wchar_t is different size to char16_t");
 
-#ifdef TEXT_MODS_STANDALONE
+#if defined(TEXT_MODS_STANDALONE)
 
 std::string narrow(std::wstring_view wstr) noexcept(false);
 std::wstring widen(std::string_view str) noexcept(false);
 
 #else
+
+#if !defined(TEXT_MODS_UNREALSDK)
+#error "Text mods unrealsdk not defined"
+#endif
 
 using namespace unrealsdk::utils;
 
@@ -38,7 +42,7 @@ using namespace unrealsdk::utils;
 } // namespace bl1_text_mods::utils
 
 
-#ifdef TEXT_MODS_STANDALONE
+#if defined(TEXT_MODS_STANDALONE)
 
 template <>
 struct std::formatter<std::wstring> : std::formatter<std::string> {

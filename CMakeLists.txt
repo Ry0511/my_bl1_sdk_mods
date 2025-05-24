@@ -93,7 +93,7 @@ bl1_add_py_module(package_tools "src/native/package_tools")
 
 bl1_add_py_module(text_mods "src/native/text_mods")
 add_subdirectory("src/native/text_mods/lexer_parser" EXCLUDE_FROM_ALL)
-target_link_libraries(text_mods PUBLIC bl1_text_mods)
+target_link_libraries(text_mods PRIVATE tm_parse)
 
 bl1_add_basic_py_module("rys_qol" "src/py/rys_qol/")
 bl1_add_basic_py_module("rys_auto_save" "src/py/rys_auto_save/")

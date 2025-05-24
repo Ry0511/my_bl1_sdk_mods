@@ -1,17 +1,16 @@
 cmake_minimum_required(VERSION 3.23)
 
-add_library(bl1_text_mods STATIC)
-target_compile_features(bl1_text_mods PRIVATE cxx_std_20)
-target_compile_definitions(bl1_text_mods PUBLIC -DTEXT_MODS_USE_WCHAR)
+################################################################################
+# | LEXER & PARSER TARGET |
+################################################################################
 
-# Only need this for utils; Use DTEXT_MODS_STANDALONE for building as a separate module
-target_link_libraries(bl1_text_mods PRIVATE unrealsdk)
-
-target_precompile_headers(bl1_text_mods PRIVATE ./pch.h)
+add_library(tm_parse_ INTERFACE)
+target_precompile_headers(tm_parse_ INTERFACE ./pch.h)
+target_compile_features(tm_parse_ INTERFACE cxx_std_20)
 
 target_sources(
-        bl1_text_mods
-        PRIVATE
+        tm_parse_
+        INTERFACE
         text_mod_common.h
         text_mod_tokens.h
         text_mod_lexer.h
@@ -23,9 +22,23 @@ target_sources(
         text_mod_errors.h
 )
 
-target_include_directories(bl1_text_mods PUBLIC ./)
+target_include_directories(tm_parse_ INTERFACE ./)
+
+# External module usage with unrealsdk
+add_library(tm_parse INTERFACE)
+target_link_libraries(tm_parse INTERFACE tm_parse_)
+target_compile_definitions(tm_parse INTERFACE -DTEXT_MODS_UNREALSDK -DTEXT_MODS_USE_WCHAR)
+target_link_libraries(tm_parse INTERFACE unrealsdk)
+
+# Standalone module
+add_library(tm_parse_solo INTERFACE)
+target_link_libraries(tm_parse_solo INTERFACE tm_parse_)
+target_compile_definitions(tm_parse_solo INTERFACE -DTEXT_MODS_STANDALONE -DTEXT_MODS_USE_WCHAR)
+
+################################################################################
+# | STANDALONE BUILD TARGET |
+################################################################################
 
 add_executable(bl1_text_mods_exe Main.cpp)
 target_compile_features(bl1_text_mods_exe PRIVATE cxx_std_20)
-target_link_libraries(bl1_text_mods_exe PUBLIC bl1_text_mods)
-target_compile_definitions(bl1_text_mods_exe PUBLIC -DTEXT_MODS_STANDALONE)
+target_link_libraries(bl1_text_mods_exe PRIVATE tm_parse_solo)

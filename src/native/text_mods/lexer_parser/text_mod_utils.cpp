@@ -6,7 +6,14 @@
 
 #include "text_mod_utils.h"
 
+#if defined(TEXT_MODS_STANDALONE)
+
+#define WIN32_LEAN_AND_MEAN
+#define WIN32_NO_STATUS
+#define NOGDI
+#define NOMINMAX
 #include <windows.h>
+#include <winternl.h>
 
 namespace bl1_text_mods::utils {
 
@@ -15,16 +22,8 @@ std::string narrow(std::wstring_view wstr) {
         return {};
     }
 
-    auto num_chars = WideCharToMultiByte(
-        CP_UTF8,
-        0,
-        wstr.data(),
-        static_cast<int>(wstr.size()),
-        nullptr,
-        0,
-        nullptr,
-        nullptr
-    );
+    auto num_chars =
+        WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), nullptr, 0, nullptr, nullptr);
     std::string ret(num_chars, '\0');
     if (WideCharToMultiByte(
             CP_UTF8,
@@ -48,23 +47,16 @@ std::wstring widen(std::string_view str) {
         return {};
     }
 
-    auto num_chars =
-        MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
+    auto num_chars = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
     std::wstring ret(num_chars, '\0');
 
-    if (MultiByteToWideChar(
-            CP_UTF8,
-            0,
-            str.data(),
-            static_cast<int>(str.size()),
-            ret.data(),
-            num_chars
-        )
-        != num_chars) {
+    if (MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), ret.data(), num_chars) != num_chars) {
         throw std::runtime_error("Failed to convert utf8 string!");
     }
 
     return ret;
 }
 
-}  // namespace bl1_text_mods
+}  // namespace bl1_text_mods::utils
+
+#endif
