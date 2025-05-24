@@ -75,7 +75,7 @@ bool TextModLexer::read_identifier() noexcept {
 
     // See if the token matches any known keywords if so adjust the token kind
 
-    for (auto proxy : TokenKindIterator{}) {
+    for (auto proxy : KeywordTokenIterator{}) {
         const str_view& name = token_kind_names.at(proxy);
         if (icase_cmp(name, m_Token->Text)) {
             m_Token->Kind = proxy;
