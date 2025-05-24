@@ -86,10 +86,9 @@ bool TextModLexer::read_identifier() noexcept {
 }
 
 bool TextModLexer::read_line_comment() noexcept {
-    const size_t start = m_Position;
     read_while([](txt_char c) { return c != TXT('\n') && c != TXT('\r'); });
     m_Token->Kind = TokenKind::LineComment;
-    m_Token->Text = m_Text.substr(start, m_Position - start);
+    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
     return true;
 }
 
@@ -122,6 +121,38 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
     }
 
     throw_error_with_context("Unknown lexing error");
+}
+
+bool TextModLexer::read_delegate_token() noexcept(false) {
+
+    // - NOTE -
+    // This is a bit of a hack but if we encounter a __ sequence we treat it the same as a single
+    // line comment. The only reason for this work around is because its possible that an object
+    // dump may include it and its trivial to handle.
+    //
+    // i.e., this is the result from UProperty::ExportText/ExportTextItem
+    //   __OnSkillGradeChanged__Delegate=(null).None
+    //
+
+    if (eof(1) || peek(1) != TXT('_')) {
+        throw_error_with_context("Delegate token must start with __");
+    }
+
+    // Consume the entire line
+    read_while([](txt_char ch) -> bool { return ch != TXT('\n'); });
+
+    str_view line = m_Text.substr(m_Start, m_Position - m_Start);
+
+    // Additional safety check
+    if (line.find(TXT("__Delegate")) == str_view::npos) {
+        throw_error_with_context("Delegate token must end with __Delegate");
+    }
+
+    m_Token->Kind = TokenKind::DelegateLine;
+    m_Token->Text = line;
+
+    return true;
+
 }
 
 bool TextModLexer::read_string_literal() noexcept(false) {
@@ -204,6 +235,9 @@ bool TextModLexer::read_token(Token* token) {
             case TXT('/'):
                 return read_multiline_comment();
 
+            case TXT('_'):
+                return read_delegate_token();
+
             case TXT('\"'):
                 return read_string_literal();
 
@@ -211,7 +245,6 @@ bool TextModLexer::read_token(Token* token) {
                 return read_name_literal();
 
             default: {
-
                 if (read_number()) {
                     return true;
                 }

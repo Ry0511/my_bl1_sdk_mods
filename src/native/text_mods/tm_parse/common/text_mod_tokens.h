@@ -42,6 +42,7 @@ enum class TokenKind : token_int {
     NameLiteral      , // '.*?'
     LineComment      , // # ...
     MultiLineComment , // /* ... */
+    DelegateLine     , // __OnSkillGradeChanged__Delegate=(null).None (full line ignored)
     EndOfInput       , // EOF
     TokenKind_Count  , // Keep this last
 };
@@ -53,33 +54,34 @@ constexpr size_t    token_count    = static_cast<size_t>(TokenKind::TokenKind_Co
 // clang-format on
 
 constexpr std::array<str_view, token_count> token_kind_names{
-    TXT("Set")              , // Set keyword
-    TXT("None")             , // None keyword
-    TXT("Level")            , // level keyword
-    TXT("Begin")            , // Begin keyword
-    TXT("Object")           , // Object keyword
-    TXT("Class")            , // Class keyword
-    TXT("Name")             , // Name keyword
-    TXT("Package")          , // Package keyword
-    TXT("End")              , // End keyword
-    TXT("Count")            , // Count of keywords
-    TXT("LeftParen")        , // (
-    TXT("RightParen")       , // )
-    TXT("Dot")              , // .
-    TXT("Colon")            , // :
-    TXT("Slash")            , // /
-    TXT("Star")             , // *
-    TXT("Comma")            , // ,
-    TXT("LeftBracket")      , // [
-    TXT("RightBracket")     , // ]
-    TXT("Number")           , // [0-9]+ ( DOT [0-9]+ )?
-    TXT("Equal")            , // =
-    TXT("Identifier")       , // a-zA-Z0-9
-    TXT("StringLiteral")    , // ".*?"
-    TXT("NameLiteral")      , // '.*?'
-    TXT("LineComment")      , // # ...
-    TXT("MultiLineComment") , // /* ... */
-    TXT("EndOfInput")       , // EOF
+    TXT("Set"),               // Set keyword
+    TXT("None"),              // None keyword
+    TXT("Level"),             // level keyword
+    TXT("Begin"),             // Begin keyword
+    TXT("Object"),            // Object keyword
+    TXT("Class"),             // Class keyword
+    TXT("Name"),              // Name keyword
+    TXT("Package"),           // Package keyword
+    TXT("End"),               // End keyword
+    TXT("Count"),             // Count of keywords
+    TXT("LeftParen"),         // (
+    TXT("RightParen"),        // )
+    TXT("Dot"),               // .
+    TXT("Colon"),             // :
+    TXT("Slash"),             // /
+    TXT("Star"),              // *
+    TXT("Comma"),             // ,
+    TXT("LeftBracket"),       // [
+    TXT("RightBracket"),      // ]
+    TXT("Number"),            // [0-9]+ ( DOT [0-9]+ )?
+    TXT("Equal"),             // =
+    TXT("Identifier"),        // a-zA-Z0-9
+    TXT("StringLiteral"),     // ".*?"
+    TXT("NameLiteral"),       // '.*?'
+    TXT("LineComment"),       // # ...
+    TXT("MultiLineComment"),  // /* ... */
+    TXT("DelegateLine"),      // __OnSkillGradeChanged__Delegate=(null).None (full line ignored)
+    TXT("EndOfInput"),        // EOF
 };
 
 // clang-format on
