@@ -15,7 +15,7 @@ namespace tm_parse {
 // Bad name but fuck it, good enough
 class ErrorWithContext : public std::runtime_error {
    public:
-    using LineContext = std::optional<std::vector<str>>;
+    using LineContext = std::optional<std::deque<str>>;
 
    private:
     size_t m_LineNumber;

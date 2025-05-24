@@ -6,8 +6,7 @@
 
 #pragma once
 
-#include <format>
-#include <string>
+#include "pch.h"
 
 #if defined(TEXT_MODS_UNREALSDK)
 #include "unrealsdk/utils.h"
@@ -30,10 +29,6 @@ std::string narrow(std::wstring_view wstr) noexcept(false);
 std::wstring widen(std::string_view str) noexcept(false);
 
 #else
-
-#if !defined(TEXT_MODS_UNREALSDK)
-#error "Text mods unrealsdk not defined"
-#endif
 
 using namespace unrealsdk::utils;
 

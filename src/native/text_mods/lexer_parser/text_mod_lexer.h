@@ -117,12 +117,26 @@ class TextModLexer {
     [[noreturn]] void throw_error_with_context(const char* msg, int context_size = 3) const {
         size_t line_start = get_line_break_pos(false);
 
-        if (line_start != 0) {
-            line_start++;
-        }
+        // Removes starting and ending new lines
+        const auto trim_line = [](str_view line) -> str_view {
+            if (line.empty()) {
+                return line;
+            }
 
-        // From start of the line to the error; We don't include the content after but we probably should
-        const str_view error_snippet = m_Text.substr(line_start, (m_Position - line_start) + 1);
+            if (line.front() == TXT('\n')) {
+                line = line.substr(1);
+            }
+
+            if (line.back() == TXT('\n')) {
+                line = line.substr(0, line.size() - 1);
+            }
+
+            return line;
+        };
+
+        // NOTE: ErrorWithContext assumes the end of the line is the start of the error. It's only
+        //        for providing basic error info to help debug the lexer.
+        const str_view error_snippet = trim_line(m_Text.substr(line_start, (m_Position - line_start) + 1));
 
         // Didn't ask for more context
         if (context_size < 1) {
@@ -131,7 +145,33 @@ class TextModLexer {
 
         using LineContext = ErrorWithContext::LineContext;
         LineContext context = std::make_optional<LineContext::value_type>();
-        // TODO: Get last N lines from stream
+
+        {
+            int last = line_start;
+            int pos = line_start - 1;  // Exclude \n
+
+            for (int i = 0; i < context_size; i++) {
+                TXT_MOD_ASSERT(pos >= 0, "{}", pos);
+
+                // Walk backwards to the first \n character
+                while (pos > 0 && m_Text[pos] != TXT('\n')) {
+                    pos--;
+                }
+
+                // Grab line excluding starting/ending new line chars
+                str_view line = trim_line(m_Text.substr(pos, (last - pos)));
+
+                context->push_front(str{line});
+                last = pos;
+
+                // Since: m_Text[pos] == '\n' move back
+                if (pos > 0) {
+                    pos--;
+                } else {
+                    break;
+                }
+            }
+        }
 
         throw ErrorWithContext(msg, m_CurrentLine, m_Position, str{error_snippet}, context);
     }

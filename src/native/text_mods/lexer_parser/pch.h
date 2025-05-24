@@ -6,7 +6,7 @@
 #ifndef TEXT_MODS_PARSER_PCH_H
 #define TEXT_MODS_PARSER_PCH_H
 
-#ifndef TEXT_MODS_STANDALONE
+#if defined(TEXT_MODS_UNREALSDK)
 #include "unrealsdk/pch.h"
 #endif
 

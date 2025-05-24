@@ -59,6 +59,7 @@ bool TextModLexer::read_identifier() noexcept {
     m_Token->Kind = TokenKind::Identifier;
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
 
+    // Case insensitive string comparison
     const auto icase_cmp = [](str_view left, str_view right) -> bool {
         if (left.size() != right.size()) {
             return false;
@@ -72,7 +73,7 @@ bool TextModLexer::read_identifier() noexcept {
         return true;
     };
 
-    // See if the token matches any known keywords
+    // See if the token matches any known keywords if so adjust the token kind
     for (auto i = static_cast<int>(begin_kw_token); i <= static_cast<int>(end_kw_token); ++i) {
         const str_view& name = token_kind_names.at(i);
         if (icase_cmp(name, m_Token->Text)) {
@@ -153,7 +154,6 @@ bool TextModLexer::read_name_literal() noexcept(false) {
 
 bool TextModLexer::read_token(Token* token) {
     if (this->eof()) {
-        // eof
         token->Kind = TokenKind::EndOfInput;
         token->Text = str_view{};
         return false;
@@ -167,8 +167,8 @@ bool TextModLexer::read_token(Token* token) {
     for (; m_Position < m_Text.size(); ++m_Position) {
         switch (m_Text[m_Position]) {
             case TXT('\n'):
-            case TXT('\r'):
                 ++m_CurrentLine;
+            case TXT('\r'):
             case TXT(' '):
             case TXT('\t'):
                 m_Start = m_Position + 1;
