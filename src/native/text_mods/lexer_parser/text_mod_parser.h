@@ -9,7 +9,7 @@
 #include "text_mod_common.h"
 #include "text_mod_lexer.h"
 
-namespace bl1_text_mods {
+namespace tm_parse {
 
 class TextModParser {
 private:

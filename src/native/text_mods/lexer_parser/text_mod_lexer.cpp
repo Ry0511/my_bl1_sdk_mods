@@ -6,7 +6,7 @@
 
 #include "text_mod_lexer.h"
 
-namespace bl1_text_mods {
+namespace tm_parse {
 
 ////////////////////////////////////////////////////////////////////////////////
 // | LEXER |
@@ -230,4 +230,4 @@ bool TextModLexer::read_token(Token* token) {
     return false;
 }
 
-}  // namespace bl1_text_mods
+}  // namespace tm_parse

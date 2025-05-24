@@ -12,7 +12,7 @@
 // | MAIN |
 ////////////////////////////////////////////////////////////////////////////////
 
-using namespace bl1_text_mods;
+using namespace tm_parse;
 
 int main() {
     TextModLexer lexer{test_str};

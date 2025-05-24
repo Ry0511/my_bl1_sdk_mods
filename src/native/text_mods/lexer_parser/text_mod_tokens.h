@@ -8,7 +8,7 @@
 
 #include "text_mod_common.h"
 
-namespace bl1_text_mods {
+namespace tm_parse {
 
 // clang-format off
 
@@ -124,4 +124,4 @@ struct Token {
 
 static constexpr Token token_eof{TokenKind::EndOfInput, str_view{}};
 
-}  // namespace bl1_text_mods
+}  // namespace tm_parse

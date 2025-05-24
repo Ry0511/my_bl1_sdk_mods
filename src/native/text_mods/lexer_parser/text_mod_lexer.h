@@ -10,7 +10,7 @@
 #include "text_mod_errors.h"
 #include "text_mod_tokens.h"
 
-namespace bl1_text_mods {
+namespace tm_parse {
 
 class TextModLexer {
     // TODO: Replace m_Text str_view with a text stream for lazy lexing
@@ -151,4 +151,4 @@ class TextModLexer {
     bool read_name_literal() noexcept(false);
 };
 
-}  // namespace bl1_text_mods
+}  // namespace tm_parse

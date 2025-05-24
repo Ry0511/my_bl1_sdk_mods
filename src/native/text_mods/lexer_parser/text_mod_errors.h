@@ -10,7 +10,7 @@
 
 #include "text_mod_common.h"
 
-namespace bl1_text_mods {
+namespace tm_parse {
 
 // Bad name but fuck it, good enough
 class ErrorWithContext : public std::runtime_error {
@@ -67,4 +67,4 @@ class ErrorWithContext : public std::runtime_error {
     }
 };
 
-}  // namespace bl1_text_mods
+}  // namespace tm_parse

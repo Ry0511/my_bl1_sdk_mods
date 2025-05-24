@@ -20,7 +20,7 @@ Note that this was taken directly from:
 
  */
 
-namespace bl1_text_mods::utils {
+namespace tm_parse::utils {
 
 static_assert(sizeof(wchar_t) == sizeof(char16_t), "wchar_t is different size to char16_t");
 
@@ -39,7 +39,7 @@ using namespace unrealsdk::utils;
 
 #endif
 
-} // namespace bl1_text_mods::utils
+} // namespace tm_parse::utils
 
 
 #if defined(TEXT_MODS_STANDALONE)
@@ -47,7 +47,7 @@ using namespace unrealsdk::utils;
 template <>
 struct std::formatter<std::wstring> : std::formatter<std::string> {
     auto format(const std::wstring& str, std::format_context& ctx) const {
-        using namespace bl1_text_mods;
+        using namespace tm_parse;
         return formatter<std::string>::format(utils::narrow(str), ctx);
     }
 };

@@ -37,7 +37,7 @@ TXT_ASSERT_FAIL assert(false)
 // | TEXT MODS |
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace bl1_text_mods {
+namespace tm_parse {
 
 using std::size_t;
 
@@ -148,4 +148,4 @@ End Object
 
 )");
 
-}  // namespace bl1_text_mods
+}  // namespace tm_parse

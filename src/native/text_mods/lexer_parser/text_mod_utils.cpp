@@ -15,7 +15,7 @@
 #include <windows.h>
 #include <winternl.h>
 
-namespace bl1_text_mods::utils {
+namespace tm_parse::utils {
 
 std::string narrow(std::wstring_view wstr) {
     if (wstr.empty()) {
@@ -57,6 +57,6 @@ std::wstring widen(std::string_view str) {
     return ret;
 }
 
-}  // namespace bl1_text_mods::utils
+}  // namespace tm_parse::utils
 
 #endif
