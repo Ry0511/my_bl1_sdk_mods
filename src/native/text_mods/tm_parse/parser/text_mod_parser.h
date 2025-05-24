@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "text_mod_common.h"
-#include "text_mod_lexer.h"
+#include "common/text_mod_common.h"
+#include "lexer/text_mod_lexer.h"
 
 namespace tm_parse {
 

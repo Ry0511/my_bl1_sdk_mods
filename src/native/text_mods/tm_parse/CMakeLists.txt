@@ -8,19 +8,11 @@ add_library(tm_parse_ INTERFACE)
 target_precompile_headers(tm_parse_ INTERFACE ./pch.h)
 target_compile_features(tm_parse_ INTERFACE cxx_std_20)
 
-target_sources(
-        tm_parse_
-        INTERFACE
-        text_mod_common.h
-        text_mod_tokens.h
-        text_mod_lexer.h
-        text_mod_lexer.cpp
-        text_mod_parser.h
-        text_mod_parser.cpp
-        text_mod_utils.h
-        text_mod_utils.cpp
-        text_mod_errors.h
-)
+# Glob the fat fucking smelly sources
+file(GLOB_RECURSE TM_PARSE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
+list(FILTER TM_PARSE_SRC EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/standalone/")
+
+target_sources(tm_parse_ INTERFACE ${TM_PARSE_SRC})
 
 target_include_directories(tm_parse_ INTERFACE ./)
 
@@ -39,6 +31,6 @@ target_compile_definitions(tm_parse_solo INTERFACE -DTEXT_MODS_STANDALONE -DTEXT
 # | STANDALONE BUILD TARGET |
 ################################################################################
 
-add_executable(bl1_text_mods_exe Main.cpp)
+add_executable(bl1_text_mods_exe standalone/main.cpp)
 target_compile_features(bl1_text_mods_exe PRIVATE cxx_std_20)
 target_link_libraries(bl1_text_mods_exe PRIVATE tm_parse_solo)

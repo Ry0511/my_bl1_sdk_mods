@@ -6,9 +6,9 @@
 
 #pragma once
 
-#include "text_mod_common.h"
-#include "text_mod_errors.h"
-#include "text_mod_tokens.h"
+#include "common/text_mod_common.h"
+#include "common/text_mod_errors.h"
+#include "common/text_mod_tokens.h"
 
 namespace tm_parse {
 

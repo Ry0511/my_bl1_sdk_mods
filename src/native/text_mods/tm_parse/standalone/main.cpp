@@ -4,9 +4,9 @@
 // Author     : -Ry
 //
 
-#include "text_mod_common.h"
-#include "text_mod_lexer.h"
-#include "text_mod_parser.h"
+#include "common/text_mod_common.h"
+#include "lexer/text_mod_lexer.h"
+#include "parser/text_mod_parser.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // | MAIN |
@@ -15,7 +15,10 @@
 using namespace tm_parse;
 
 int main() {
-    TextModLexer lexer{test_str};
+
+    str bad_ = TXT("#Line Three\nset MyObject MyProperty (A=-)\n");
+
+    TextModLexer lexer{bad_};
     TextModParser parser{&lexer};
     parser.parse_string();
 

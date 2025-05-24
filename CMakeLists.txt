@@ -92,7 +92,7 @@ target_compile_definitions(object_explorer PRIVATE _CRT_SECURE_NO_WARNINGS)
 bl1_add_py_module(package_tools "src/native/package_tools")
 
 bl1_add_py_module(text_mods "src/native/text_mods")
-add_subdirectory("src/native/text_mods/lexer_parser" EXCLUDE_FROM_ALL)
+add_subdirectory("src/native/text_mods/tm_parse" EXCLUDE_FROM_ALL)
 target_link_libraries(text_mods PRIVATE tm_parse)
 
 bl1_add_basic_py_module("rys_qol" "src/py/rys_qol/")
