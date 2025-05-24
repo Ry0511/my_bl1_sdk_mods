@@ -42,4 +42,8 @@
 #include <unordered_set>
 #include <utility>
 
+namespace tm_parse {
+namespace fs = std::filesystem; // The 'I aint writing all that' alias
+}
+
 #endif

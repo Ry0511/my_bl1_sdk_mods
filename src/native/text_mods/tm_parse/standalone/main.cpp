@@ -16,9 +16,19 @@ using namespace tm_parse;
 
 int main() {
 
-    str bad_ = TXT("#Line Three\nset MyObject MyProperty (A=-)\n");
+    fs::path the_file = fs::current_path() / TXT("wpc_obj_dump.txt");
 
-    TextModLexer lexer{bad_};
+    if (!fs::is_regular_file(the_file)) {
+        TXT_LOG("File does not exist: '{}'", the_file.string());
+        return -1;
+    }
+
+    std::wifstream stream{the_file};
+
+    using It = std::istreambuf_iterator<wchar_t>;
+    str content{It{stream}, It{}};
+
+    TextModLexer lexer{content};
     TextModParser parser{&lexer};
     parser.parse_string();
 
