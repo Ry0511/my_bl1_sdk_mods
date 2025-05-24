@@ -74,10 +74,11 @@ bool TextModLexer::read_identifier() noexcept {
     };
 
     // See if the token matches any known keywords if so adjust the token kind
-    for (auto i = static_cast<int>(begin_kw_token); i <= static_cast<int>(end_kw_token); ++i) {
-        const str_view& name = token_kind_names.at(i);
+
+    for (auto proxy : TokenKindIterator{}) {
+        const str_view& name = token_kind_names.at(proxy);
         if (icase_cmp(name, m_Token->Text)) {
-            m_Token->Kind = static_cast<TokenKind>(i);
+            m_Token->Kind = proxy;
             return true;
         }
     }
@@ -124,7 +125,6 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
 }
 
 bool TextModLexer::read_delegate_token() noexcept(false) {
-
     // - NOTE -
     // This is a bit of a hack but if we encounter a __ sequence we treat it the same as a single
     // line comment. The only reason for this work around is because its possible that an object
@@ -152,7 +152,28 @@ bool TextModLexer::read_delegate_token() noexcept(false) {
     m_Token->Text = line;
 
     return true;
+}
 
+bool TextModLexer::read_empty_lines() noexcept(true) {
+
+    ++m_CurrentLine; // For the initial new line
+
+    // Consume: [\n\r\t ]+
+    read_while([this](txt_char ch) -> bool {
+
+        if (ch == TXT('\n')) {
+            ++m_CurrentLine;
+            return true;
+        }
+
+        // Should be enough
+        return ch == TXT(' ') || ch == TXT('\r') || ch == TXT('\t');
+    });
+
+    m_Token->Kind = TokenKind::BlankLine;
+    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+
+    return true;
 }
 
 bool TextModLexer::read_string_literal() noexcept(false) {
@@ -199,9 +220,11 @@ bool TextModLexer::read_token(Token* token) {
         switch (m_Text[m_Position]) {
             case TXT('\n'):
                 ++m_CurrentLine;
-            case TXT('\r'):
-            case TXT(' '):
+                return read_empty_lines();
+
+            case TXT('\r'): // Should never get hit; should throw tbh
             case TXT('\t'):
+            case TXT(' '):
                 m_Start = m_Position + 1;
                 continue;  // Skip
 

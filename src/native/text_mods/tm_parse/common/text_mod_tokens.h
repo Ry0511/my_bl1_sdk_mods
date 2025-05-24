@@ -43,15 +43,51 @@ enum class TokenKind : token_int {
     LineComment      , // # ...
     MultiLineComment , // /* ... */
     DelegateLine     , // __OnSkillGradeChanged__Delegate=(null).None (full line ignored)
+    BlankLine        , // \n[\n\r\t ]+
     EndOfInput       , // EOF
     TokenKind_Count  , // Keep this last
 };
 
-// clang-format off
 constexpr token_int begin_kw_token = static_cast<token_int>(TokenKind::Kw_Set);
-constexpr token_int end_kw_token   = static_cast<token_int>(TokenKind::Kw_Count) - 1; // TODO: This should change
+constexpr token_int end_kw_token   = static_cast<token_int>(TokenKind::Kw_Count);
 constexpr size_t    token_count    = static_cast<size_t>(TokenKind::TokenKind_Count);
-// clang-format on
+
+// Honestly wrote this just for fun lmao. It's a terrible idea but fuck is it cool.
+struct TokenKindIterator {
+
+    struct TokenProxy {
+    private:
+        token_int Index;
+
+    public:
+        constexpr TokenProxy(token_int kind) noexcept : Index(kind) {};
+        constexpr token_int as_int() const noexcept { return Index; }
+        constexpr TokenKind as_token() const noexcept { return static_cast<TokenKind>(Index); }
+        constexpr operator token_int() const noexcept { return as_int(); }
+        constexpr operator TokenKind() const noexcept { return as_token(); }
+    };
+
+    struct Iterator {
+        using iterator_category = std::forward_iterator_tag;
+        using difference_type   = std::ptrdiff_t;
+        using value_type        = TokenProxy;
+
+    public:
+        token_int Index;
+
+    public:
+        constexpr Iterator(token_int index) noexcept : Index(index) {};
+        TokenProxy operator*() const noexcept { return TokenProxy{Index}; }
+        Iterator& operator++() noexcept { ++Index; return *this; }
+        Iterator& operator++(int) noexcept { ++Index; return *this; }
+        bool operator!=(const Iterator& other) const noexcept { return Index != other.Index; }
+    };
+
+public:
+    constexpr TokenKindIterator() noexcept = default;
+    constexpr auto begin() const noexcept { return Iterator{begin_kw_token}; }
+    constexpr auto end() const noexcept { return Iterator{end_kw_token}; }
+};
 
 constexpr std::array<str_view, token_count> token_kind_names{
     TXT("Set"),               // Set keyword
@@ -81,6 +117,7 @@ constexpr std::array<str_view, token_count> token_kind_names{
     TXT("LineComment"),       // # ...
     TXT("MultiLineComment"),  // /* ... */
     TXT("DelegateLine"),      // __OnSkillGradeChanged__Delegate=(null).None (full line ignored)
+    TXT("BlankLine"),         // \n+
     TXT("EndOfInput"),        // EOF
 };
 
@@ -100,6 +137,12 @@ struct Token {
     [[nodiscard]] std::string token_as_str() const noexcept {
         const auto index = static_cast<token_int>(Kind);
         const str_view token_kind_name = token_kind_names.at(static_cast<size_t>(index));
+
+        // This is just a garbage token really
+        if (Kind == TokenKind::BlankLine) {
+            return std::format("{:<17} = {}", str{token_kind_name}, str{TXT("_BLANK_")});
+        }
+
         return std::format("{:<17} = {}", str{token_kind_name}, str{Text});
     }
 
@@ -108,7 +151,7 @@ struct Token {
      */
     [[nodiscard]] bool is_identifier() const noexcept {
         const auto index = static_cast<token_int>(Kind);
-        return Kind == TokenKind::Identifier || begin_kw_token <= index && index <= end_kw_token;
+        return Kind == TokenKind::Identifier || begin_kw_token <= index && index < end_kw_token;
     }
 
     // Text Compare

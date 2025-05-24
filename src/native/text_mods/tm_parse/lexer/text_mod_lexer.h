@@ -190,6 +190,7 @@ class TextModLexer {
     bool read_line_comment() noexcept;
     bool read_multiline_comment() noexcept(false);
     bool read_delegate_token() noexcept(false);
+    bool read_empty_lines() noexcept(true);
     bool read_string_literal() noexcept(false);
     bool read_name_literal() noexcept(false);
 };
