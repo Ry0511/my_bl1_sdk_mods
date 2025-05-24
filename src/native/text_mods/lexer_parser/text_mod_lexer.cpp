@@ -211,6 +211,7 @@ bool TextModLexer::read_token(Token* token) {
                 return read_name_literal();
 
             default: {
+
                 if (read_number()) {
                     return true;
                 }

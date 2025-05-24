@@ -12,6 +12,8 @@
 
 namespace tm_parse {
 
+// TODO: Common lexing functionalities should probably be encapsulated in a separate class.
+
 class TextModLexer {
     // TODO: Replace m_Text str_view with a text stream for lazy lexing
    private:
