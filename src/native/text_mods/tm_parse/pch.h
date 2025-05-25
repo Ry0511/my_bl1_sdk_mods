@@ -3,12 +3,20 @@
 // Project    : bl1_sdk_mods
 // Author     : -Ry
 //
-#ifndef TEXT_MODS_PARSER_PCH_H
-#define TEXT_MODS_PARSER_PCH_H
+
+#pragma once
+
+////////////////////////////////////////////////////////////////////////////////
+// | UNREALSDK |
+////////////////////////////////////////////////////////////////////////////////
 
 #if defined(TEXT_MODS_UNREALSDK)
 #include "unrealsdk/pch.h"
 #endif
+
+////////////////////////////////////////////////////////////////////////////////
+// | STANDARD LIBRARY |
+////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
 #include <array>
@@ -42,8 +50,16 @@
 #include <unordered_set>
 #include <utility>
 
-namespace tm_parse {
-namespace fs = std::filesystem; // The 'I aint writing all that' alias
-}
+////////////////////////////////////////////////////////////////////////////////
+// | INTERNAL |
+////////////////////////////////////////////////////////////////////////////////
 
-#endif
+// These don't often change with the exception being tokens which is still rare
+#include "common/text_mod_common.h"
+#include "common/text_mod_errors.h"
+#include "common/text_mod_tokens.h"
+#include "common/text_mod_utils.h"
+
+namespace tm_parse {
+namespace fs = std::filesystem;  // The 'I aint writing all that' alias
+}
