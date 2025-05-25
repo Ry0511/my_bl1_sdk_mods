@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <algorithm>
+
 #include "common/text_mod_common.h"
 
 namespace tm_parse {
@@ -15,15 +17,17 @@ using token_int = uint8_t;
 
 // Note that keywords are case-insensitive
 enum class TokenKind : token_int {
-    Kw_Set = 0       , // Set keyword
-    Kw_None          , // None keyword
-    Kw_Level         , // level keyword
-    Kw_Begin         , // Begin keyword
-    Kw_Object        , // Object keyword
-    Kw_Class         , // Class keyword
-    Kw_Name          , // Name keyword
-    Kw_Package       , // Package keyword
-    Kw_End           , // End keyword
+    Kw_Set = 0       , // Set
+    Kw_None          , // None
+    Kw_Level         , // level
+    Kw_Begin         , // Begin
+    Kw_Object        , // Object
+    Kw_Class         , // Class
+    Kw_Name          , // Name
+    Kw_Package       , // Package
+    Kw_End           , // End
+    Kw_True          , // True
+    Kw_False         , // False
     Kw_Count         , // Count of keywords
     LeftParen        , // (
     RightParen       , // )
@@ -36,7 +40,7 @@ enum class TokenKind : token_int {
     RightBracket     , // ]
     Number           , // [0-9]+ ( DOT [0-9]+ )?
     Equal            , // =
-    Identifier       , // [a-zA-Z][\w\d_]+
+    Identifier       , // [a-zA-Z][\w\d_]+ //TODO: Can start with underscores...
     StringLiteral    , // ".*?"
     NameLiteral      , // '.*?'
     LineComment      , // # ...
@@ -52,16 +56,20 @@ constexpr token_int end_kw_token       = static_cast<token_int>(TokenKind::Kw_Co
 constexpr token_int begin_symbol_token = static_cast<token_int>(TokenKind::LeftParen);
 constexpr size_t    token_count        = static_cast<size_t>(TokenKind::TokenKind_Count);
 
+static_assert(begin_kw_token == 0, "Starting keyword should be Zero");
+
 constexpr std::array<str_view, token_count> token_kind_names{
-    TXT("Set"),               // Set keyword
-    TXT("None"),              // None keyword
-    TXT("Level"),             // level keyword
-    TXT("Begin"),             // Begin keyword
-    TXT("Object"),            // Object keyword
-    TXT("Class"),             // Class keyword
-    TXT("Name"),              // Name keyword
-    TXT("Package"),           // Package keyword
-    TXT("End"),               // End keyword
+    TXT("Set"),               // Set
+    TXT("None"),              // None
+    TXT("Level"),             // level
+    TXT("Begin"),             // Begin
+    TXT("Object"),            // Object
+    TXT("Class"),             // Class
+    TXT("Name"),              // Name
+    TXT("Package"),           // Package
+    TXT("End"),               // End
+    TXT("True"),              // True
+    TXT("False"),             // False
     TXT("Count"),             // Count of keywords
     TXT("LeftParen"),         // (
     TXT("RightParen"),        // )
@@ -88,31 +96,33 @@ constexpr std::array<str_view, token_count> token_kind_names{
 // | ITERATORS |
 ////////////////////////////////////////////////////////////////////////////////
 
-// lmao couln't help myself this shit is so overcomplicated.
+// Why?..
 
 struct TokenProxy {
     token_int Index;
 
     // Ctor
-    constexpr TokenProxy(token_int kind) noexcept : Index(kind) {};
+    constexpr TokenProxy(token_int index) noexcept : Index(index) {};
+    constexpr TokenProxy(TokenKind kind) noexcept : Index(static_cast<token_int>(kind)) {};
 
     // Getters
-    constexpr token_int as_int() const noexcept     { return Index;                         }
-    constexpr TokenKind as_token() const noexcept   { return static_cast<TokenKind>(Index); }
-    constexpr str_view as_str_view() const noexcept { return token_kind_names.at(as_int()); }
-    constexpr str as_str() const noexcept           { return str{as_str_view()};            }
+    [[nodiscard]] constexpr token_int as_int() const noexcept     { return Index;                         }
+    [[nodiscard]] constexpr TokenKind as_token() const noexcept   { return static_cast<TokenKind>(Index); }
+    [[nodiscard]] constexpr str_view as_str_view() const noexcept { return token_kind_names.at(as_int()); }
+    [[nodiscard]] constexpr str as_str() const noexcept           { return str{as_str_view()};            }
 
     // Conversions
     constexpr operator token_int() const noexcept { return as_int();                      }
     constexpr operator TokenKind() const noexcept { return as_token();                    }
     constexpr operator str_view() const noexcept  { return token_kind_names.at(as_int()); }
+    constexpr operator str() const noexcept       { return str{operator str_view()};      }
 };
 
 template<token_int Begin, token_int End>
 struct TokenRangeIterator {
 
-    constexpr static token_int BeginValue = Begin;
-    constexpr static token_int EndValue   = End;
+    constexpr static token_int begin_value = Begin;
+    constexpr static token_int end_value   = End;
 
     struct Iterator {
         using iterator_category = std::forward_iterator_tag;
@@ -167,14 +177,28 @@ struct Token {
     /**
      * @return True if this token is an Identifier token or a keyword token
      */
-    [[nodiscard]] bool is_identifier() const noexcept {
-        const auto index = static_cast<token_int>(Kind);
-        return Kind == TokenKind::Identifier || begin_kw_token <= index && index < end_kw_token;
+    [[nodiscard]] bool is_identifier() const noexcept { return Kind == TokenKind::Identifier || is_keyword(); }
+
+    [[nodiscard]] bool is_keyword() const noexcept { return static_cast<token_int>(Kind) < end_kw_token; }
+
+    [[nodiscard]] bool is_skip_token() const noexcept {
+        constexpr std::array<TokenKind, 4> skip_tokens = {
+            TokenKind::BlankLine,
+            TokenKind::LineComment,
+            TokenKind::MultiLineComment,
+            TokenKind::DelegateLine,
+        };
+
+        return std::ranges::find(skip_tokens, Kind) != skip_tokens.end();
+    }
+
+    [[nodiscard]] bool is_any(std::span<TokenKind> kinds) const noexcept {
+        return std::ranges::find(kinds, Kind) != kinds.end();
     }
 
     // Text Compare
-    bool operator==(const str_view& other) const noexcept { return this->Text == other; }
-    bool operator!=(const str_view& other) const noexcept { return this->Text != other; }
+    bool operator==(str_view other) const noexcept { return this->Text == other; }
+    bool operator!=(str_view other) const noexcept { return this->Text != other; }
 
     // Token Kind Compare
     bool operator==(const TokenKind& other) const noexcept { return this->Kind == other; }
