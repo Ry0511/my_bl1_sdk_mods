@@ -60,7 +60,7 @@ bool TextModLexer::read_identifier() noexcept {
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
 
     // Case insensitive string comparison
-    const auto icase_cmp = [](str_view left, str_view right) -> bool {
+    const auto icase_cmp = [](const str_view left, const str_view right) -> bool {
         if (left.size() != right.size()) {
             return false;
         }
@@ -76,7 +76,7 @@ bool TextModLexer::read_identifier() noexcept {
     // See if the token matches any known keywords if so adjust the token kind
 
     for (auto proxy : KeywordTokenIterator{}) {
-        const str_view& name = token_kind_names.at(proxy);
+        const str_view name = token_kind_names.at(proxy);
         if (icase_cmp(name, m_Token->Text)) {
             m_Token->Kind = proxy;
             return true;
@@ -141,7 +141,7 @@ bool TextModLexer::read_delegate_token() noexcept(false) {
     // Consume the entire line
     read_while([](txt_char ch) -> bool { return ch != TXT('\n'); });
 
-    str_view line = m_Text.substr(m_Start, m_Position - m_Start);
+    const str_view line = m_Text.substr(m_Start, m_Position - m_Start);
 
     // Additional safety check
     if (line.find(TXT("__Delegate")) == str_view::npos) {
@@ -155,19 +155,16 @@ bool TextModLexer::read_delegate_token() noexcept(false) {
 }
 
 bool TextModLexer::read_empty_lines() noexcept(true) {
+    ++m_Position;
 
-    ++m_CurrentLine; // For the initial new line
-
-    // Consume: [\n\r\t ]+
+    // NOLINTNEXTLINE(*-identifier-length)
     read_while([this](txt_char ch) -> bool {
-
         if (ch == TXT('\n')) {
             ++m_CurrentLine;
             return true;
         }
 
-        // Should be enough
-        return ch == TXT(' ') || ch == TXT('\r') || ch == TXT('\t');
+        return ch == TXT(' ') || ch == TXT('\t') || ch == TXT('\r');
     });
 
     m_Token->Kind = TokenKind::BlankLine;
@@ -222,7 +219,7 @@ bool TextModLexer::read_token(Token* token) {
                 ++m_CurrentLine;
                 return read_empty_lines();
 
-            case TXT('\r'): // Should never get hit; should throw tbh
+            case TXT('\r'):
             case TXT('\t'):
             case TXT(' '):
                 m_Start = m_Position + 1;

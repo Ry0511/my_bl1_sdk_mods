@@ -16,6 +16,7 @@ namespace tm_parse {
 
 class TextModLexer {
     // TODO: Replace m_Text str_view with a text stream for lazy lexing
+    // TODO: The m_CurrentLine can be lazily calculated from the 0 to m_Position
    private:
     str_view m_Text;
     size_t m_Position{0};
@@ -25,7 +26,7 @@ class TextModLexer {
     size_t m_CurrentLine{0};
 
    public:
-    explicit TextModLexer(const str_view& text) : m_Text(text) {}
+    explicit TextModLexer(str_view text) : m_Text(text) {}
     ~TextModLexer() = default;
 
    public:
@@ -39,7 +40,7 @@ class TextModLexer {
     /**
      * @return Current text stream
      */
-    [[nodiscard]] const str_view& text() const noexcept { return m_Text; }
+    [[nodiscard]] str_view text() const noexcept { return m_Text; }
 
     /**
      * @return Current text stream size; equivalent to text().size()
@@ -117,7 +118,7 @@ class TextModLexer {
      *                      capture.
      */
     [[noreturn]] void throw_error_with_context(const char* msg, int context_size = 3) const {
-        size_t line_start = get_line_break_pos(false);
+        const size_t line_start = get_line_break_pos(false);
 
         // Removes starting and ending new lines
         const auto trim_line = [](str_view line) -> str_view {
@@ -149,8 +150,8 @@ class TextModLexer {
         LineContext context = std::make_optional<LineContext::value_type>();
 
         {
-            int last = line_start;
-            int pos = line_start - 1;  // Exclude \n
+            int last = static_cast<int>(line_start);
+            int pos = static_cast<int>(line_start) - 1;  // Exclude \n
 
             for (int i = 0; i < context_size; i++) {
                 TXT_MOD_ASSERT(pos >= 0, "{}", pos);
@@ -161,9 +162,9 @@ class TextModLexer {
                 }
 
                 // Grab line excluding starting/ending new line chars
-                str_view line = trim_line(m_Text.substr(pos, (last - pos)));
+                const str_view line = trim_line(m_Text.substr(pos, (last - pos)));
 
-                context->push_front(str{line});
+                context->emplace_front(line);
                 last = pos;
 
                 // Since: m_Text[pos] == '\n' move back
