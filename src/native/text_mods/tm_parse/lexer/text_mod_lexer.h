@@ -13,16 +13,18 @@
 namespace tm_parse {
 
 // TODO: Common lexing functionalities should probably be encapsulated in a separate class.
+// TODO: Replace m_Text str_view with a text stream for lazy lexing (also avoids issues with
+//        views being invalidated)
+// TODO: The m_CurrentLine can be lazily calculated from the 0 to m_Position
 
+
+// #[[TextModLexer]]
 class TextModLexer {
-    // TODO: Replace m_Text str_view with a text stream for lazy lexing
-    // TODO: The m_CurrentLine can be lazily calculated from the 0 to m_Position
    private:
     str_view m_Text;
     size_t m_Position{0};
     size_t m_Start{0};
     Token* m_Token{nullptr};
-
     size_t m_CurrentLine{0};
 
    public:

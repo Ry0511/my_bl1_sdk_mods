@@ -8,6 +8,8 @@
 
 namespace tm_parse {
 
+namespace lit = txt::lit;
+
 ////////////////////////////////////////////////////////////////////////////////
 // | LEXER |
 ////////////////////////////////////////////////////////////////////////////////
@@ -16,18 +18,18 @@ bool TextModLexer::read_number() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
     // Not a digit and not a minus
-    if ((std::isdigit(peek()) == 0) && peek() != TXT('-')) {
+    if ((txt::isdigit(peek()) == 0) && peek() != lit::hyphen) {
         return false;
     }
 
     // If current char is a hyphen then the next char must be a digit
-    if (peek() == TXT('-') && (eof(1) || (std::isdigit(peek(1)) == 0))) {
+    if (peek() == lit::hyphen && (eof(1) || (txt::isdigit(peek(1)) == 0))) {
         throw_error_with_context("Expected digit after -");
     }
 
     // Consume
     const auto skip_digits = [this]() {
-        while (std::isdigit(peek())) {
+        while (txt::isdigit(peek())) {
             m_Position++;
         }
     };
@@ -35,8 +37,8 @@ bool TextModLexer::read_number() noexcept(false) {
     m_Position++;
     skip_digits();
 
-    if (peek() == TXT('.')) {
-        if (eof(1) || (std::isdigit(peek(1)) == 0)) {
+    if (peek() == lit::dot) {
+        if (eof(1) || (txt::isdigit(peek(1)) == 0)) {
             throw_error_with_context("Expected digit after .");
         }
         m_Position++;
@@ -51,11 +53,11 @@ bool TextModLexer::read_number() noexcept(false) {
 bool TextModLexer::read_identifier() noexcept {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    if (std::isalpha(m_Text[m_Position]) == 0) {
+    if (!(txt::isalpha(peek()) || peek() != lit::underscore)) {
         return false;
     }
 
-    read_while([](txt_char c) { return std::isalnum(c) || c == TXT('_'); });
+    read_while([](txt_char c) { return txt::isalnum(c) || c == lit::underscore; });
     m_Token->Kind = TokenKind::Identifier;
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
 
@@ -66,7 +68,7 @@ bool TextModLexer::read_identifier() noexcept {
         }
 
         for (size_t i = 0; i < left.size(); ++i) {
-            if (std::tolower(left[i]) != std::tolower(right[i])) {
+            if (txt::tolower(left[i]) != txt::tolower(right[i])) {
                 return false;
             }
         }
@@ -74,7 +76,6 @@ bool TextModLexer::read_identifier() noexcept {
     };
 
     // See if the token matches any known keywords if so adjust the token kind
-
     for (auto proxy : KeywordTokenIterator{}) {
         const str_view name = token_kind_names.at(proxy);
         if (icase_cmp(name, m_Token->Text)) {
@@ -87,7 +88,7 @@ bool TextModLexer::read_identifier() noexcept {
 }
 
 bool TextModLexer::read_line_comment() noexcept {
-    read_while([](txt_char c) { return c != TXT('\n') && c != TXT('\r'); });
+    read_while([](txt_char c) { return c != lit::lf && c != lit::cr; });
     m_Token->Kind = TokenKind::LineComment;
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
     return true;
@@ -96,7 +97,7 @@ bool TextModLexer::read_line_comment() noexcept {
 bool TextModLexer::read_multiline_comment() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    if (eof(1) || peek(1) != TXT('*')) {
+    if (eof(1) || peek(1) != lit::star) {
         throw_error_with_context("Expecting /*");
     }
 
@@ -104,12 +105,12 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
 
     for (; m_Position < m_Text.size(); ++m_Position) {
         const txt_char ch = peek();  // NOLINT(*-identifier-length)
-        if (ch == TXT('\n')) {
+        if (ch == lit::lf) {
             ++m_CurrentLine;
             continue;
         }
 
-        if (ch == TXT('*') && !eof(1) && peek(1) == TXT('/')) {
+        if (ch == lit::star && !eof(1) && peek(1) == lit::fslash) {
             m_Position += 2;  // Skip */
             m_Token->Kind = TokenKind::MultiLineComment;
             m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
@@ -134,12 +135,12 @@ bool TextModLexer::read_delegate_token() noexcept(false) {
     //   __OnSkillGradeChanged__Delegate=(null).None
     //
 
-    if (eof(1) || peek(1) != TXT('_')) {
+    if (eof(1) || peek(1) != lit::underscore) {
         throw_error_with_context("Delegate token must start with __");
     }
 
     // Consume the entire line
-    read_while([](txt_char ch) -> bool { return ch != TXT('\n'); });
+    read_while([](txt_char ch) -> bool { return ch != lit::lf; });
 
     const str_view line = m_Text.substr(m_Start, m_Position - m_Start);
 
@@ -155,16 +156,18 @@ bool TextModLexer::read_delegate_token() noexcept(false) {
 }
 
 bool TextModLexer::read_empty_lines() noexcept(true) {
+    TXT_MOD_ASSERT(!eof() && peek() == lit::lf, "Expected empty line");
     ++m_Position;
+    ++m_CurrentLine;  // Count the initial line
 
     // NOLINTNEXTLINE(*-identifier-length)
     read_while([this](txt_char ch) -> bool {
-        if (ch == TXT('\n')) {
+        if (ch == lit::lf) {
             ++m_CurrentLine;
             return true;
         }
 
-        return ch == TXT(' ') || ch == TXT('\t') || ch == TXT('\r');
+        return txt::any(ch, lit::space, lit::tab, lit::cr);
     });
 
     m_Token->Kind = TokenKind::BlankLine;
@@ -175,12 +178,20 @@ bool TextModLexer::read_empty_lines() noexcept(true) {
 
 bool TextModLexer::read_string_literal() noexcept(false) {
     m_Position++;
-    // Does not handle escape sequences: \".*?\"
-    read_while([](txt_char c) { return c != TXT('\"') && c != TXT('\n') && c != TXT('\r'); });
 
+    // Consume [^\"\r\n]+
+    read_while([](txt_char c) { return !txt::any(c, lit::dquote, lit::lf, lit::cr); });
+
+    // Consumed the entire stream
     if (this->eof()) {
-        throw_error_with_context("Unterminated string literal");
+        throw_error_with_context("Unterminated string literal", 0);
     }
+
+    // Hit a [\r\n] character
+    if (txt::any(peek(), lit::lf, lit::cr)) {
+        throw_error_with_context("Encountered [\\r\\n] in string literal");
+    }
+
     m_Position++;  // Skip "
     m_Token->Kind = TokenKind::StringLiteral;
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
@@ -190,11 +201,18 @@ bool TextModLexer::read_string_literal() noexcept(false) {
 bool TextModLexer::read_name_literal() noexcept(false) {
     m_Position++;
     // Does not handle escape sequences: \".*?\"
-    read_while([](txt_char c) { return c != TXT('\'') && c != TXT('\n') && c != TXT('\r'); });
+    read_while([](txt_char c) { return !txt::any(c, lit::squote, lit::lf, lit::cr); });
 
+    // Consumed the entire stream
     if (this->eof()) {
-        throw_error_with_context("Unterminated name literal");
+        throw_error_with_context("Unterminated name literal", 0);
     }
+
+    // Hit a [\r\n] character
+    if (txt::any(peek(), lit::lf, lit::cr)) {
+        throw_error_with_context("Encountered [\\r\\n] in name literal");
+    }
+
     m_Position++;  // Skip '
     m_Token->Kind = TokenKind::NameLiteral;
     m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
@@ -216,7 +234,6 @@ bool TextModLexer::read_token(Token* token) {
     for (; m_Position < m_Text.size(); ++m_Position) {
         switch (m_Text[m_Position]) {
             case TXT('\n'):
-                ++m_CurrentLine;
                 return read_empty_lines();
 
             case TXT('\r'):
