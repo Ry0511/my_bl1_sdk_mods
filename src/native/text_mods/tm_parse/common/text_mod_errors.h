@@ -51,8 +51,7 @@ class ErrorWithContext : public std::runtime_error {
     [[nodiscard]] const str& error_line() const noexcept { return *m_ErrorLine; }
 
     [[nodiscard]] std::string error_caret() const noexcept {
-
-        if (!has_error_line()) {
+        if (!has_error_line() || m_ErrorLine->empty()) {
             return "Has no error line";
         }
 
@@ -64,6 +63,29 @@ class ErrorWithContext : public std::runtime_error {
         std::string line(m_ErrorLine->length(), ' ');
         line[line.length() - 1] = '^';
         return line;
+    }
+
+   public:
+    std::string build_error_message() const noexcept {
+        std::stringstream out{};
+
+        // Primary error line
+        out << "(ERROR) ~ " << what() << " at line " << line_number() << "\n";
+
+        // Dump the context line if it exists
+        if (has_context()) {
+            for (const str& line : context_lines()) {
+                out << "  > " << utils::narrow(line) << "\n";
+            }
+        }
+
+        // Dump the error line if it exists
+        if (has_error_line()) {
+            out << "  > " << utils::narrow(error_line()) << "\n";
+            out << "  > " << error_caret() << "\n";
+        }
+
+        return out.str();
     }
 };
 

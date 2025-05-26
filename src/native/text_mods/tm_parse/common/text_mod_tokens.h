@@ -45,7 +45,6 @@ enum class TokenKind : token_int {
     NameLiteral      , // '.*?'
     LineComment      , // # ...
     MultiLineComment , // /* ... */
-    DelegateLine     , // __OnSkillGradeChanged__Delegate=(null).None (full line ignored)
     BlankLine        , // \n[\n\r\t ]+
     EndOfInput       , // EOF
     TokenKind_Count  , // Keep this last
@@ -87,7 +86,6 @@ constexpr std::array<str_view, token_count> token_kind_names{
     TXT("NameLiteral"),       // '.*?'
     TXT("LineComment"),       // # ...
     TXT("MultiLineComment"),  // /* ... */
-    TXT("DelegateLine"),      // __OnSkillGradeChanged__Delegate=(null).None (full line ignored)
     TXT("BlankLine"),         // \n+
     TXT("EndOfInput"),        // EOF
 };
@@ -186,7 +184,6 @@ struct Token {
             TokenKind::BlankLine,
             TokenKind::LineComment,
             TokenKind::MultiLineComment,
-            TokenKind::DelegateLine,
         };
 
         return std::ranges::find(skip_tokens, Kind) != skip_tokens.end();

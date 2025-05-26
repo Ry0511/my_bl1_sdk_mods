@@ -29,7 +29,7 @@ bool TextModLexer::read_number() noexcept(false) {
 
     // Consume
     const auto skip_digits = [this]() {
-        while (txt::isdigit(peek())) {
+        while (!eof() && txt::isdigit(peek())) {
             m_Position++;
         }
     };
@@ -37,7 +37,7 @@ bool TextModLexer::read_number() noexcept(false) {
     m_Position++;
     skip_digits();
 
-    if (peek() == lit::dot) {
+    if (!eof() && peek() == lit::dot) {
         if (eof(1) || (txt::isdigit(peek(1)) == 0)) {
             throw_error_with_context("Expected digit after .");
         }
@@ -53,7 +53,8 @@ bool TextModLexer::read_number() noexcept(false) {
 bool TextModLexer::read_identifier() noexcept {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
-    if (!(txt::isalpha(peek()) || peek() != lit::underscore)) {
+    // Shoutouts to: bool _bUseAdvancedSettings;
+    if (!txt::isalpha(peek()) && peek() != lit::underscore) {
         return false;
     }
 
@@ -125,36 +126,6 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
     throw_error_with_context("Unknown lexing error");
 }
 
-bool TextModLexer::read_delegate_token() noexcept(false) {
-    // - NOTE -
-    // This is a bit of a hack but if we encounter a __ sequence we treat it the same as a single
-    // line comment. The only reason for this work around is because its possible that an object
-    // dump may include it and its trivial to handle.
-    //
-    // i.e., this is the result from UProperty::ExportText/ExportTextItem
-    //   __OnSkillGradeChanged__Delegate=(null).None
-    //
-
-    if (eof(1) || peek(1) != lit::underscore) {
-        throw_error_with_context("Delegate token must start with __");
-    }
-
-    // Consume the entire line
-    read_while([](txt_char ch) -> bool { return ch != lit::lf; });
-
-    const str_view line = m_Text.substr(m_Start, m_Position - m_Start);
-
-    // Additional safety check
-    if (line.find(TXT("__Delegate")) == str_view::npos) {
-        throw_error_with_context("Delegate token must end with __Delegate");
-    }
-
-    m_Token->Kind = TokenKind::DelegateLine;
-    m_Token->Text = line;
-
-    return true;
-}
-
 bool TextModLexer::read_empty_lines() noexcept(true) {
     TXT_MOD_ASSERT(!eof() && peek() == lit::lf, "Expected empty line");
     ++m_Position;
@@ -189,7 +160,7 @@ bool TextModLexer::read_string_literal() noexcept(false) {
 
     // Hit a [\r\n] character
     if (txt::any(peek(), lit::lf, lit::cr)) {
-        throw_error_with_context("Encountered [\\r\\n] in string literal");
+        throw_error_with_context("Encountered [\\r\\n] in string literal", 1);
     }
 
     m_Position++;  // Skip "
@@ -233,52 +204,49 @@ bool TextModLexer::read_token(Token* token) {
 
     for (; m_Position < m_Text.size(); ++m_Position) {
         switch (m_Text[m_Position]) {
-            case TXT('\n'):
+            case lit::lf:
                 return read_empty_lines();
 
-            case TXT('\r'):
-            case TXT('\t'):
-            case TXT(' '):
+            case lit::cr:
+            case lit::tab:
+            case lit::space:
                 m_Start = m_Position + 1;
                 continue;  // Skip
 
-            case TXT('('):
+            case lit::lparen:
                 return read_simple(TokenKind::LeftParen);
 
-            case TXT(')'):
+            case lit::rparen:
                 return read_simple(TokenKind::RightParen);
 
-            case TXT('.'):
+            case lit::dot:
                 return read_simple(TokenKind::Dot);
 
-            case TXT(','):
+            case lit::comma:
                 return read_simple(TokenKind::Comma);
 
-            case TXT('='):
+            case lit::equal:
                 return read_simple(TokenKind::Equal);
 
-            case TXT(':'):
+            case lit::colon:
                 return read_simple(TokenKind::Colon);
 
-            case TXT('['):
+            case lit::lbracket:
                 return read_simple(TokenKind::LeftBracket);
 
-            case TXT(']'):
+            case lit::rbracket:
                 return read_simple(TokenKind::RightBracket);
 
-            case TXT('#'):
+            case lit::hash:
                 return read_line_comment();
 
-            case TXT('/'):
+            case lit::fslash:
                 return read_multiline_comment();
 
-            case TXT('_'):
-                return read_delegate_token();
-
-            case TXT('\"'):
+            case lit::dquote:
                 return read_string_literal();
 
-            case TXT('\''):
+            case lit::squote:
                 return read_name_literal();
 
             default: {

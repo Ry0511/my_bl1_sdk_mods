@@ -17,7 +17,6 @@ namespace tm_parse {
 //        views being invalidated)
 // TODO: The m_CurrentLine can be lazily calculated from the 0 to m_Position
 
-
 // #[[TextModLexer]]
 class TextModLexer {
    private:
@@ -65,6 +64,12 @@ class TextModLexer {
      * @return Current line number; Zero based.
      */
     [[nodiscard]] size_t line() const noexcept { return m_CurrentLine; }
+
+    /**
+     * Skips the provided number of characters.
+     * @param count The number of characters to skip
+     */
+    void skip(size_t count) { m_Position = std::min(m_Position + count, size()); }
 
     /**
      * Reads a single token from the stream.
@@ -132,7 +137,7 @@ class TextModLexer {
                 line = line.substr(1);
             }
 
-            if (line.back() == TXT('\n')) {
+            if (!line.empty() && line.back() == TXT('\n')) {
                 line = line.substr(0, line.size() - 1);
             }
 
@@ -153,7 +158,7 @@ class TextModLexer {
 
         {
             int last = static_cast<int>(line_start);
-            int pos = static_cast<int>(line_start) - 1;  // Exclude \n
+            int pos = (line_start != 0) ? static_cast<int>(line_start) - 1 : 0;  // Exclude \n
 
             for (int i = 0; i < context_size; i++) {
                 TXT_MOD_ASSERT(pos >= 0, "{}", pos);
@@ -192,7 +197,6 @@ class TextModLexer {
     bool read_identifier() noexcept;
     bool read_line_comment() noexcept;
     bool read_multiline_comment() noexcept(false);
-    bool read_delegate_token() noexcept(false);
     bool read_empty_lines() noexcept(true);
     bool read_string_literal() noexcept(false);
     bool read_name_literal() noexcept(false);
