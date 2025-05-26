@@ -14,7 +14,14 @@
 
 using namespace tm_parse;
 
+namespace tm_parse_tests {
+extern int lexer_test_main();
+}
+
 int main() {
+    tm_parse_tests::lexer_test_main();
+
+    /*
     fs::path the_file = fs::current_path() / TXT("wpc_obj_dump.txt");
 
     if (!fs::is_regular_file(the_file)) {
@@ -40,6 +47,7 @@ int main() {
     for (TokenProxy proxy : KeywordTokenIterator{}) {
         TXT_LOG("  {:>2} -> {}", proxy.as_int(), proxy.as_str());
     }
+    */
 
     return 0;
 }
