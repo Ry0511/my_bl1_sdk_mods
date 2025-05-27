@@ -1,6 +1,6 @@
 ---
-WarningsAsErrors:    ""
-HeaderFilterRegex:   "src/*.h"
+WarningsAsErrors: ""
+HeaderFilterRegex: "src/*.h"
 Checks: >
   -*,
   bugprone-*
@@ -13,14 +13,17 @@ Checks: >
     -cppcoreguidelines-pro-type-reinterpret-cast,
     -cppcoreguidelines-pro-type-union-access,
     -cppcoreguidelines-pro-type-vararg,
+    -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   misc-*,
     -misc-include-cleaner,
     -misc-non-private-member-variables-in-classes,
     -misc-no-recursion,
+    -misc-const-correctness,
   modernize-*,
     -modernize-avoid-c-arrays,
     -modernize-redundant-void-arg,
     -modernize-use-trailing-return-type,
+    -modernize-use-nodiscard,
   performance-*,
     -performance-no-int-to-ptr,
   portability-*,
@@ -40,18 +43,16 @@ CheckOptions:
   cppcoreguidelines-rvalue-reference-param-not-moved.IgnoreUnnamedParams: true
   misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic: true
 
-  readability-identifier-naming.GlobalConstantCase:   lower_case
-  readability-identifier-naming.MacroDefinitionCase:  UPPER_CASE
-
-  readability-identifier-naming.ClassCase:            CamelCase
-  readability-identifier-naming.EnumCase:             CamelCase
-  readability-identifier-naming.StructCase:           CamelCase
-
-  readability-identifier-naming.FunctionCase:         lower_case
-  readability-identifier-naming.MemberCase:           m_PascalCase
-  readability-identifier-naming.NamespaceCase:        lower_case
-  readability-identifier-naming.ParameterCase:        lower_case
-  readability-identifier-naming.VariableCase:         lower_case
+  readability-identifier-naming.GlobalConstantCase : lower_case
+  readability-identifier-naming.MacroDefinitionCase: UPPER_CASE
+  readability-identifier-naming.EnumCase           : PascalCase
+  readability-identifier-naming.StructCase         : PascalCase
+  readability-identifier-naming.ClassCase          : PascalCase
+  readability-identifier-naming.MemberCase         : m_PascalCase
+  readability-identifier-naming.NamespaceCase      : lower_case
+  readability-identifier-naming.VariableCase       : lower_case
+  readability-identifier-naming.FunctionCase       : lower_case
+  readability-identifier-naming.ParameterCase      : lower_case
 
   readability-identifier-length.IgnoredVariableNames: _
 ---
