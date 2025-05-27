@@ -20,34 +20,11 @@
 using namespace tm_parse;
 
 int main() {
-    // Will pickup tests in built source files
-    int result = Catch::Session().run();
-    TXT_LOG("Lexer test main exited with: {}", result);
 
-    // wpc_obj_dump_utf-8.txt wpc_obj_dump_utf-16le.txt
-
+    TXT_LOG("== WPC LEXING ==================================================================");
     const txt_char* utf8_file = TXT("wpc_obj_dump_utf-8.txt");
     const txt_char* utf16le_file = TXT("wpc_obj_dump_utf-16le.txt");
-
-    fs::path the_file = fs::current_path() / utf16le_file;
-    std::ifstream stream{the_file, std::ios_base::in | std::ios_base::binary};
-
-    char bom[2]{};
-    stream.read(bom, 2);
-
-    if (*reinterpret_cast<wchar_t*>(bom) != 0xFEFF) {
-        TXT_LOG("File does not have a BOM: '{}'", str{the_file.filename().c_str()});
-        return -1;
-    }
-    stream.seekg(0, std::ios_base::end);
-    size_t size = (static_cast<size_t>(stream.tellg()) / sizeof(txt_char)) - 2;
-    std::u16string the_str(size, '\0');
-
-    stream.seekg(2, std::ios_base::beg);
-    stream.read(reinterpret_cast<char*>(the_str.data()), size);
-
-    /*
-    fs::path the_file = fs::current_path() / TXT("wpc_obj_dump.txt");
+    fs::path the_file = fs::current_path() / utf8_file;
 
     if (!fs::is_regular_file(the_file)) {
         TXT_LOG("File does not exist: '{}'", the_file.string());
@@ -63,16 +40,20 @@ int main() {
     TextModParser parser{&lexer};
     parser.parse_string();
 
-    TXT_LOG("[SYMBOLS]");
+    TXT_LOG("== SYMBOLS =====================================================================");
     for (TokenProxy proxy : SymbolTokenIterator{}) {
         TXT_LOG("  {:>2} -> {}", proxy.as_int(), proxy.as_str());
     }
 
-    TXT_LOG("[KEYWORDS]");
+    TXT_LOG("== KEYWORDS ====================================================================");
     for (TokenProxy proxy : KeywordTokenIterator{}) {
         TXT_LOG("  {:>2} -> {}", proxy.as_int(), proxy.as_str());
     }
-    */
+
+    // Will pickup tests in linked source files
+    TXT_LOG("== TESTS =======================================================================\n");
+    int result = Catch::Session().run();
+    TXT_LOG("Lexer test main exited with: {}", result);
 
     return 0;
 }

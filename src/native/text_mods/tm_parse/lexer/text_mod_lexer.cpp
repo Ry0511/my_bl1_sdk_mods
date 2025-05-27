@@ -46,7 +46,7 @@ bool TextModLexer::read_number() noexcept(false) {
     }
 
     m_Token->Kind = TokenKind::Number;
-    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+    m_Token->TextRegion = {m_Start, m_Position - m_Start};
     return true;
 }
 
@@ -60,7 +60,7 @@ bool TextModLexer::read_identifier() noexcept {
 
     read_while([](txt_char c) { return txt::isalnum(c) || c == lit::underscore; });
     m_Token->Kind = TokenKind::Identifier;
-    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+    m_Token->TextRegion = {m_Start, m_Position - m_Start};
 
     // Case insensitive string comparison
     const auto icase_cmp = [](const str_view left, const str_view right) -> bool {
@@ -76,10 +76,12 @@ bool TextModLexer::read_identifier() noexcept {
         return true;
     };
 
+    str_view text = m_Text.substr(m_Start, m_Position - m_Start);
+
     // See if the token matches any known keywords if so adjust the token kind
     for (auto proxy : KeywordTokenIterator{}) {
         const str_view name = token_kind_names.at(proxy);
-        if (icase_cmp(name, m_Token->Text)) {
+        if (icase_cmp(name, text)) {
             m_Token->Kind = proxy;
             return true;
         }
@@ -91,7 +93,7 @@ bool TextModLexer::read_identifier() noexcept {
 bool TextModLexer::read_line_comment() noexcept {
     read_while([](txt_char c) { return c != lit::lf && c != lit::cr; });
     m_Token->Kind = TokenKind::LineComment;
-    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+    m_Token->TextRegion = {m_Start, m_Position - m_Start};
     return true;
 }
 
@@ -114,7 +116,7 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
         if (ch == lit::star && !eof(1) && peek(1) == lit::fslash) {
             m_Position += 2;  // Skip */
             m_Token->Kind = TokenKind::MultiLineComment;
-            m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+            m_Token->TextRegion = {m_Start, m_Position - m_Start};
             return true;
         }
     }
@@ -142,7 +144,7 @@ bool TextModLexer::read_empty_lines() noexcept(true) {
     });
 
     m_Token->Kind = TokenKind::BlankLine;
-    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+    m_Token->TextRegion = {m_Start, m_Position - m_Start};
 
     return true;
 }
@@ -165,7 +167,7 @@ bool TextModLexer::read_string_literal() noexcept(false) {
 
     m_Position++;  // Skip "
     m_Token->Kind = TokenKind::StringLiteral;
-    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+    m_Token->TextRegion = {m_Start, m_Position - m_Start};
     return true;
 }
 
@@ -186,14 +188,18 @@ bool TextModLexer::read_name_literal() noexcept(false) {
 
     m_Position++;  // Skip '
     m_Token->Kind = TokenKind::NameLiteral;
-    m_Token->Text = m_Text.substr(m_Start, m_Position - m_Start);
+    m_Token->TextRegion = {m_Start, m_Position - m_Start};
     return true;
 }
 
 bool TextModLexer::read_token(Token* token) {
+
+    // Always update this
+    token->SourceStr = m_Text;
+
     if (this->eof()) {
         token->Kind = TokenKind::EndOfInput;
-        token->Text = str_view{};
+        token->TextRegion = {};
         return false;
     }
 

@@ -189,7 +189,7 @@ class TextModLexer {
    private:
     bool read_simple(TokenKind kind) noexcept {
         m_Token->Kind = kind;
-        m_Token->Text = m_Text.substr(m_Start, 1);
+        m_Token->TextRegion = {m_Start, 1};
         m_Position++;
         return true;
     }

@@ -153,24 +153,46 @@ using SymbolTokenIterator  = TokenRangeIterator<begin_symbol_token, static_cast<
 // | TOKEN STRUCTURE |
 ////////////////////////////////////////////////////////////////////////////////
 
+constexpr auto invalid_region = std::numeric_limits<size_t>::max();
+
+struct TokenTextView {
+    size_t Start;
+    size_t Length;
+
+    constexpr TokenTextView() noexcept : Start(invalid_region), Length(invalid_region) {};
+    constexpr TokenTextView(size_t start, size_t len) noexcept : Start(start), Length(len) {};
+
+    str_view view_from(str_view in_vw) const noexcept { return in_vw.substr(Start, Length); }
+
+    constexpr bool operator==(const TokenTextView& other) const noexcept = default;
+    constexpr bool operator!=(const TokenTextView& other) const noexcept = default;
+
+    constexpr bool is_valid() const noexcept { return *this == TokenTextView{}; };
+};
+
 struct Token {
     TokenKind Kind;
-    str_view Text;
+    str_view SourceStr;
+    TokenTextView TextRegion;
 
     explicit constexpr Token() noexcept : Kind(TokenKind::EndOfInput) {};
-    explicit constexpr Token(TokenKind kind, str_view text) noexcept : Kind(kind), Text(text) {};
+    explicit constexpr Token(TokenKind kind, TokenTextView text) noexcept : Kind(kind), TextRegion(text) {};
 
     [[nodiscard]] std::string token_as_str() const noexcept {
-        const auto index = static_cast<token_int>(Kind);
-        const str_view token_kind_name = token_kind_names.at(static_cast<size_t>(index));
+        str token_kind_name = TokenProxy{Kind};
 
         // This is just a garbage token really
         if (Kind == TokenKind::BlankLine) {
-            return std::format("{:<17} = {}", str{token_kind_name}, str{TXT("_BLANK_")});
+            return std::format("{:<17} = {}", token_kind_name, str{TXT("_BLANK_")});
         }
 
-        return std::format("{:<17} = {}", str{token_kind_name}, str{Text});
+        return std::format("{:<17} = {}", token_kind_name, as_str());
     }
+
+    // clang-format off
+    str_view as_str_view() const noexcept { return TextRegion.view_from(SourceStr);      }
+    str      as_str()      const noexcept { return str{TextRegion.view_from(SourceStr)}; }
+    // clang-format on
 
     /**
      * @return True if this token is an Identifier token or a keyword token
@@ -193,10 +215,6 @@ struct Token {
         return std::ranges::find(kinds, Kind) != kinds.end();
     }
 
-    // Text Compare
-    bool operator==(str_view other) const noexcept { return this->Text == other; }
-    bool operator!=(str_view other) const noexcept { return this->Text != other; }
-
     // Token Kind Compare
     bool operator==(const TokenKind& other) const noexcept { return this->Kind == other; }
     bool operator!=(const TokenKind& other) const noexcept { return this->Kind != other; }
@@ -206,6 +224,6 @@ struct Token {
     bool operator!=(const Token& other) const noexcept { return this->Kind != other.Kind; }
 };
 
-static constexpr Token token_eof{TokenKind::EndOfInput, str_view{}};
+static constexpr Token token_eof{TokenKind::EndOfInput, TokenTextView{}};
 
 }  // namespace tm_parse

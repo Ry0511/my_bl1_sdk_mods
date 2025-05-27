@@ -6,8 +6,9 @@
 
 #include "pch.h"
 
-#include "standalone/catch.hpp"
 #include "lexer/text_mod_lexer.h"
+#include "parser/text_mod_parser.h"
+#include "standalone/catch.hpp"
 
 namespace tm_parse_tests {
 
@@ -149,7 +150,7 @@ TEST_CASE("Lexing single and multi-line comments") {
             TextModLexer lexer{TXT("#")};
             Token token{};
             REQUIRE((lexer.read_token(&token) && token == TokenKind::LineComment));
-            REQUIRE(token.Text == TXT("#"));
+            REQUIRE(token.as_str_view() == TXT("#"));
             REQUIRE((!lexer.read_token(&token) && token == TokenKind::EndOfInput));
         }
 
@@ -159,7 +160,7 @@ TEST_CASE("Lexing single and multi-line comments") {
             Token token{};
 
             REQUIRE((lexer.read_token(&token) && token == TokenKind::LineComment));
-            REQUIRE(token.Text == TXT("# Single line comment"));
+            REQUIRE(token.as_str_view() == TXT("# Single line comment"));
 
             // Since we don't include the \n in the line comment it becomes its own token
             REQUIRE((lexer.read_token(&token) && token == TokenKind::BlankLine));
@@ -174,7 +175,7 @@ TEST_CASE("Lexing single and multi-line comments") {
             Token token{};
 
             REQUIRE((lexer.read_token(&token) && token == TokenKind::MultiLineComment));
-            REQUIRE(token.Text == the_str);
+            REQUIRE(token.as_str_view() == the_str);
             REQUIRE((!lexer.read_token(&token) && token == TokenKind::EndOfInput));
         }
 
@@ -184,7 +185,7 @@ TEST_CASE("Lexing single and multi-line comments") {
             Token token{};
 
             REQUIRE((lexer.read_token(&token) && token == TokenKind::MultiLineComment));
-            REQUIRE(token.Text == the_str);
+            REQUIRE(token.as_str_view() == the_str);
             REQUIRE((!lexer.read_token(&token) && token == TokenKind::EndOfInput));
         }
 
@@ -224,7 +225,7 @@ TEST_CASE("Lexing numbers") {
             Token token{};
 
             REQUIRE((lexer.read_token(&token) && token == TokenKind::Number));
-            REQUIRE(token.Text == the_str);
+            REQUIRE(token.as_str_view() == the_str);
             REQUIRE((!lexer.read_token(&token) && token == TokenKind::EndOfInput));
         }
     }
@@ -252,7 +253,6 @@ TEST_CASE("Lexing numbers") {
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Lexing identifiers") {
-
     SECTION("Keyword identifiers") {
         for (TokenProxy proxy : KeywordTokenIterator{}) {
             str the_str{proxy.as_str()};
@@ -271,7 +271,7 @@ TEST_CASE("Lexing identifiers") {
     }
 
     SECTION("Regular identifiers") {
-        const txt_char* valid_inputs[] {
+        const txt_char* valid_inputs[]{
             TXT("SomeIdentifier"),
             TXT("otherIdentifier"),
             TXT("my_identifier"),
@@ -286,10 +286,113 @@ TEST_CASE("Lexing identifiers") {
             Token token{};
 
             REQUIRE((lexer.read_token(&token) && token == TokenKind::Identifier));
-            REQUIRE(token.Text == the_str);
+            REQUIRE(token.as_str_view() == the_str);
             REQUIRE((!lexer.read_token(&token) && token == TokenKind::EndOfInput));
         }
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | REAL DATA LEXING |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Lexing real data") {
+
+    const txt_char* utf8_file = TXT("wpc_obj_dump_utf-8.txt");
+    fs::path the_file = fs::current_path() / utf8_file;
+
+#ifdef TEXT_MODS_USE_WCHAR
+    std::wifstream stream{the_file};
+#else
+    std::ifstream stream{the_file};
+#endif
+
+    REQUIRE(fs::exists(the_file));
+    REQUIRE(fs::is_regular_file(the_file));
+    REQUIRE(stream.is_open());
+
+    using It = std::istreambuf_iterator<txt_char>;
+    str content{It{stream}, It{}};
+
+    TextModLexer lexer{content};
+    Token token{};
+
+    using TokenKind::BlankLine;
+    using TokenKind::Equal;
+    using TokenKind::Identifier;
+    using TokenKind::Kw_Begin;
+    using TokenKind::Kw_Class;
+    using TokenKind::Kw_Name;
+    using TokenKind::Kw_Object;
+    using TokenKind::Number;
+
+    // clang-format off
+    const TokenKind expected_tokens[] {
+        Kw_Begin  ,                                // Begin
+        Kw_Object ,                                // Object
+        Kw_Class  , Equal, Identifier,             // Class=WillowPlayerController
+        Kw_Name   , Equal, Identifier, BlankLine,  // Name=WillowPlayerController_0
+        Identifier, Equal, BlankLine ,             // VfTable_IIUpdatePostProcessOverride=
+        Identifier, Equal, BlankLine ,             // VfTable_IIPlayerBehavior=
+        Identifier, Equal, BlankLine ,             // VfTable_IIPlayerMaster=
+        Identifier, Equal, BlankLine ,             // VfTable_IIScreenParticle=
+        Identifier, Equal, BlankLine ,             // VfTable_IIInstanceData=
+        Identifier, Equal, BlankLine ,             // VfTable_IIResourcePoolOwner=
+        Identifier, Equal, BlankLine ,             // VfTable_FCallbackEventDevice=
+        Identifier, Equal, Number    , BlankLine,  // WeaponImpulse=600.000000
+        Identifier, Equal, Number    , BlankLine,  // HoldDistanceMin=50.000000
+        Identifier, Equal, Number    , BlankLine,  // HoldDistanceMax=750.000000
+        Identifier, Equal, Number    , BlankLine,  // ThrowImpulse=800.000000
+    };
+    // clang-format on
+
+    for (TokenKind expected : expected_tokens) {
+        bool ok = lexer.read_token(&token);
+        REQUIRE(ok);
+
+        if (token != expected) {
+            FAIL(
+                std::format(
+                    "Expected: {} but got: ( {}, '{}' )",
+                    TokenProxy{expected}.as_str(),
+                    TokenProxy{token.Kind}.as_str(),
+                    token.as_str()
+                )
+            );
+        }
+    }
+
+    const txt_char* existing_identifiers[]{
+        TXT("bAlwaysLookDownCamera"),
+        TXT("bHideCompassOnHUD"),
+        TXT("bMainMenu_SplitScreen"),
+        TXT("bReadyForCommit"),
+        TXT("ReplicatedCollisionType"),
+        TXT("Timers"),
+        TXT("bNetDirty"),
+        TXT("PSSMLightCheckLocation"),
+        TXT("WillowPlayerController_1"),
+    };
+
+    size_t found_count = 0;
+
+    for (const txt_char* identifier : existing_identifiers) {
+        while (lexer.read_token(&token)) {
+            if (!token.is_identifier()) {
+                continue;
+            }
+
+            str_view token_str = token.as_str_view();
+            if (token_str != identifier) {
+                continue;
+            }
+
+            found_count++;
+            break;
+        }
+    }
+
+    REQUIRE(found_count == (sizeof(existing_identifiers) / sizeof(txt_char*)));
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
