@@ -6,14 +6,14 @@
 
 #include "pch.h"
 
-#include "lexer/text_mod_lexer.h"
-
-#define CATCH_CONFIG_RUNNER
 #include "standalone/catch.hpp"
+#include "lexer/text_mod_lexer.h"
 
 namespace tm_parse_tests {
 
 using namespace tm_parse;
+
+// NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
 ////////////////////////////////////////////////////////////////////////////////
 // | SIMPLE TOKEN LEXING TESTS |
@@ -21,8 +21,8 @@ using namespace tm_parse;
 
 TEST_CASE("Simple Token Lexing") {
     SECTION("Lexing known simple tokens") {
-        const txt_char* s = TXT("().,=:[]");
-        TextModLexer lexer{s};
+        const txt_char* test_str = TXT("().,=:[]");
+        TextModLexer lexer{test_str};
         Token token{};
 
         REQUIRE((lexer.read_token(&token) && token == TokenKind::LeftParen));
@@ -37,8 +37,8 @@ TEST_CASE("Simple Token Lexing") {
     }
 
     SECTION("Lexing unknown tokens") {
-        const txt_char* s = TXT("`{}+");
-        TextModLexer lexer{s};
+        const txt_char* test_str = TXT("`{}+");
+        TextModLexer lexer{test_str};
         Token token{};
 
         // By default the lexer will throw on unknown tokens since it's useful for debugging but
@@ -292,14 +292,6 @@ TEST_CASE("Lexing identifiers") {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// | MAIN |
-////////////////////////////////////////////////////////////////////////////////
-
-int lexer_test_main() {
-    int result = Catch::Session().run();
-    TXT_LOG("Lexer test main exited with: {}", result);
-    return result;
-}
+// NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
 
 }  // namespace tm_parse_tests

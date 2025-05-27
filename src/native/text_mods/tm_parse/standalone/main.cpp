@@ -4,6 +4,11 @@
 // Author     : -Ry
 //
 
+#include "pch.h"
+
+#define CATCH_CONFIG_RUNNER
+#include "standalone/catch.hpp"
+
 #include "common/text_mod_common.h"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
@@ -14,12 +19,32 @@
 
 using namespace tm_parse;
 
-namespace tm_parse_tests {
-extern int lexer_test_main();
-}
-
 int main() {
-    tm_parse_tests::lexer_test_main();
+    // Will pickup tests in built source files
+    int result = Catch::Session().run();
+    TXT_LOG("Lexer test main exited with: {}", result);
+
+    // wpc_obj_dump_utf-8.txt wpc_obj_dump_utf-16le.txt
+
+    const txt_char* utf8_file = TXT("wpc_obj_dump_utf-8.txt");
+    const txt_char* utf16le_file = TXT("wpc_obj_dump_utf-16le.txt");
+
+    fs::path the_file = fs::current_path() / utf16le_file;
+    std::ifstream stream{the_file, std::ios_base::in | std::ios_base::binary};
+
+    char bom[2]{};
+    stream.read(bom, 2);
+
+    if (*reinterpret_cast<wchar_t*>(bom) != 0xFEFF) {
+        TXT_LOG("File does not have a BOM: '{}'", str{the_file.filename().c_str()});
+        return -1;
+    }
+    stream.seekg(0, std::ios_base::end);
+    size_t size = (static_cast<size_t>(stream.tellg()) / sizeof(txt_char)) - 2;
+    std::u16string the_str(size, '\0');
+
+    stream.seekg(2, std::ios_base::beg);
+    stream.read(reinterpret_cast<char*>(the_str.data()), size);
 
     /*
     fs::path the_file = fs::current_path() / TXT("wpc_obj_dump.txt");
