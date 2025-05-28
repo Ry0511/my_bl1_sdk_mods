@@ -16,16 +16,24 @@ namespace tm_parse {
 // TODO: Replace m_Text str_view with a text stream for lazy lexing (also avoids issues with
 //        views being invalidated)
 // TODO: The m_CurrentLine can be lazily calculated from the 0 to m_Position
+// TODO: The state of the lexer after an error is undefined.
 
 // #[[TextModLexer]]
 class TextModLexer {
+   private:
+    struct LexerState {
+        size_t Start, Position;
+    };
+
    private:
     str_view m_Text;
     size_t m_Position{0};
     size_t m_Start{0};
     Token* m_Token{nullptr};
     size_t m_CurrentLine{0};
+    LexerState m_State{};
 
+   private:
    public:
     explicit TextModLexer(str_view text) : m_Text(text) {}
     ~TextModLexer() = default;
@@ -79,6 +87,12 @@ class TextModLexer {
      */
     bool read_token(Token* token);
 
+    void save() noexcept { m_State = LexerState{.Start = m_Start, .Position = m_Position}; }
+    void restore() noexcept {
+        m_Position = m_State.Position;
+        m_Start = m_State.Start;
+    }
+
    private:
     /**
      * Advances the stream forward until the predicate returns false.
@@ -124,7 +138,7 @@ class TextModLexer {
      * @param context_size The size of the context, that is, how many lines before the error we
      *                      capture.
      */
-    [[noreturn]] void throw_error_with_context(const char* msg, int context_size = 3) const {
+    [[noreturn]] void throw_error_with_context(const char* msg, int context_size = 3) {
         const size_t line_start = get_line_break_pos(false);
 
         // Removes starting and ending new lines
@@ -150,7 +164,8 @@ class TextModLexer {
 
         // Didn't ask for more context
         if (context_size < 1) {
-            throw ErrorWithContext(msg, m_CurrentLine, m_Position, str{error_snippet});
+            size_t pos = m_Position;
+            throw ErrorWithContext(msg, m_CurrentLine, pos, str{error_snippet});
         }
 
         using LineContext = ErrorWithContext::LineContext;
@@ -183,7 +198,8 @@ class TextModLexer {
             }
         }
 
-        throw ErrorWithContext(msg, m_CurrentLine, m_Position, str{error_snippet}, context);
+        size_t pos = m_Position;
+        throw ErrorWithContext(msg, m_CurrentLine, pos, str{error_snippet}, context);
     }
 
    private:

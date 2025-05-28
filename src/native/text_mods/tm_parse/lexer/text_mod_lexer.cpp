@@ -76,7 +76,15 @@ bool TextModLexer::read_identifier() noexcept {
         return true;
     };
 
+    // TODO: Minor optimisation if the length of the string is greater or less than the shortest and
+    //        largest token we can shortcircuit.
+
     str_view text = m_Text.substr(m_Start, m_Position - m_Start);
+
+    // Can't be any known token
+    if (text.length() < min_token_len || text.length() > max_token_len) {
+        return true;
+    }
 
     // See if the token matches any known keywords if so adjust the token kind
     for (auto proxy : KeywordTokenIterator{}) {

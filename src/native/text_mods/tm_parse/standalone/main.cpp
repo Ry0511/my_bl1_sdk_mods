@@ -55,5 +55,12 @@ int main() {
     int result = Catch::Session().run();
     TXT_LOG("Lexer test main exited with: {}", result);
 
+
+    {
+        TextModLexer lexer{TXT("set foo.baz:bar my_cool_property")};
+        TextModParser parser{&lexer};
+        parser.parse_program();
+    }
+
     return 0;
 }

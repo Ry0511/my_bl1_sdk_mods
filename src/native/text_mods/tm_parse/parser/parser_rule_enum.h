@@ -17,7 +17,7 @@ namespace tm_parse {
 
 Structural overview of the parser rules and how they are handled.
  - See Lexer Tokens: [[../common/text_mod_tokens.h]]
- - See WPC Example : [[../standalone/wpc_obj_dump.txt]]
+ - See WPC Example : [[../standalone/wpc_obj_dump_utf-8.txt]]
 
 I have tried to avoid reusing names from the Lexer but somethings
  really don't change much from the lexer side except compositing a
@@ -30,24 +30,24 @@ TODO: Fix Identifier lexing to match: [a-zA-Z_][a-zA-Z_\d]*
 ================================================================================
 == Identifiers =================================================================
 
-- #[[ParserDef@DotIdentifier]]
+- #[[ParserDoc_DotIdentifier]]
   - Identifier ( Dot Identifier )*
   - menumap.TheWorld
 
-- #[[ParserDef@ObjectIdentifier]]
+- #[[ParserDoc_ObjectIdentifier]]
   - DotIdentifier (Colon DotIdentifier)?
   - menumap.TheWorld:PersistentLevel.WillowPlayerController_0.WillowAutoAimStrategy_0
 
-- #[[ParserDef@ArrayAccess]]
+- #[[ParserDoc_ArrayAccess]]
   - (LeftParen Number RightParen) | (LeftBracket Number RightBracket)
   - Foo(0) Baz[0]
   - () is for dynamic arrays and [] is for static/stack arrays
 
-- #[[ParserDef@PropertyAccess]]
+- #[[ParserDoc_PropertyAccess]]
   - Identifier ArrayAccess?
   - Foo(0) or Foo[0] or Foo
 
-- #[[ParserDef@PropertyAssignment]]
+- #[[ParserDoc_PropertyAssignment]]
   - PropertyAccess Equal CompositeExpr
   - AmmoResourceUpgrades[7]=0
     CurrentTouchedPickupable=None
@@ -55,36 +55,36 @@ TODO: Fix Identifier lexing to match: [a-zA-Z_][a-zA-Z_\d]*
 ================================================================================
 == Value Expressions ===========================================================
 
-- #[[ParserDef@ObjectNameLiteral]]
+- #[[ParserDoc_ObjectNameLiteral]]
   - Identifier NameLiteral
   - WillowAutoAimStrategy'menumap.TheWorld:PersistentLevel.WillowPlayerController_0.WillowAutoAimStrategy_0'
 
-- #[[ParserDef@IdentifierChain]]
+- #[[ParserDoc_IdentifierChain]]
   - Identifier+ BlankLine
   - QuickSaveString=Quick Saving
 
-- #[[ParserDef@PrimitiveExpr]]
+- #[[ParserDoc_PrimitiveExpr]]
   - Number | StringLiteral | NameLiteralRule | IdentifierChainRule
-    - StringLiteral might only be used in [[ParserDef@ArrayAccess]]
+    - StringLiteral might only be used in [[ParserDoc_ArrayAccess]]
   - ProgressTimeOut=8.000000
     QuickSaveString=Quick Saving
     NoPauseMessage=Game is not pauseable
 
-- #[[ParserDef@ParenExpr]]
+- #[[ParserDoc_ParenExpr]]
   - LeftParen * RightParen
     - TODO: Currently doesn't parse the expression just consumes parens
   - RelativeRotation=(Pitch=0,Yaw=0,Roll=0)
 
-- #[[ParserDef@CompositeExpr]]
+- #[[ParserDoc_CompositeExpr]]
   - [[PrimitiveExpr]] | [[ParenExpr]]
 
 ================================================================================
 == Primary Nodes ===============================================================
 
-- #[[ParserDef@SetCommand]]
+- #[[ParserDoc_SetCommand]]
   - Kw_Set ObjectIdentifier Identifier CompositeExpr
 
-- #[[ParserDef@ObjectDefinition]]
+- #[[ParserDoc_ObjectDefinition]]
   - Kw_Begin Kw_Object
       Kw_Class Equal DotIdentifier
       Kw_Name Equal DotIdentifier
@@ -107,6 +107,9 @@ enum class ParserRuleKind : parser_rule_int {
     PrimitiveExpr     ,
     ParenExpr         ,
     CompositeExpr     ,
+    SetCommand        , // Primary Node
+    ObjectDefinition  , // Primary Node
+    Unknown           , // Default/entry for parser
 };
 
 // clang-format on

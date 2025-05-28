@@ -14,7 +14,7 @@
 
 /**
 
-Note that this was taken directly from:
+Note that this was mostly taken from: (cpp file is basically copy pasted)
   .../unrealsdk/src/unrealsdk/utils.cpp
 
  */

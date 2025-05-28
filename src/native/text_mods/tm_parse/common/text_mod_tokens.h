@@ -133,9 +133,9 @@ struct TokenRangeIterator {
 
     public:
         constexpr Iterator(token_int index) noexcept : Index(index) {};
-        bool operator!=(const Iterator& other) const noexcept { return Index != other.Index; }
-        TokenProxy operator*() const noexcept { return TokenProxy{Index}; }
-        Iterator& operator++() noexcept       { ++Index; return *this; }
+        constexpr bool operator!=(const Iterator& other) const noexcept { return Index != other.Index; }
+        constexpr TokenProxy operator*() const noexcept { return TokenProxy{Index}; }
+        constexpr Iterator& operator++() noexcept       { ++Index; return *this; }
     };
 
 public:
@@ -146,6 +146,25 @@ public:
 
 using KeywordTokenIterator = TokenRangeIterator<begin_kw_token, end_kw_token>;
 using SymbolTokenIterator  = TokenRangeIterator<begin_symbol_token, static_cast<token_int>(token_count)>;
+
+consteval size_t largest_token_len() noexcept {
+    size_t largest_token_len = 0;
+    for (auto proxy : KeywordTokenIterator{}) {
+        largest_token_len = std::max(largest_token_len, proxy.as_str_view().size());
+    }
+    return largest_token_len;
+}
+
+consteval size_t smallest_token_len() noexcept {
+    size_t smallest_token_len = std::numeric_limits<size_t>::max();
+    for (auto proxy : KeywordTokenIterator{}) {
+        smallest_token_len = std::min(smallest_token_len, proxy.as_str_view().size());
+    }
+    return smallest_token_len;
+}
+
+constexpr size_t min_token_len = smallest_token_len();
+constexpr size_t max_token_len = largest_token_len();
 
 // clang-format on
 
@@ -190,8 +209,10 @@ struct Token {
     }
 
     // clang-format off
-    str_view as_str_view() const noexcept { return TextRegion.view_from(SourceStr);      }
-    str      as_str()      const noexcept { return str{TextRegion.view_from(SourceStr)}; }
+    str_view as_str_view()      const noexcept { return TextRegion.view_from(SourceStr);      }
+    str      as_str()           const noexcept { return str{TextRegion.view_from(SourceStr)}; }
+    str_view kind_as_str_view() const noexcept { return TokenProxy{Kind}.as_str_view();       };
+    str      kind_as_str()      const noexcept { return TokenProxy{Kind}.as_str();            };
     // clang-format on
 
     /**
@@ -201,9 +222,8 @@ struct Token {
 
     [[nodiscard]] bool is_keyword() const noexcept { return static_cast<token_int>(Kind) < end_kw_token; }
 
-    [[nodiscard]] bool is_skip_token() const noexcept {
-        constexpr std::array<TokenKind, 4> skip_tokens = {
-            TokenKind::BlankLine,
+    [[nodiscard]] bool is_comment() const noexcept {
+        constexpr std::array<TokenKind, 2> skip_tokens = {
             TokenKind::LineComment,
             TokenKind::MultiLineComment,
         };
