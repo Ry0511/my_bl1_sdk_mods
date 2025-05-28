@@ -297,102 +297,150 @@ TEST_CASE("Lexing identifiers") {
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Lexing real data") {
-
-    const txt_char* utf8_file = TXT("wpc_obj_dump_utf-8.txt");
-    fs::path the_file = fs::current_path() / utf8_file;
-
-#ifdef TEXT_MODS_USE_WCHAR
-    std::wifstream stream{the_file};
-#else
-    std::ifstream stream{the_file};
-#endif
-
-    REQUIRE(fs::exists(the_file));
-    REQUIRE(fs::is_regular_file(the_file));
-    REQUIRE(stream.is_open());
-
-    using It = std::istreambuf_iterator<txt_char>;
-    str content{It{stream}, It{}};
-
-    TextModLexer lexer{content};
-    Token token{};
-
     using TokenKind::BlankLine;
+    using TokenKind::Comma;
     using TokenKind::Equal;
     using TokenKind::Identifier;
     using TokenKind::Kw_Begin;
     using TokenKind::Kw_Class;
     using TokenKind::Kw_Name;
+    using TokenKind::Kw_None;
     using TokenKind::Kw_Object;
+    using TokenKind::Kw_Set;
+    using TokenKind::LeftParen;
+    using TokenKind::NameLiteral;
     using TokenKind::Number;
+    using TokenKind::RightParen;
 
-    // clang-format off
-    const TokenKind expected_tokens[] {
-        Kw_Begin  ,                                // Begin
-        Kw_Object ,                                // Object
-        Kw_Class  , Equal, Identifier,             // Class=WillowPlayerController
-        Kw_Name   , Equal, Identifier, BlankLine,  // Name=WillowPlayerController_0
-        Identifier, Equal, BlankLine ,             // VfTable_IIUpdatePostProcessOverride=
-        Identifier, Equal, BlankLine ,             // VfTable_IIPlayerBehavior=
-        Identifier, Equal, BlankLine ,             // VfTable_IIPlayerMaster=
-        Identifier, Equal, BlankLine ,             // VfTable_IIScreenParticle=
-        Identifier, Equal, BlankLine ,             // VfTable_IIInstanceData=
-        Identifier, Equal, BlankLine ,             // VfTable_IIResourcePoolOwner=
-        Identifier, Equal, BlankLine ,             // VfTable_FCallbackEventDevice=
-        Identifier, Equal, Number    , BlankLine,  // WeaponImpulse=600.000000
-        Identifier, Equal, Number    , BlankLine,  // HoldDistanceMin=50.000000
-        Identifier, Equal, Number    , BlankLine,  // HoldDistanceMax=750.000000
-        Identifier, Equal, Number    , BlankLine,  // ThrowImpulse=800.000000
-    };
-    // clang-format on
+    SECTION("WPC Object Dump") {
+        const txt_char* utf8_file = TXT("wpc_obj_dump_utf-8.txt");
+        fs::path the_file = fs::current_path() / utf8_file;
 
-    for (TokenKind expected : expected_tokens) {
-        bool ok = lexer.read_token(&token);
-        REQUIRE(ok);
+#ifdef TEXT_MODS_USE_WCHAR
+        std::wifstream stream{the_file};
+#else
+        std::ifstream stream{the_file};
+#endif
 
-        if (token != expected) {
-            FAIL(
-                std::format(
-                    "Expected: {} but got: ( {}, '{}' )",
-                    TokenProxy{expected}.as_str(),
-                    TokenProxy{token.Kind}.as_str(),
-                    token.as_str()
-                )
-            );
+        // clang-format off
+        const TokenKind expected_tokens[] {
+            Kw_Begin  ,                                // Begin
+            Kw_Object ,                                // Object
+            Kw_Class  , Equal, Identifier,             // Class=WillowPlayerController
+            Kw_Name   , Equal, Identifier, BlankLine,  // Name=WillowPlayerController_0
+            Identifier, Equal, BlankLine ,             // VfTable_IIUpdatePostProcessOverride=
+            Identifier, Equal, BlankLine ,             // VfTable_IIPlayerBehavior=
+            Identifier, Equal, BlankLine ,             // VfTable_IIPlayerMaster=
+            Identifier, Equal, BlankLine ,             // VfTable_IIScreenParticle=
+            Identifier, Equal, BlankLine ,             // VfTable_IIInstanceData=
+            Identifier, Equal, BlankLine ,             // VfTable_IIResourcePoolOwner=
+            Identifier, Equal, BlankLine ,             // VfTable_FCallbackEventDevice=
+            Identifier, Equal, Number    , BlankLine,  // WeaponImpulse=600.000000
+            Identifier, Equal, Number    , BlankLine,  // HoldDistanceMin=50.000000
+            Identifier, Equal, Number    , BlankLine,  // HoldDistanceMax=750.000000
+            Identifier, Equal, Number    , BlankLine,  // ThrowImpulse=800.000000
+        };
+        // clang-format on
+
+        REQUIRE(fs::exists(the_file));
+        REQUIRE(fs::is_regular_file(the_file));
+        REQUIRE(stream.is_open());
+
+        using It = std::istreambuf_iterator<txt_char>;
+        str content{It{stream}, It{}};
+
+        TextModLexer lexer{content};
+        Token token{};
+
+        for (TokenKind expected : expected_tokens) {
+            bool ok = lexer.read_token(&token);
+            REQUIRE(ok);
+
+            if (token != expected) {
+                FAIL(
+                    std::format(
+                        "Expected: {} but got: ( {}, '{}' )",
+                        TokenProxy{expected}.as_str(),
+                        TokenProxy{token.Kind}.as_str(),
+                        token.as_str()
+                    )
+                );
+            }
         }
+
+        const txt_char* existing_identifiers[]{
+            TXT("bAlwaysLookDownCamera"),
+            TXT("bHideCompassOnHUD"),
+            TXT("bMainMenu_SplitScreen"),
+            TXT("bReadyForCommit"),
+            TXT("ReplicatedCollisionType"),
+            TXT("Timers"),
+            TXT("bNetDirty"),
+            TXT("PSSMLightCheckLocation"),
+            TXT("WillowPlayerController_1"),
+        };
+
+        size_t found_count = 0;
+
+        for (const txt_char* identifier : existing_identifiers) {
+            while (lexer.read_token(&token)) {
+                if (!token.is_identifier()) {
+                    continue;
+                }
+
+                str_view token_str = token.as_str_view();
+                if (token_str != identifier) {
+                    continue;
+                }
+
+                found_count++;
+                break;
+            }
+        }
+
+        REQUIRE(found_count == (sizeof(existing_identifiers) / sizeof(txt_char*)));
     }
 
-    const txt_char* existing_identifiers[]{
-        TXT("bAlwaysLookDownCamera"),
-        TXT("bHideCompassOnHUD"),
-        TXT("bMainMenu_SplitScreen"),
-        TXT("bReadyForCommit"),
-        TXT("ReplicatedCollisionType"),
-        TXT("Timers"),
-        TXT("bNetDirty"),
-        TXT("PSSMLightCheckLocation"),
-        TXT("WillowPlayerController_1"),
-    };
+    SECTION("Set Commands") {
+        auto test_str = str{TXT("set WillowPlayerController_1 DesiredRotation (Pitch=0,Yaw=0,Roll=0)\n")}
+                        + str{TXT("set WillowPlayerController_1 PendingTouch None\n")}
+                        + str{TXT("set WillowPlayerController_1 MessageClass Class'Engine.LocalMessage'\n")};
 
-    size_t found_count = 0;
+        TextModLexer lexer{test_str};
+        Token token{};
 
-    for (const txt_char* identifier : existing_identifiers) {
-        while (lexer.read_token(&token)) {
-            if (!token.is_identifier()) {
-                continue;
+        // clang-format off
+        TokenKind expected_tokens[] = {
+            Kw_Set, Identifier, Identifier,
+
+            LeftParen,
+            Identifier, Equal, Number, Comma,
+            Identifier, Equal, Number, Comma,
+            Identifier, Equal, Number,
+            RightParen,
+            BlankLine,
+
+            Kw_Set, Identifier, Identifier, Kw_None, BlankLine,
+            Kw_Set, Identifier, Identifier, Kw_Class, NameLiteral, BlankLine
+        };
+        // clang-format on
+
+        for (TokenKind expected : expected_tokens) {
+            bool ok = lexer.read_token(&token);
+            REQUIRE(ok);
+
+            if (token != expected) {
+                FAIL(
+                    std::format(
+                        "Expected: {} but got: ( {}, '{}' )",
+                        TokenProxy{expected}.as_str(),
+                        TokenProxy{token.Kind}.as_str(),
+                        token.as_str()
+                    )
+                );
             }
-
-            str_view token_str = token.as_str_view();
-            if (token_str != identifier) {
-                continue;
-            }
-
-            found_count++;
-            break;
         }
     }
-
-    REQUIRE(found_count == (sizeof(existing_identifiers) / sizeof(txt_char*)));
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
