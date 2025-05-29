@@ -20,6 +20,7 @@ class TextModParser {
     friend class SetCommandRule;
     friend class ObjectIdentifierRule;
     friend class DotIdentifierRule;
+    friend class ArrayAccessRule;
 
    public:
     static constexpr size_t dflt_pool_size{1024};
@@ -62,6 +63,7 @@ class TextModParser {
 
     void expect(TokenKind kind) {
         Token token{};
+
         if (!m_Lexer->read_token(&token) || token != kind) {
             throw std::runtime_error(
                 std::format(
@@ -80,11 +82,21 @@ class TextModParser {
     bool maybe_next(TokenKind kind) {
         Token token{};
 
+        // TODO: This save/restore is quite hacky and results in extra lexing which could be
+        //        avoided.
         m_Lexer->save();
 
-        if (m_Lexer->read_token(&token) && token == kind) {
-            push_token(token);
-            return true;
+        while (m_Lexer->read_token(&token)) {
+
+            // Skip tokens
+            if (token.is_comment() || token == TokenKind::BlankLine) {
+                continue;
+            }
+
+            if (token == kind) {
+                push_token(token);
+                return true;
+            }
         }
 
         m_Lexer->restore();

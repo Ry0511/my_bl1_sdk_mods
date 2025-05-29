@@ -25,11 +25,21 @@ struct DotIdentifierRule {
     static DotIdentifierRule create(TextModParser* parser);
 };
 
+// [[ParserDoc_ObjectIdentifier]]
 struct ObjectIdentifierRule {
     DotIdentifierRule PrimaryIdentifier{};
     std::optional<DotIdentifierRule> SecondaryIdentifier = std::nullopt;
 
     static ObjectIdentifierRule create(TextModParser* parser);
+};
+
+// [[ParserDoc_ArrayAccess]]
+struct ArrayAccessRule {
+    size_t StartTokenIndex{};
+    size_t NumberTokenIndex{};
+    size_t EndTokenIndex{};
+
+    static ArrayAccessRule create(TextModParser* parser);
 };
 
 struct CompositeExprRule {};

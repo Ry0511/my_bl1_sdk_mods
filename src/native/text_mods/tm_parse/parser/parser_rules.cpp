@@ -47,6 +47,33 @@ ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser* parser) {
     return rule;
 }
 
+ArrayAccessRule ArrayAccessRule::create(TextModParser* parser) {
+    ArrayAccessRule rule{};
+
+    using TokenKind::LeftBracket;
+    using TokenKind::LeftParen;
+    using TokenKind::RightBracket;
+    using TokenKind::RightParen;
+
+    rule.StartTokenIndex = parser->top();
+    parser->expect(TokenKind::Number);
+    rule.NumberTokenIndex = parser->top();
+
+    TokenKind opening_token = parser->m_Tokens[rule.StartTokenIndex];
+    TokenKind closing_token = TokenKind::TokenKind_Count;
+
+    TXT_MOD_ASSERT(closing_token == LeftParen || closing_token == LeftBracket, "Logic error dumbass");
+
+    if (opening_token == LeftParen) {
+        closing_token = RightParen;
+    } else if (opening_token == LeftBracket) {
+        closing_token = RightBracket;
+    }
+
+    parser->expect(closing_token);
+    rule.EndTokenIndex = parser->top();
+}
+
 str SetCommandRule::as_str(TextModParser* parser) const noexcept {
     str_view full_text = parser->m_Lexer->text();
 
