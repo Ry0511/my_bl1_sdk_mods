@@ -88,7 +88,6 @@ class TokenRingBuffer {
     /**
      * Pops the item from the front of the buffer and returns it.
      * @return The item at the fron or token_eof if we are empty.
-     * @note Peek(-1) == token_invalid, after this operation.
      */
     Token pop() noexcept(true) {
         if (is_empty()) {
@@ -101,7 +100,13 @@ class TokenRingBuffer {
         return token;
     }
 
-    const Token& peek(IntegralType offset = 0) noexcept(true) {
+    /**
+     * Peeks into the buffer by the provided offset wrapping as needed.
+     * @param offset The offset to Head
+     * @return If empty token_invalid, else the item at said position
+     * @note The condition `peek(0) == pop()` holds
+     */
+    Token peek(IntegralType offset = 0) noexcept(true) {
         if (is_empty()) {
             return token_invalid;
         }

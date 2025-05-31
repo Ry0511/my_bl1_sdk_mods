@@ -90,6 +90,8 @@ TEST_CASE("Ring Buffer Functionality") {
             ++index;
         }
 
+        REQUIRE(buffer.peek(0) == buffer.pop());
+
     }
 }
 
