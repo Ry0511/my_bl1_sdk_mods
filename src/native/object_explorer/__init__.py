@@ -1,9 +1,11 @@
-#
-# This does not need to be a PythonSDK mod lol; Can and might move it into ./Plugins
-#
-
 from mods_base import build_mod
-from .object_explorer import initialise, terminate
+from .object_explorer import initialise, terminate, get_addr
+
+__all__ = [
+    'initialise',
+    'terminate',
+    'get_addr',
+]
 
 build_mod(
     on_enable=lambda: initialise(),

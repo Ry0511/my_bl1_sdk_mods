@@ -10,7 +10,6 @@ from text_mods import export_text, import_text
 
 # Dump object to object definition string
 pc = get_pc()
-pc.ObjectFlags |= 0x4000
 obj_def: str = export_text(pc)
 print(f"=== {pc} ===\n{obj_def}\n=== END ===\n")
 

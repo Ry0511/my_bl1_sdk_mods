@@ -7,6 +7,7 @@
 #define BL1_SDK_MODS_OBJECT_EXPLORER_H
 
 #include "pyunrealsdk/pch.h"
+#include "unrealsdk/pch.h"
 #include "pyunrealsdk/pyunrealsdk.h"
 #include "unrealsdk/unrealsdk.h"
 
