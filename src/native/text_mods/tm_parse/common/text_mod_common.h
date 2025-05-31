@@ -41,6 +41,8 @@ namespace tm_parse {
 
 using std::size_t;
 
+constexpr size_t invalid_index_v = std::numeric_limits<size_t>::max();
+
 // clang-format off
 
 #ifdef TEXT_MODS_USE_WCHAR

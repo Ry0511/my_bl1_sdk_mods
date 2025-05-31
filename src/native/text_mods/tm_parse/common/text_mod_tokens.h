@@ -187,6 +187,7 @@ struct TokenTextView {
     constexpr bool operator!=(const TokenTextView& other) const noexcept = default;
 
     constexpr bool is_valid() const noexcept { return *this == TokenTextView{}; };
+    [[nodiscard]] size_t end() const noexcept { return Start + Length; };
 };
 
 struct Token {
@@ -214,6 +215,19 @@ struct Token {
     str_view kind_as_str_view() const noexcept { return TokenProxy{Kind}.as_str_view();       };
     str      kind_as_str()      const noexcept { return TokenProxy{Kind}.as_str();            };
     // clang-format on
+
+    str to_string() const noexcept {
+        switch (Kind) {
+            case TokenKind::BlankLine:
+                return TXT("_BLANK_");
+            case TokenKind::EndOfInput:
+                return TXT("_EOF_");
+            case TokenKind::TokenKind_Count:
+                return TXT("_INVALID_");
+            default:
+                return as_str();
+        }
+    }
 
     /**
      * @return True if this token is an Identifier token or a keyword token

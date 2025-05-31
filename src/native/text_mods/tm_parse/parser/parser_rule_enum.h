@@ -82,7 +82,7 @@ TODO: Fix Identifier lexing to match: [a-zA-Z_][a-zA-Z_\d]*
 == Primary Nodes ===============================================================
 
 - #[[ParserDoc_SetCommand]]
-  - Kw_Set ObjectIdentifier Identifier CompositeExpr
+  - Kw_Set ObjectIdentifier PropertyAccess CompositeExpr
 
 - #[[ParserDoc_ObjectDefinition]]
   - Kw_Begin Kw_Object

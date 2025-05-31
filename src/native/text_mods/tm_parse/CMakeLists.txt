@@ -36,6 +36,7 @@ add_executable(
         EXCLUDE_FROM_ALL
         standalone/main.cpp
         standalone/lexer_test.cpp
+        standalone/parser_test.cpp
 )
 target_compile_features(bl1_text_mods_exe PRIVATE cxx_std_20)
 target_link_libraries(bl1_text_mods_exe PRIVATE tm_parse_solo)

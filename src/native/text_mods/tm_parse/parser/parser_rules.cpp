@@ -17,18 +17,22 @@ namespace tm_parse::rules {
 // Additionally, note that this is a manual recursive descent parser.
 //
 
+////////////////////////////////////////////////////////////////////////////////
+// | IDENTIFIERS |
+////////////////////////////////////////////////////////////////////////////////
+
 DotIdentifierRule DotIdentifierRule::create(TextModParser* parser) {
     TXT_MOD_ASSERT(parser->peek() == TokenKind::Identifier, "parser error");
     DotIdentifierRule rule{};
 
-    rule.StartIndex = parser->top();
+    rule.m_StartIndex = parser->top();
 
     // While we have a dot we must have an identifier
     while (parser->maybe_next(TokenKind::Dot)) {
         parser->expect(TokenKind::Identifier);
     }
 
-    rule.EndIndex = parser->top();
+    rule.m_EndIndex = parser->top();
 
     return rule;
 }
@@ -36,15 +40,19 @@ DotIdentifierRule DotIdentifierRule::create(TextModParser* parser) {
 ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser* parser) {
     ObjectIdentifierRule rule{};
 
-    rule.PrimaryIdentifier = DotIdentifierRule::create(parser);
+    rule.m_PrimaryIdentifier = DotIdentifierRule::create(parser);
 
     // Contains a child identifier
     if (parser->maybe_next(TokenKind::Colon)) {
         parser->expect(TokenKind::Identifier);  // Required after a colon
-        rule.SecondaryIdentifier = DotIdentifierRule::create(parser);
+        rule.m_SecondaryIdentifier = DotIdentifierRule::create(parser);
     }
 
     return rule;
+}
+
+DotIdentifierRule::operator bool() const noexcept(true) {
+    return m_StartIndex != invalid_index_v && m_EndIndex != invalid_index_v;
 }
 
 ArrayAccessRule ArrayAccessRule::create(TextModParser* parser) {
@@ -55,44 +63,65 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser* parser) {
     using TokenKind::RightBracket;
     using TokenKind::RightParen;
 
-    rule.StartTokenIndex = parser->top();
+    rule.m_OpenTokenIndex = parser->top();
+    TokenKind opening_token = parser->m_Tokens[rule.m_OpenTokenIndex];
+    TXT_MOD_ASSERT(opening_token == LeftParen || opening_token == LeftBracket, "parser error");
+
     parser->expect(TokenKind::Number);
-    rule.NumberTokenIndex = parser->top();
-
-    TokenKind opening_token = parser->m_Tokens[rule.StartTokenIndex];
-    TokenKind closing_token = TokenKind::TokenKind_Count;
-
-    TXT_MOD_ASSERT(closing_token == LeftParen || closing_token == LeftBracket, "Logic error dumbass");
 
     if (opening_token == LeftParen) {
-        closing_token = RightParen;
+        parser->expect(RightParen);
     } else if (opening_token == LeftBracket) {
-        closing_token = RightBracket;
+        parser->expect(RightBracket);
     }
 
-    parser->expect(closing_token);
-    rule.EndTokenIndex = parser->top();
+    TXT_MOD_ASSERT(
+        parser->top() == rule.close_token_index(),
+        "Expecting {} == {}",
+        parser->top(),
+        rule.close_token_index()
+    );
+
+    return rule;
 }
 
-str SetCommandRule::as_str(TextModParser* parser) const noexcept {
-    str_view full_text = parser->m_Lexer->text();
+PropertyAccessRule PropertyAccessRule::create(TextModParser* parser) {
+    PropertyAccessRule rule{};
 
-    size_t start = parser->m_Regions[SetCommandIndex].Start;
-    auto end = parser->m_Regions[PropertyIndex];
+    TXT_MOD_ASSERT(parser->peek() == TokenKind::Identifier, "parser error");
+    rule.IdentifierTokenIndex = parser->top();
 
-    str_view cmd_text = full_text.substr(start, (end.Start + end.Length) - start);
-    return str{cmd_text};
+    parser->m_Lexer->save();
+    Token token{};
+    if (parser->m_Lexer->read_token(&token)) {
+        if (token == TokenKind::LeftBracket || token == TokenKind::LeftParen) {
+            parser->push_token(token);
+            rule.ArrayAccess = ArrayAccessRule::create(parser);
+        } else {
+            parser->m_Lexer->restore();
+        }
+    }
+
+    return rule;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// | SET COMMAND |
+////////////////////////////////////////////////////////////////////////////////
 
 SetCommandRule SetCommandRule::create(TextModParser* parser) {
+    TXT_MOD_ASSERT(parser->peek() == TokenKind::Kw_Set, "parser error");
     SetCommandRule rule{};
+    rule.m_SetCommandIndex = parser->top();
 
-    rule.SetCommandIndex = parser->top();
     parser->expect(TokenKind::Identifier);
-    rule.ObjectIdentifier = ObjectIdentifierRule::create(parser);
+    rule.m_ObjectIdentifier = ObjectIdentifierRule::create(parser);
+
     parser->expect(TokenKind::Identifier);
-    rule.PropertyIndex = parser->top();
-    rule.CompositeExpr = CompositeExprRule{};  // Default
+    rule.m_PropertyAccess = PropertyAccessRule::create(parser);
+
+    // Value Expression
+    rule.m_CompositeExpr = CompositeExprRule{};
 
     return rule;
 }

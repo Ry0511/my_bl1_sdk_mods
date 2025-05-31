@@ -34,7 +34,7 @@ void TextModParser::parse_internal(const Token& token) {
     if (token == TokenKind::Kw_Set) {
         push_token(token);
         SetCommandRule rule = SetCommandRule::create(this);
-        TXT_LOG("[SET_COMMAND] ~ {}", rule.as_str(this));
+        TXT_LOG("[SET_COMMAND] ~ {}", str{rule.to_string(*this)});
     } else {
         TXT_LOG("Unknown token: '{}'", token.token_as_str());
     }
@@ -60,6 +60,50 @@ void TextModParser::parse_program() {
         // Store token
         parse_internal(token);
     }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | INDIVIDUAL PARSER RULES |
+////////////////////////////////////////////////////////////////////////////////
+
+DotIdentifierRule TextModParser::parse_dot_identifier() {
+    expect(TokenKind::Identifier);
+    return DotIdentifierRule::create(this);
+}
+
+ObjectIdentifierRule TextModParser::parse_object_identifier() {
+    expect(TokenKind::Identifier);
+    return ObjectIdentifierRule::create(this);
+}
+
+ArrayAccessRule TextModParser::parse_array_access() {
+
+    using TokenKind::LeftBracket;
+    using TokenKind::LeftParen;
+
+    m_Lexer->save();
+    Token token{};
+    if (!m_Lexer->read_token(&token) || token != LeftBracket || token != LeftParen) {
+        m_Lexer->restore();
+        throw std::runtime_error("Invalid array access");
+    }
+
+    push_token(token);
+    return ArrayAccessRule::create(this);
+}
+
+PropertyAccessRule TextModParser::parse_property_access() {
+    expect(TokenKind::Identifier);
+    return PropertyAccessRule::create(this);
+}
+
+CompositeExprRule TextModParser::parse_composite_expr() {
+    return CompositeExprRule{};
+}
+
+SetCommandRule TextModParser::parse_set_command() {
+    expect(TokenKind::Kw_Set);
+    return SetCommandRule::create(this);
 }
 
 }  // namespace tm_parse

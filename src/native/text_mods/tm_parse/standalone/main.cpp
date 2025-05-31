@@ -51,13 +51,12 @@ int main() {
     }
 
     // Will pickup tests in linked source files
-    TXT_LOG("== TESTS =======================================================================\n");
     int result = Catch::Session().run();
     TXT_LOG("Lexer test main exited with: {}", result);
 
 
     {
-        TextModLexer lexer{TXT("set foo.baz:bar my_cool_property")};
+        TextModLexer lexer{TXT("set foo.baz:bar my_cool_property[0]")};
         TextModParser parser{&lexer};
         parser.parse_program();
     }
