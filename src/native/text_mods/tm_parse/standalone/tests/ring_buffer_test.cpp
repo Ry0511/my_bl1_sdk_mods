@@ -7,7 +7,7 @@
 #include "pch.h"
 #include "parser/token_ring_buffer.h"
 
-#include "catch.hpp"
+#include "tests/catch.hpp"
 
 namespace tm_parse_tests {
 

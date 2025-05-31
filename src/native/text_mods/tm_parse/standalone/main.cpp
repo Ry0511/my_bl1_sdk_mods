@@ -7,7 +7,7 @@
 #include "pch.h"
 
 #define CATCH_CONFIG_RUNNER
-#include "standalone/catch.hpp"
+#include "tests/catch.hpp"
 
 #include "common/text_mod_common.h"
 #include "lexer/text_mod_lexer.h"

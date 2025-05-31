@@ -4,11 +4,13 @@
 // Author     : -Ry
 //
 
+#if 0
+
 #include "pch.h"
 
+#include "tests/catch.hpp"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
-#include "standalone/catch.hpp"
 
 namespace tm_parse_tests {
 using namespace tm_parse;
@@ -55,3 +57,5 @@ TEST_CASE("[PARSER_RULES] ~ DotIdentifier") {
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
 
 }  // namespace tm_parse_tests
+
+#endif

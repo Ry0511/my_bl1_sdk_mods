@@ -31,13 +31,17 @@ target_compile_definitions(tm_parse_solo INTERFACE -DTEXT_MODS_STANDALONE -DTEXT
 # | STANDALONE BUILD TARGET |
 ################################################################################
 
-add_executable(
-        bl1_text_mods_exe
-        EXCLUDE_FROM_ALL
-        standalone/main.cpp
-        standalone/lexer_test.cpp
-        #standalone/parser_test.cpp
-        standalone/ring_buffer_test.cpp
+add_executable(bl1_text_mods_exe EXCLUDE_FROM_ALL)
+
+file(
+        GLOB_RECURSE
+        TM_PARSE_STANDALONE_SRC
+        "${CMAKE_CURRENT_SOURCE_DIR}/standalone/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/standalone/*.h"
 )
+target_sources(bl1_text_mods_exe PRIVATE ${TM_PARSE_STANDALONE_SRC})
+
 target_compile_features(bl1_text_mods_exe PRIVATE cxx_std_20)
 target_link_libraries(bl1_text_mods_exe PRIVATE tm_parse_solo)
+target_include_directories(bl1_text_mods_exe PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/standalone")
+

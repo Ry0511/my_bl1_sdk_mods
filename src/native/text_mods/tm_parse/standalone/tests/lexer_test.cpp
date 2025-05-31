@@ -6,9 +6,9 @@
 
 #include "pch.h"
 
+#include "tests/catch.hpp"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
-#include "standalone/catch.hpp"
 
 namespace tm_parse_tests {
 
