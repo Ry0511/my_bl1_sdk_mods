@@ -37,8 +37,7 @@ int main() {
     str content{It{stream}, It{}};
 
     TextModLexer lexer{content};
-    TextModParser parser{&lexer};
-    parser.parse_string();
+    // TextModParser parser{&lexer};
 
     TXT_LOG("== SYMBOLS =====================================================================");
     for (TokenProxy proxy : SymbolTokenIterator{}) {
@@ -57,8 +56,7 @@ int main() {
 
     {
         TextModLexer lexer{TXT("set foo.baz:bar my_cool_property[0]")};
-        TextModParser parser{&lexer};
-        parser.parse_program();
+        // TextModParser parser{&lexer};
     }
 
     return 0;

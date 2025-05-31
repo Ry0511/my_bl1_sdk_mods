@@ -195,8 +195,13 @@ struct Token {
     str_view SourceStr;
     TokenTextView TextRegion;
 
-    explicit constexpr Token() noexcept : Kind(TokenKind::EndOfInput) {};
+    constexpr Token() noexcept : Kind(TokenKind::EndOfInput) {};
     explicit constexpr Token(TokenKind kind, TokenTextView text) noexcept : Kind(kind), TextRegion(text) {};
+
+    constexpr Token(const Token&) = default;
+    constexpr Token& operator=(const Token&) = default;
+    constexpr Token(Token&&) = default;
+    constexpr Token& operator=(Token&&) = default;
 
     [[nodiscard]] std::string token_as_str() const noexcept {
         str token_kind_name = TokenProxy{Kind};
@@ -259,5 +264,6 @@ struct Token {
 };
 
 static constexpr Token token_eof{TokenKind::EndOfInput, TokenTextView{}};
+static constexpr Token token_invalid{TokenKind::TokenKind_Count, TokenTextView{}};
 
 }  // namespace tm_parse
