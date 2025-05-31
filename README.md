@@ -9,7 +9,7 @@ at [/src/upk/](./src/upk)
 
 | Mod                                                              | Description                                                                 |
 |------------------------------------------------------------------|-----------------------------------------------------------------------------|
-| [rys_qol](./packages/rys_qol-2.0.zip)                            | Variety of QoL features                                                     |
+| [rys_qol](./packaged/rys_qol-2.0.zip)                            | Variety of QoL features                                                     |
 | [rys_auto_save](./packaged/rys_auto_save-1.0.zip)                | Configurable auto-saving                                                    |
 | [skill_tree_tweaks](./packaged/skill_tree_tweaks-1.0.zip)        | Skill tree ui edits for indicating skills which are affected by a class mod |
 | [startup movie skipper](./packaged/startup_movie_skiper-1.0.zip) | Skips the startup movies taking the user directly to the main menu          |
