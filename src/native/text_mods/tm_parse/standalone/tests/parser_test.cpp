@@ -4,52 +4,55 @@
 // Author     : -Ry
 //
 
-#if 0
-
 #include "pch.h"
 
-#include "tests/catch.hpp"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
+#include "tests/catch.hpp"
 
 namespace tm_parse_tests {
 using namespace tm_parse;
 
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
-TEST_CASE("[PARSER_RULES] ~ DotIdentifier") {
-
-    { // Simple valid strings
-        const str test_data[]{
-            TXT("Foo"),
-            TXT("Foo.Baz"),
-            TXT("Foo.Baz.Bar")
+TEST_CASE("Parser Rules") {
+    SECTION("Dot Identifier") {
+        const txt_char* test_cases[]{
+            TXT("foo"),
+            TXT("foo.baz"),
+            TXT("foo.baz.bar"),
+            TXT("foo_bar._baz_foo"),
         };
 
-        for (const str& test_str : test_data) {
-            TextModLexer lexer{test_str};
+        for (const txt_char* test_case : test_cases) {
+            TextModLexer lexer{test_case};
             TextModParser parser{&lexer};
 
-            DotIdentifierRule res = parser.parse_dot_identifier();
-            REQUIRE(res.operator bool());
-            REQUIRE(res.to_string(parser) == test_str);
+            DotIdentifierRule rule = DotIdentifierRule::create(parser);
+            REQUIRE((rule && test_case == rule.to_string(parser)));
         }
     }
 
-    { // Partially invalid data
-        const str test_data[]{
-            TXT(""),
-            TXT("0"),
-            TXT("-"),
-            TXT("Foo.")
-            TXT("Foo.Baz.0")
-            TXT("_A0._B1.0")
+    SECTION("Object Identifier") {
+        str_view test_cases[]{
+            TXT("foo"),
+            TXT("foo.baz"),
+            TXT("foo.baz.bar"),
+            TXT("foo.baz:bar"),
+            TXT("foo.baz:bar.baz"),
+            TXT("foo.baz:bar.baz.foo"),
         };
 
-        for (const str& test_str : test_data) {
-            TextModLexer lexer{test_str};
+        for (str_view test_case : test_cases) {
+            TextModLexer lexer{test_case};
             TextModParser parser{&lexer};
-            REQUIRE_THROWS_AS(parser.parse_dot_identifier(), std::runtime_error);
+
+            ObjectIdentifierRule rule = ObjectIdentifierRule::create(parser);
+            REQUIRE((rule && rule.primary_identifier() && test_case == rule.to_string(parser)));
+
+            if (test_case.find(TXT(':')) != str_view::npos) {
+                REQUIRE(rule.child_identifier());
+            }
         }
     }
 }
@@ -57,5 +60,3 @@ TEST_CASE("[PARSER_RULES] ~ DotIdentifier") {
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
 
 }  // namespace tm_parse_tests
-
-#endif

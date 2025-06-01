@@ -172,13 +172,11 @@ constexpr size_t max_token_len = largest_token_len();
 // | TOKEN STRUCTURE |
 ////////////////////////////////////////////////////////////////////////////////
 
-constexpr auto invalid_region = std::numeric_limits<size_t>::max();
-
 struct TokenTextView {
     size_t Start;
     size_t Length;
 
-    constexpr TokenTextView() noexcept : Start(invalid_region), Length(invalid_region) {};
+    constexpr TokenTextView() noexcept : Start(invalid_index_v), Length(invalid_index_v) {};
     constexpr TokenTextView(size_t start, size_t len) noexcept : Start(start), Length(len) {};
 
     str_view view_from(str_view in_vw) const noexcept { return in_vw.substr(Start, Length); }
@@ -186,8 +184,27 @@ struct TokenTextView {
     constexpr bool operator==(const TokenTextView& other) const noexcept = default;
     constexpr bool operator!=(const TokenTextView& other) const noexcept = default;
 
-    constexpr bool is_valid() const noexcept { return *this == TokenTextView{}; };
+    constexpr bool is_valid() const noexcept { return Start != invalid_index_v && Length != invalid_index_v; };
     [[nodiscard]] size_t end() const noexcept { return Start + Length; };
+
+    /**
+     * Extends this view to encompass the provided and this current view.
+     * @param other The other view to encompass.
+     * @throws std::runtime_error if `this` or `other` is `!is_valid()`
+     */
+    void extend(const TokenTextView& other) {
+        if (!is_valid() || !other.is_valid()) {
+            throw std::runtime_error("Cannot extend invalid token view");
+        }
+
+        // - Extend the view to encompass both views
+        // A = (5,  3)
+        // B = (9,  6)
+        // C = (5, 10); max(5 + 3, 9 + 6) - 5
+
+        Start = std::min(Start, other.Start);
+        Length = std::max(end(), other.end()) - Start;
+    }
 };
 
 struct Token {
@@ -197,6 +214,7 @@ struct Token {
 
     constexpr Token() noexcept : Kind(TokenKind::EndOfInput) {};
     explicit constexpr Token(TokenKind kind, TokenTextView text) noexcept : Kind(kind), TextRegion(text) {};
+    constexpr ~Token() noexcept = default;
 
     constexpr Token(const Token&) = default;
     constexpr Token& operator=(const Token&) = default;
@@ -252,6 +270,11 @@ struct Token {
 
     [[nodiscard]] bool is_any(std::span<TokenKind> kinds) const noexcept {
         return std::ranges::find(kinds, Kind) != kinds.end();
+    }
+
+    template<TokenKind... Kinds>
+    [[nodiscard]] bool is_any() const noexcept {
+        return (... || (Kind == Kinds));
     }
 
     // Token Kind Compare

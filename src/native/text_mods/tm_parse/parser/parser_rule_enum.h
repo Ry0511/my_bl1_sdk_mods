@@ -23,10 +23,6 @@ I have tried to avoid reusing names from the Lexer but somethings
  really don't change much from the lexer side except compositing a
  couple tokens.
 
-TODO: Fix Identifier lexing to match: [a-zA-Z_][a-zA-Z_\d]*
-      var(AdvancedSettings) bool _bUseAdvancedSettings;
-      careful of: __CanUnpause__Delegate=(null).None
-
 ================================================================================
 == Identifiers =================================================================
 
