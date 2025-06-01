@@ -85,6 +85,8 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
         parser.require_next<TokenKind::RightBracket>();
     }
 
+    rule.m_TextRegion.extend(parser.peek().TextRegion);
+
     return rule;
 }
 

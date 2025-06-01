@@ -16,6 +16,7 @@ using namespace tm_parse;
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
 TEST_CASE("Parser Rules") {
+
     SECTION("Dot Identifier") {
         const txt_char* test_cases[]{
             TXT("foo"),
@@ -55,6 +56,31 @@ TEST_CASE("Parser Rules") {
             }
         }
     }
+
+    SECTION("Property Access") {
+        str_view test_cases[]{
+            TXT("foo"),
+            TXT("baz_foo"),
+            TXT("foo(1)"),
+            TXT("foo(0)"),
+            TXT("foo[1]"),
+            TXT("foo[0]"),
+            TXT("foo[0]"),
+        };
+
+        for (str_view test_case : test_cases) {
+            TextModLexer lexer{test_case};
+            TextModParser parser{&lexer};
+
+            PropertyAccessRule rule = PropertyAccessRule::create(parser);
+            REQUIRE((rule && test_case == rule.to_string(parser)));
+
+            if (test_case.find(TXT('(')) != str_view::npos || test_case.find(TXT('[')) != str_view::npos) {
+                REQUIRE(rule.array_access());
+            }
+        }
+    }
+
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
