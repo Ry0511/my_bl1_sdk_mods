@@ -18,19 +18,35 @@ using namespace tm_parse;
 TEST_CASE("Parser Rules") {
 
     SECTION("Dot Identifier") {
-        const txt_char* test_cases[]{
-            TXT("foo"),
-            TXT("foo.baz"),
-            TXT("foo.baz.bar"),
-            TXT("foo_bar._baz_foo"),
-        };
+        {
+            str_view test_cases[]{
+                TXT("foo"),
+                TXT("foo.baz"),
+                TXT("foo.baz.bar"),
+                TXT("foo_bar._baz_foo"),
+            };
 
-        for (const txt_char* test_case : test_cases) {
-            TextModLexer lexer{test_case};
-            TextModParser parser{&lexer};
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
 
-            DotIdentifierRule rule = DotIdentifierRule::create(parser);
-            REQUIRE((rule && test_case == rule.to_string(parser)));
+                DotIdentifierRule rule = DotIdentifierRule::create(parser);
+                REQUIRE((rule && test_case == rule.to_string(parser)));
+            }
+        }
+
+        {
+            const str_view test_cases[]{
+                TXT("foo."),
+                TXT("foo.baz."),
+                TXT("foo.baz.bar."),
+            };
+
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                REQUIRE_THROWS_AS(DotIdentifierRule::create(parser), std::runtime_error);
+            }
         }
     }
 
@@ -57,6 +73,27 @@ TEST_CASE("Parser Rules") {
         }
     }
 
+    SECTION("Array Access") {
+        str_view test_cases[]{
+            TXT("[0]"),
+            TXT("[-10]"),
+            TXT("[99999999999999999999]"),
+            TXT("[-99999999999999999999]"),
+            TXT("(0)"),
+            TXT("(-10)"),
+            TXT("(99999999999999999999)"),
+            TXT("(-99999999999999999999)"),
+        };
+
+        for (str_view test_case : test_cases) {
+            TextModLexer lexer{test_case};
+            TextModParser parser{&lexer};
+
+            auto rule = ArrayAccessRule::create(parser);
+            REQUIRE((rule && test_case == rule.to_string(parser)));
+        }
+    }
+
     SECTION("Property Access") {
         str_view test_cases[]{
             TXT("foo"),
@@ -80,7 +117,6 @@ TEST_CASE("Parser Rules") {
             }
         }
     }
-
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)

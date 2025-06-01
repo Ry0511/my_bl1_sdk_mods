@@ -57,7 +57,7 @@ constexpr size_t    token_count        = static_cast<size_t>(TokenKind::TokenKin
 
 static_assert(begin_kw_token == 0, "Starting keyword should be Zero");
 
-constexpr std::array<str_view, token_count> token_kind_names{
+constexpr std::array<str_view, token_count + 1> token_kind_names{
     TXT("Set"),               // Set
     TXT("None"),              // None
     TXT("Level"),             // level
@@ -88,6 +88,7 @@ constexpr std::array<str_view, token_count> token_kind_names{
     TXT("MultiLineComment"),  // /* ... */
     TXT("BlankLine"),         // \n+
     TXT("EndOfInput"),        // EOF
+    TXT("_INVALID_"),         // Invalid Token
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -272,7 +273,7 @@ struct Token {
         return std::ranges::find(kinds, Kind) != kinds.end();
     }
 
-    template<TokenKind... Kinds>
+    template <TokenKind... Kinds>
     [[nodiscard]] bool is_any() const noexcept {
         return (... || (Kind == Kinds));
     }
