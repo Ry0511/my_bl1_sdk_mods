@@ -18,12 +18,12 @@ bool TextModLexer::read_number() noexcept(false) {
     TXT_MOD_ASSERT(!this->eof(), "Unexpected end of input");
 
     // Not a digit and not a minus
-    if ((txt::isdigit(peek()) == 0) && peek() != lit::hyphen) {
+    if (!txt::isdigit(peek()) && peek() != lit::hyphen) {
         return false;
     }
 
     // If current char is a hyphen then the next char must be a digit
-    if (peek() == lit::hyphen && (eof(1) || (txt::isdigit(peek(1)) == 0))) {
+    if (peek() == lit::hyphen && (eof(1) || !txt::isdigit(peek(1)))) {
         throw_error_with_context("Expected digit after -");
     }
 
@@ -38,7 +38,7 @@ bool TextModLexer::read_number() noexcept(false) {
     skip_digits();
 
     if (!eof() && peek() == lit::dot) {
-        if (eof(1) || (txt::isdigit(peek(1)) == 0)) {
+        if (eof(1) || !txt::isdigit(peek(1))) {
             throw_error_with_context("Expected digit after .");
         }
         m_Position++;
@@ -201,7 +201,6 @@ bool TextModLexer::read_name_literal() noexcept(false) {
 }
 
 bool TextModLexer::read_token(Token* token) {
-
     // Always update this
     token->SourceStr = m_Text;
 
