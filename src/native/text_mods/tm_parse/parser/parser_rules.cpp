@@ -114,7 +114,30 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
 }
 
 ParenExprRule ParenExprRule::create(TextModParser& parser) {
+    TXT_MOD_ASSERT(parser.peek() == TokenKind::LeftParen, "logic error");
     ParenExprRule rule{};
+    rule.m_StartTokenIndex = parser.index();
+    rule.m_TextRegion = parser.peek().TextRegion;
+
+    int paren_count = 1;
+    while (paren_count > 0) {
+        parser.advance();
+        const Token& token = parser.peek();
+        if (token == TokenKind::LeftParen) {
+            paren_count++;
+        } else if (token == TokenKind::RightParen) {
+            paren_count--;
+        }
+    }
+
+    if (paren_count != 0) {
+        throw std::runtime_error("Unbalanced parenthesis");
+    }
+
+    rule.m_TextRegion.extend(parser.peek().TextRegion);
+    rule.m_EndTokenIndex = parser.index();
+
+    TXT_MOD_ASSERT(parser.peek() == TokenKind::RightParen, "logic error");
     return rule;
 }
 
