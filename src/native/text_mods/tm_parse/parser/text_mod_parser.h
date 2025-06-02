@@ -17,11 +17,6 @@ using namespace rules;
 class TextModParser {
    private:
     friend ParserBaseRule;
-    friend SetCommandRule;
-    friend ObjectIdentifierRule;
-    friend DotIdentifierRule;
-    friend ArrayAccessRule;
-    friend PropertyAccessRule;
 
    private:
     TextModLexer* m_Lexer;
@@ -60,7 +55,7 @@ class TextModParser {
     // | INTERNAL HELPERS |
     ////////////////////////////////////////////////////////////////////////////////
 
-   private:
+   public:
     void fetch_tokens() {
         if (m_EndOfInputReached) {
             return;
@@ -98,7 +93,7 @@ class TextModParser {
      * Requires that the next token is any of the provided throwing if none match.
      *
      * @tparam Kinds The token kinds to expect.
-     * @tparam CoalesceIdentifiers If true Identifier kind will match against Keyword tokens.
+     * @tparam CoalesceIdentifiers If true, TokenKind::Identifier will match keyword tokens.
      * @throws std::runtime_error If the current token is none of the provided.
      * @note This will advance the stream forward if no exception is thrown.
      */

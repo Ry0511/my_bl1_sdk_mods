@@ -107,7 +107,38 @@ enum class ParserRuleKind : parser_rule_int {
     ObjectDefinition  , // Primary Node
     Unknown           , // Default/entry for parser
 };
-
 // clang-format on
 
+////////////////////////////////////////////////////////////////////////////////
+// | GENERIC RULE SETUP |
+////////////////////////////////////////////////////////////////////////////////
+
+class TextModLexer;
+class TextModParser;
+
+namespace rules {
+class ParserBaseRule {
+   protected:
+    TokenTextView m_TextRegion;
+
+   public:
+    const TokenTextView& text_region() const noexcept(true) { return m_TextRegion; }
+    operator bool() const noexcept(true) { return m_TextRegion.is_valid(); }
+
+   public:
+    str_view to_string(TextModParser& parser) const;
+};
+
+// Not sure if this is actually a good idea or even useful
+class ParserPrimaryRule : public ParserBaseRule {
+   protected:
+    TextModParser* m_Parser{nullptr};
+};
+
+#define RULE_PUBLIC_API(type)                   \
+    constexpr type() noexcept(true) = default;  \
+    constexpr ~type() noexcept(true) = default; \
+    static type create(TextModParser&)
+
+}  // namespace rules
 }  // namespace tm_parse

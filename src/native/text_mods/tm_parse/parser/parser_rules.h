@@ -8,7 +8,8 @@
 
 #include "pch.h"
 
-#include "parser_rule_enum.h"
+#include "parser/parser_rule_enum.h"
+#include "parser/primitive_expr_rules.h"
 
 namespace tm_parse {
 class TextModLexer;
@@ -16,33 +17,6 @@ class TextModParser;
 };  // namespace tm_parse
 
 namespace tm_parse::rules {
-
-////////////////////////////////////////////////////////////////////////////////
-// | GENERIC RULE SETUP |
-////////////////////////////////////////////////////////////////////////////////
-
-class ParserBaseRule {
-   protected:
-    TokenTextView m_TextRegion;
-
-   public:
-    const TokenTextView& text_region() const noexcept(true) { return m_TextRegion; }
-    operator bool() const noexcept(true) { return m_TextRegion.is_valid(); }
-
-   public:
-    str_view to_string(TextModParser& parser) const;
-};
-
-// Not sure if this is actually a good idea or even useful
-class ParserPrimaryRule : public ParserBaseRule {
-   protected:
-    TextModParser* m_Parser{nullptr};
-};
-
-#define RULE_PUBLIC_API(type)                   \
-    constexpr type() noexcept(true) = default;  \
-    constexpr ~type() noexcept(true) = default; \
-    static type create(TextModParser&)
 
 ////////////////////////////////////////////////////////////////////////////////
 // | IDENTIFIERS |
@@ -104,31 +78,6 @@ class PropertyAccessRule : public ParserBaseRule {
 ////////////////////////////////////////////////////////////////////////////////
 // | EXPRESSIONS |
 ////////////////////////////////////////////////////////////////////////////////
-
-// - NOTE -
-// This is anything on the right hand side of a full expression i.e.,
-//   > set Foo.Baz:Bar Foo    Some Expression    | IdentifierChain
-//   > set Foo.Baz:Bar Foo    (X=1,Y=2,Z=3,W=4)  | ParenExpr
-//   > set Foo.Baz:Bar Foo    3.14               | Number
-//   > set Foo.Baz:Bar Foo(0) "String Literal"   | StringLiteral
-//   > set Foo.Baz:Bar Foo(0) Baz'Name.Literal'  | NameLiteral
-//
-// Some expressions are trivial types, that is, they are single decomposable values such as
-// identifier chains, numbers, name literals, string literals, empty expressions, etc.
-//
-
-// [[ParserDoc_PrimitiveExpr]]
-class PrimitiveExprRule : public ParserBaseRule {
-    // TODO: Handle this for primitive types
-   private:
-    size_t m_StartTokenIndex{invalid_index_v};  // Index to start token
-
-   public:
-    size_t start_token_index() const noexcept(true) { return m_StartTokenIndex; }
-
-   public:
-    RULE_PUBLIC_API(PrimitiveExprRule);
-};
 
 // [[ParserDoc_ParenExpr]]
 class ParenExprRule : public ParserBaseRule {

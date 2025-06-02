@@ -16,7 +16,6 @@ using namespace tm_parse;
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
 TEST_CASE("Parser Rules") {
-
     SECTION("Dot Identifier") {
         {
             str_view test_cases[]{
@@ -114,6 +113,52 @@ TEST_CASE("Parser Rules") {
 
             if (test_case.find(TXT('(')) != str_view::npos || test_case.find(TXT('[')) != str_view::npos) {
                 REQUIRE(rule.array_access());
+            }
+        }
+    }
+
+    SECTION("Primitive Expressions") {
+        SECTION("Number Expressions") {
+            {
+                constexpr float min = std::numeric_limits<float>::min();
+                constexpr float max = std::numeric_limits<float>::max();
+                auto min_str = std::to_wstring(min);
+                auto max_str = std::to_wstring(max);
+                std::tuple<str_view, float> test_cases[]{
+                    {     TXT("123"),      123.0F},
+                    { TXT("123.456"),  123.456F},
+                    {    TXT("-123"),     -123.0F},
+                    {TXT("-123.456"), -123.456F},
+                    {        min_str,      min},
+                    {        max_str,      max},
+                };
+
+                for (const auto& [test_case, val] : test_cases) {
+                    TextModLexer lexer{test_case};
+                    TextModParser parser{&lexer};
+                    NumberExprRule rule = NumberExprRule::create(parser);
+
+                    auto s = rule.to_string(parser);
+                    REQUIRE((rule && test_case == rule.to_string(parser)));
+
+                    constexpr double epsilon = std::numeric_limits<float>::epsilon();
+                    double actual = rule.get<float>();
+                    REQUIRE(std::fabs(actual - val) < epsilon);
+                }
+            }
+
+            {
+                // Only cases i think can fail which should never happen. Lexing phase catches most
+                // dysfunctional numbers. Lexer asserts: -?\d+(\.\d+)?
+                str_view test_cases[]{
+                    TXT("-99999999999999999999999999999999999"),
+                    TXT("99999999999999999999999999999999999"),
+                };
+                for (str_view test_case : test_cases) {
+                    TextModLexer lexer{test_case};
+                    TextModParser parser{&lexer};
+                    REQUIRE_THROWS_AS(NumberExprRule::create(parser), std::runtime_error);
+                }
             }
         }
     }

@@ -23,9 +23,16 @@ str_view ParserBaseRule::to_string(TextModParser& parser) const {
 
 // - NOTE -
 // All parser factory methods must assert the following
-//  1. The current token is the entry token for its rule, that is, peek() == EntryToken
+//  1. The current token is the entry token for its rule, that is, a call to peek() after the
 //  2. The current token after create should be the last token of the current rule
 //  3. The parser position on error is the same as when entering, that is, peek() == EntryToken
+//
+// Example (DotIdentifier):
+//
+//  Grammar Def : Identifier ( Dot Identifier )*
+//  Entry Token : Identifier
+//  Exit  Token : Identifier
+//
 //
 
 DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
@@ -103,11 +110,6 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
 
-    return rule;
-}
-
-PrimitiveExprRule PrimitiveExprRule::create(TextModParser& parser) {
-    PrimitiveExprRule rule{};
     return rule;
 }
 
