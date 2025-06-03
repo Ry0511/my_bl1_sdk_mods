@@ -39,16 +39,16 @@ DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
 
     DotIdentifierRule rule{};
-    rule.m_StartTokenIndex = parser.index();
     rule.m_TextRegion = parser.peek().TextRegion;
 
+    size_t end_token = invalid_index_v;
     while (parser.maybe_next<TokenKind::Dot>()) {      // Advances to Dot
         parser.require_next<TokenKind::Identifier>();  // Advances to Identifier
-        rule.m_EndTokenIndex = parser.index();
+        end_token = parser.index();
     }
 
     // We read more than a single identifier
-    if (rule.m_EndTokenIndex != invalid_index_v) {
+    if (end_token != invalid_index_v) {
         const Token& tok = parser.peek();
         rule.m_TextRegion.extend(tok.TextRegion);
     }

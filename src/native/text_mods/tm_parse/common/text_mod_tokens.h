@@ -28,6 +28,7 @@ enum class TokenKind : token_int {
     Kw_End           , // End
     Kw_True          , // True
     Kw_False         , // False
+    Kw_Invalid       , // Invalid; Used exclusively in (INVALID) enum checks
     Kw_Count         , // Count of keywords
     LeftParen        , // (
     RightParen       , // )
@@ -69,6 +70,7 @@ constexpr std::array<str_view, token_count + 1> token_kind_names{
     TXT("End"),               // End
     TXT("True"),              // True
     TXT("False"),             // False
+    TXT("Invalid"),           // Invalid; Used exclusively in (INVALID) enum checks
     TXT("Count"),             // Count of keywords
     TXT("LeftParen"),         // (
     TXT("RightParen"),        // )
@@ -272,6 +274,11 @@ struct Token {
     [[nodiscard]] bool is_any(std::span<TokenKind> kinds) const noexcept {
         return std::ranges::find(kinds, Kind) != kinds.end();
     }
+
+    /**
+     * @return True if this token is a blank line or the end of input.
+     */
+    [[nodiscard]] bool is_eolf() const noexcept { return is_any<TokenKind::EndOfInput, TokenKind::BlankLine>(); }
 
     template <TokenKind... Kinds>
     [[nodiscard]] bool is_any() const noexcept {

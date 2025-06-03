@@ -19,10 +19,12 @@ class TextModParser {
     friend ParserBaseRule;
 
    private:
+    ParserRuleKind m_PrimaryRuleKind;    // Current primary rule i.e., Set Command, Object Definition
+    ParserRuleKind m_SecondaryRuleKind;  // Current parent rule kind i.e., ParenExpr
+    bool m_EndOfInputReached;
     TextModLexer* m_Lexer;
     std::vector<Token> m_Tokens;
     size_t m_Index;
-    bool m_EndOfInputReached;
 
    public:
     explicit TextModParser(TextModLexer* lexer) noexcept;
@@ -54,6 +56,12 @@ class TextModParser {
     ////////////////////////////////////////////////////////////////////////////////
     // | INTERNAL HELPERS |
     ////////////////////////////////////////////////////////////////////////////////
+
+   public: // This is only for rules which need extra context information
+    void set_primary(ParserRuleKind kind) noexcept { m_PrimaryRuleKind = kind; }
+    void set_secondary(ParserRuleKind kind) noexcept { m_SecondaryRuleKind = kind; }
+    ParserRuleKind primary() const noexcept { return m_PrimaryRuleKind; }
+    ParserRuleKind secondary() const noexcept { return m_PrimaryRuleKind; }
 
    public:
     void fetch_tokens() {

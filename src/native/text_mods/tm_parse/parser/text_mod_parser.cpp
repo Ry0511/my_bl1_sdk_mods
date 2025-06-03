@@ -10,7 +10,12 @@ namespace tm_parse {
 
 constexpr size_t dflt_pool_size = 128;
 
-TextModParser::TextModParser(TextModLexer* lexer) noexcept : m_Lexer(lexer), m_Index(0), m_EndOfInputReached(false) {
+TextModParser::TextModParser(TextModLexer* lexer) noexcept
+    : m_PrimaryRuleKind(ParserRuleKind::Unknown),
+      m_SecondaryRuleKind(ParserRuleKind::Unknown),
+      m_EndOfInputReached(false),
+      m_Lexer(lexer),
+      m_Index(0) {
     m_Tokens.reserve(dflt_pool_size);
 }
 

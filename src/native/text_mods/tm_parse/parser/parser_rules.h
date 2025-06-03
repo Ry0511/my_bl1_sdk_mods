@@ -24,14 +24,7 @@ namespace tm_parse::rules {
 
 // [[ParserDoc_DotIdentifier]]
 class DotIdentifierRule : public ParserBaseRule {
-   private:
-    size_t m_StartTokenIndex{invalid_index_v};  // Index to start token
-    size_t m_EndTokenIndex{invalid_index_v};    // Index to end token
-
    public:
-    [[nodiscard]] size_t start_token_index() const { return m_StartTokenIndex; }
-    [[nodiscard]] size_t end_token_index() const { return m_EndTokenIndex; }
-
     RULE_PUBLIC_API(DotIdentifierRule);
 };
 
@@ -96,17 +89,24 @@ class ParenExprRule : public ParserBaseRule {
 // [[ParserDoc_CompositeExpr]]
 class CompositeExprRule : public ParserBaseRule {
    public:
-    using InvalidTag = std::monostate;
-    using ExprType = std::variant<InvalidTag, PrimitiveExprRule, ParenExprRule>;
+    using ExprType = std::variant<std::monostate, PrimitiveExprRule, ParenExprRule>;
 
    private:
-    ExprType m_Expr;  // The value expression
+    ExprType m_Expr;
 
    public:
-    template <class T>
-    bool has_value() const noexcept(true) {
+    template <typename T>
+        requires(std::is_same_v<T, PrimitiveExprRule> || std::is_same_v<T, ParenExprRule>)
+    bool has() const noexcept(true) {
         return std::holds_alternative<T>(m_Expr);
     }
+
+   public:
+    const PrimitiveExprRule& primitive_expr() const { return std::get<PrimitiveExprRule>(m_Expr); }
+    const ParenExprRule& paren_expr() const { return std::get<ParenExprRule>(m_Expr); }
+
+   public:
+    operator bool() const noexcept(true) { return !std::holds_alternative<std::monostate>(m_Expr); }
 
    public:
     RULE_PUBLIC_API(CompositeExprRule);
