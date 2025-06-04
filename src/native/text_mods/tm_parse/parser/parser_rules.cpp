@@ -78,10 +78,10 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT((token.is_any<TokenKind::LeftBracket, TokenKind::LeftParen>()), "logic error");
 
     ArrayAccessRule rule{};
-    rule.m_StartTokenIndex = parser.index();
     rule.m_TextRegion = parser.peek().TextRegion;
 
     parser.require_next<TokenKind::Number>();
+    rule.m_Index = NumberExprRule::create(parser);
 
     // ( Number )
     if (token == TokenKind::LeftParen) {

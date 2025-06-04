@@ -43,14 +43,10 @@ class ObjectIdentifierRule : public ParserBaseRule {
 
 // [[ParserDoc_ArrayAccess]]
 class ArrayAccessRule : public ParserBaseRule {
-    // Note: we only need the first index since
-    //  (S + 1 == Number) and (S + 2 == Closing Token)
    private:
-    size_t m_StartTokenIndex{invalid_index_v};  // Index to start token ( or [
+    NumberExprRule m_Index;
 
    public:
-    [[nodiscard]] size_t start_token_index() const { return m_StartTokenIndex; }
-
     RULE_PUBLIC_API(ArrayAccessRule);
 };
 
