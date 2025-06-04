@@ -70,7 +70,7 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
     auto secondary = parser.secondary();
 
     if (secondary == ParserRuleKind::PrimitiveExpr) {
-        while (!parser.peek().is_eolf()) {
+        while (!parser.peek(1).is_eolf()) {
             parser.advance();
         }
         rule.m_TextRegion.extend(parser.peek().TextRegion);

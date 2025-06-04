@@ -61,7 +61,7 @@ class TextModParser {
     void set_primary(ParserRuleKind kind) noexcept { m_PrimaryRuleKind = kind; }
     void set_secondary(ParserRuleKind kind) noexcept { m_SecondaryRuleKind = kind; }
     ParserRuleKind primary() const noexcept { return m_PrimaryRuleKind; }
-    ParserRuleKind secondary() const noexcept { return m_PrimaryRuleKind; }
+    ParserRuleKind secondary() const noexcept { return m_SecondaryRuleKind; }
 
    public:
     void fetch_tokens() {
@@ -94,7 +94,7 @@ class TextModParser {
         if ((m_Index + 1) >= m_Tokens.size()) {
             fetch_tokens();
         }
-        m_Index = std::clamp(m_Index + 1, size_t{0}, m_Tokens.size() - 1);
+        m_Index = std::clamp(m_Index + 1, size_t{0}, m_Tokens.size());
     }
 
     /**
@@ -166,7 +166,7 @@ class TextModParser {
 
         // EOF met so peek is out of bounds
         if (index >= m_Tokens.size()) {
-            return token_invalid;
+            return token_eof;
         }
 
         // Return the token

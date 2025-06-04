@@ -118,6 +118,7 @@ TEST_CASE("Parser Rules") {
     }
 
     SECTION("Primitive Expressions") {
+
         SECTION("Number Expressions") {
             {
                 constexpr float min = std::numeric_limits<float>::min();
@@ -159,6 +160,24 @@ TEST_CASE("Parser Rules") {
                     TextModParser parser{&lexer};
                     REQUIRE_THROWS_AS(NumberExprRule::create(parser), std::runtime_error);
                 }
+            }
+        }
+
+        SECTION("Literals") {
+            str_view test_cases[] {
+                TXT("foo baz bar"),
+                TXT(", baz, foo, bar"),
+                TXT("baz, foo, bar"),
+                TXT("baz"),
+            };
+
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                parser.set_secondary(ParserRuleKind::PrimitiveExpr);
+                LiteralExprRule rule = LiteralExprRule::create(parser);
+                auto test = rule.to_string(parser);
+                REQUIRE((rule && test_case == rule.to_string(parser)));
             }
         }
     }
