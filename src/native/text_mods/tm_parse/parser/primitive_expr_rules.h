@@ -73,9 +73,9 @@ class KeywordRule : public ParserBaseRule {
     TokenKind m_Kind{TokenKind::TokenKind_Count};
 
    public:
-    template <TokenKind Kind>
+    template <TokenKind... Kinds>
     bool is() const noexcept {
-        return m_Kind == Kind;
+        return (... || (m_Kind == Kinds));
     }
 
    public:
@@ -127,7 +127,7 @@ class PrimitiveExprRule {
                 if constexpr (std::is_base_of_v<U, ParserBaseRule>) {
                     return val.text_region();
                 } else {
-                    return TokenTextView{}; // Invalid range
+                    return TokenTextView{};  // Invalid range
                 }
             },
             m_InnerRule

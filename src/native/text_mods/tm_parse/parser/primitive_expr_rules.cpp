@@ -97,8 +97,8 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
             break;
 
         default: {
-            // Note: Can't match against identifier directly since due to overlap in keywords and
-            // identifiers i.e., Class is a keyword so Class'Foo' would fail when it shouldn't
+            // Note: Can't match against identifier directly due to overlap in keywords and identifiers
+            // i.e., Class is a keyword so Class'Foo' would fail when it shouldn't
             if (token.is_identifier() && par.peek(1) == T::NameLiteral) {
                 rule.m_InnerRule = NameExprRule::create(par);
             }
