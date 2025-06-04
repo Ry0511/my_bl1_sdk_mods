@@ -15,6 +15,10 @@ using namespace tm_parse;
 
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
+////////////////////////////////////////////////////////////////////////////////
+// | COMMON RULES |
+////////////////////////////////////////////////////////////////////////////////
+
 TEST_CASE("Parser Rules") {
     SECTION("Dot Identifier") {
         {
@@ -73,23 +77,36 @@ TEST_CASE("Parser Rules") {
     }
 
     SECTION("Array Access") {
-        str_view test_cases[]{
-            TXT("[0]"),
-            TXT("[-10]"),
-            TXT("[99999999999999999999]"),
-            TXT("[-99999999999999999999]"),
-            TXT("(0)"),
-            TXT("(-10)"),
-            TXT("(99999999999999999999)"),
-            TXT("(-99999999999999999999)"),
-        };
+        {
+            str_view test_cases[]{
+                TXT("[0]"),
+                TXT("[-10]"),
+                TXT("(0)"),
+                TXT("(-10)"),
+            };
 
-        for (str_view test_case : test_cases) {
-            TextModLexer lexer{test_case};
-            TextModParser parser{&lexer};
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
 
-            auto rule = ArrayAccessRule::create(parser);
-            REQUIRE((rule && test_case == rule.to_string(parser)));
+                auto rule = ArrayAccessRule::create(parser);
+                REQUIRE((rule && test_case == rule.to_string(parser)));
+            }
+        }
+
+        {
+            str_view test_cases[]{
+                TXT("[99999999999999999999]"),
+                TXT("[-99999999999999999999]"),
+                TXT("(99999999999999999999)"),
+                TXT("(-99999999999999999999)"),
+            };
+
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                REQUIRE_THROWS_AS(ArrayAccessRule::create(parser), std::runtime_error);
+            }
         }
     }
 
@@ -116,71 +133,129 @@ TEST_CASE("Parser Rules") {
             }
         }
     }
+}
 
-    SECTION("Primitive Expressions") {
+////////////////////////////////////////////////////////////////////////////////
+// | PRIMITIVE EXPRESSIONS |
+////////////////////////////////////////////////////////////////////////////////
 
-        SECTION("Number Expressions") {
-            {
-                constexpr float min = std::numeric_limits<float>::min();
-                constexpr float max = std::numeric_limits<float>::max();
-                auto min_str = std::to_wstring(min);
-                auto max_str = std::to_wstring(max);
-                std::tuple<str_view, float> test_cases[]{
-                    {     TXT("123"),      123.0F},
-                    { TXT("123.456"),  123.456F},
-                    {    TXT("-123"),     -123.0F},
-                    {TXT("-123.456"), -123.456F},
-                    {        min_str,      min},
-                    {        max_str,      max},
-                };
+TEST_CASE("Primitive Expressions") {
+    SECTION("Numbers") {
+        {
+            constexpr float min = std::numeric_limits<float>::min();
+            constexpr float max = std::numeric_limits<float>::max();
+            auto min_str = std::to_wstring(min);
+            auto max_str = std::to_wstring(max);
+            std::tuple<str_view, float> test_cases[]{
+                {     TXT("123"),    123.0F},
+                { TXT("123.456"),  123.456F},
+                {    TXT("-123"),   -123.0F},
+                {TXT("-123.456"), -123.456F},
+                {        min_str,       min},
+                {        max_str,       max},
+            };
 
-                for (const auto& [test_case, val] : test_cases) {
-                    TextModLexer lexer{test_case};
-                    TextModParser parser{&lexer};
-                    NumberExprRule rule = NumberExprRule::create(parser);
+            for (const auto& [test_case, val] : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                NumberExprRule rule = NumberExprRule::create(parser);
 
-                    auto s = rule.to_string(parser);
-                    REQUIRE((rule && test_case == rule.to_string(parser)));
+                auto s = rule.to_string(parser);
+                REQUIRE((rule && test_case == rule.to_string(parser)));
 
-                    constexpr double epsilon = std::numeric_limits<float>::epsilon();
-                    double actual = rule.get<float>();
-                    REQUIRE(std::fabs(actual - val) < epsilon);
-                }
+                constexpr double epsilon = std::numeric_limits<float>::epsilon();
+                double actual = rule.get<float>();
+                REQUIRE(std::fabs(actual - val) < epsilon);
             }
+        }  // namespace tm_parse_tests
 
-            {
-                // Only cases i think can fail which should never happen. Lexing phase catches most
-                // dysfunctional numbers. Lexer asserts: -?\d+(\.\d+)?
-                str_view test_cases[]{
-                    TXT("-99999999999999999999999999999999999"),
-                    TXT("99999999999999999999999999999999999"),
-                };
-                for (str_view test_case : test_cases) {
-                    TextModLexer lexer{test_case};
-                    TextModParser parser{&lexer};
-                    REQUIRE_THROWS_AS(NumberExprRule::create(parser), std::runtime_error);
-                }
+        {
+            str_view test_cases[]{
+                TXT("-99999999999999999999999999999999999"),
+                TXT("99999999999999999999999999999999999"),
+            };
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                REQUIRE_THROWS_AS(NumberExprRule::create(parser), std::runtime_error);
             }
         }
+    }
 
-        SECTION("Literals") {
-            str_view test_cases[] {
-                TXT("foo baz bar"),
-                TXT(", baz, foo, bar"),
-                TXT("baz, foo, bar"),
-                TXT("baz"),
+    SECTION("Name Literals") {
+        {
+            str_view test_cases[]{
+                TXT("Class'Foo.Baz.Bar'"),
+                TXT("SomeClass''"),
+                TXT("_Some_Class''"),
+                TXT("_Some_Class'Some Object Name'"),
             };
 
             for (str_view test_case : test_cases) {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
-                parser.set_secondary(ParserRuleKind::PrimitiveExpr);
-                LiteralExprRule rule = LiteralExprRule::create(parser);
-                auto test = rule.to_string(parser);
-                REQUIRE((rule && test_case == rule.to_string(parser)));
+                auto name = NameExprRule::create(parser);
+                REQUIRE((name && name.to_string(parser) == test_case));
             }
         }
     }
+
+    SECTION("Keyword Literals") {
+        for (auto proxy : KeywordTokenIterator{}) {
+            auto test_str = proxy.as_str();
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+            KeywordRule rule = KeywordRule::create(parser);
+            REQUIRE((rule && test_str == rule.to_string(parser)));
+        }
+    }
+
+    SECTION("Literals") {
+        str_view test_cases[]{
+            TXT("foo baz bar"),
+            TXT(", baz, foo, bar"),
+            TXT("baz, foo, bar"),
+            TXT("baz"),
+        };
+
+        for (str_view test_case : test_cases) {
+            TextModLexer lexer{test_case};
+            TextModParser parser{&lexer};
+            parser.set_secondary(ParserRuleKind::PrimitiveExpr);
+            LiteralExprRule rule = LiteralExprRule::create(parser);
+            auto test = rule.to_string(parser);
+            REQUIRE((rule && test_case == rule.to_string(parser)));
+        }
+    }
+
+    SECTION("Primitive Expression") {
+        str_view test_cases[] {
+            TXT("-3.14"),
+            TXT("True"),
+            TXT("False"),
+            TXT("None"),
+            TXT("\"String Literal\""),
+            TXT("\"\""),
+            TXT("SomeClass'SomeName'"),
+            TXT("SomeClass''"),
+            TXT("Unquoted String Literal"),
+            TXT("AnyLiteral"),
+        };
+
+        for (str_view test_case : test_cases) {
+            TextModLexer lexer{test_case};
+            TextModParser parser{&lexer};
+            auto rule = PrimitiveExprRule::create(parser);
+            REQUIRE((rule && rule.to_string(parser) == test_case));
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | PRIMARY RULES |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Primary Rules") {
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
