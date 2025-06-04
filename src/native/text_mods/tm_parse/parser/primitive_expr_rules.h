@@ -124,7 +124,7 @@ class PrimitiveExprRule {
         return std::visit(
             [](auto&& val) -> const TokenTextView& {
                 using U = std::decay_t<decltype(val)>;
-                if constexpr (std::is_base_of_v<U, ParserBaseRule>) {
+                if constexpr (std::is_base_of_v<ParserBaseRule, U>) {
                     return val.text_region();
                 } else {
                     return TokenTextView{};  // Invalid range
