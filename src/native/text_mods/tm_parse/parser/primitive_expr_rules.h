@@ -7,6 +7,7 @@
 #pragma once
 
 #include "pch.h"
+
 #include "parser/parser_rule_enum.h"
 
 namespace tm_parse::rules {
@@ -118,6 +119,18 @@ class PrimitiveExprRule {
 
    public:
     operator bool() const noexcept(true) { return !std::holds_alternative<std::monostate>(m_InnerRule); }
+
+   public:
+    str_view to_string(TextModParser& parser) const {
+        return std::visit([&parser](auto&& val) -> str_view {
+            using U = std::decay_t<decltype(val)>;
+            if constexpr (std::is_same_v<U, std::monostate>) {
+                return str_view{};
+            } else {
+                return val.to_string(parser);
+            }
+        }, m_InnerRule);
+    }
 
    public:
     TokenTextView text_region() const noexcept {
