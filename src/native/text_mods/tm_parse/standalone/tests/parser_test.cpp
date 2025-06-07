@@ -126,6 +126,7 @@ TEST_CASE("Parser Rules") {
             TextModParser parser{&lexer};
 
             PropertyAccessRule rule = PropertyAccessRule::create(parser);
+            auto s = str{rule.to_string(parser)};
             REQUIRE((rule && test_case == rule.to_string(parser)));
 
             if (test_case.find(TXT('(')) != str_view::npos || test_case.find(TXT('[')) != str_view::npos) {

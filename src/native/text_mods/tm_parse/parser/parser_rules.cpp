@@ -35,6 +35,13 @@ str_view ParserBaseRule::to_string(TextModParser& parser) const {
 //
 //
 
+IdentifierRule IdentifierRule::create(TextModParser& parser) {
+    TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
+    IdentifierRule rule;
+    rule.m_TextRegion = parser.peek().TextRegion;
+    return rule;
+}
+
 DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
 
@@ -101,68 +108,14 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
 
     PropertyAccessRule rule{};
-    rule.m_StartTokenIndex = parser.index();
     rule.m_TextRegion = parser.peek().TextRegion;
+    rule.m_Identifier = IdentifierRule::create(parser);
 
     // Identifier ArrayAccess?
     if (parser.maybe_next<TokenKind::LeftBracket, TokenKind::LeftParen>()) {
         rule.m_ArrayAccess = ArrayAccessRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
-
-    return rule;
-}
-
-ParenExprRule ParenExprRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::LeftParen, "logic error");
-    ParenExprRule rule{};
-    rule.m_StartTokenIndex = parser.index();
-    rule.m_TextRegion = parser.peek().TextRegion;
-
-    int paren_count = 1;
-    while (paren_count > 0) {
-        parser.advance();
-        const Token& token = parser.peek();
-        if (token == TokenKind::LeftParen) {
-            paren_count++;
-        } else if (token == TokenKind::RightParen) {
-            paren_count--;
-        }
-    }
-
-    if (paren_count != 0) {
-        throw std::runtime_error("Unbalanced parenthesis");
-    }
-
-    rule.m_TextRegion.extend(parser.peek().TextRegion);
-    rule.m_EndTokenIndex = parser.index();
-
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::RightParen, "logic error");
-    return rule;
-}
-
-CompositeExprRule CompositeExprRule::create(TextModParser& parser) {
-    CompositeExprRule rule{};
-    return rule;
-}
-
-SetCommandRule SetCommandRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::Kw_Set, "logic error");
-
-    // Kw_Set ObjectIdentifier PropertyAccess ValueExpr
-    SetCommandRule rule{};
-    rule.m_Parser = &parser;
-    rule.m_StartTokenIndex = parser.index();
-    rule.m_TextRegion = parser.peek().TextRegion;
-
-    parser.require_next<TokenKind::Identifier>();
-    rule.m_ObjectIdentifier = ObjectIdentifierRule::create(parser);
-
-    parser.require_next<TokenKind::Identifier>();
-    rule.m_PropertyAccess = PropertyAccessRule::create(parser);
-
-    // TODO: ValueExpr doesn't exist yet so replace this at some point
-    rule.m_TextRegion.extend(rule.m_PropertyAccess.text_region());
 
     return rule;
 }

@@ -33,7 +33,7 @@ using PrimitiveRuleVariant =
 ////////////////////////////////////////////////////////////////////////////////
 
 class NumberExprRule : public ParserBaseRule {
-   private:  // Probably enough bits
+   private:
     std::variant<std::monostate, int32_t, float> m_Value;
 
    public:

@@ -8,7 +8,9 @@
 
 #include "common/text_mod_common.h"
 #include "lexer/text_mod_lexer.h"
+
 #include "parser/parser_rules.h"
+#include "parser/primary_rules.h"
 
 namespace tm_parse {
 
@@ -57,7 +59,7 @@ class TextModParser {
     // | INTERNAL HELPERS |
     ////////////////////////////////////////////////////////////////////////////////
 
-   public: // This is only for rules which need extra context information
+   public:  // This is only for rules which need extra context information
     void set_primary(ParserRuleKind kind) noexcept { m_PrimaryRuleKind = kind; }
     void set_secondary(ParserRuleKind kind) noexcept { m_SecondaryRuleKind = kind; }
     ParserRuleKind primary() const noexcept { return m_PrimaryRuleKind; }
@@ -106,6 +108,7 @@ class TextModParser {
      * @note This will advance the stream forward if no exception is thrown.
      */
     template <TokenKind... Kinds, bool CoalesceIdentifiers = true>
+        requires(sizeof...(Kinds) > 0)
     void require_next() {
         const Token& tok = peek(1);
 

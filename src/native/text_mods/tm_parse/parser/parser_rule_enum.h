@@ -117,6 +117,7 @@ class TextModLexer;
 class TextModParser;
 
 namespace rules {
+
 class ParserBaseRule {
    protected:
     TokenTextView m_TextRegion;
