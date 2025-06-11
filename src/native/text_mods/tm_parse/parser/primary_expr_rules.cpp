@@ -53,6 +53,7 @@ ExpressionRule ExpressionRule::create(TextModParser& parser) {
     using T = TokenKind;
     ExpressionRule rule{};
 
+    // TODO: This is wrong use current token
     if (parser.maybe_next<T::LeftParen>()) {
         rule.m_TextRegion = parser.peek().TextRegion;
 

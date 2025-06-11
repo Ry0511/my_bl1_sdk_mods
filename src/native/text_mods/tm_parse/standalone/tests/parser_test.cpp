@@ -284,20 +284,18 @@ TEST_CASE("Primitive Expressions") {
 
 TEST_CASE("Primary Rules") {
     SECTION("Set Command") {
-        auto set = [](str_view in_str) {
+        auto prim_expr = [](str_view in_str) {
             TextModLexer lexer{in_str};
             TextModParser parser{&lexer};
-            return SetCommandRule::create(parser);
+            return SetCommandRule::create(parser).expr().get<PrimitiveExprRule>();
         };
 
-        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty 10")).expr().get<PrimitiveExprRule>().is<NumberExprRule>());
-        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty True")).expr().get<PrimitiveExprRule>().is<KeywordRule>());
-        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty False")).expr().get<PrimitiveExprRule>().is<KeywordRule>());
-        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty None")).expr().get<PrimitiveExprRule>().is<KeywordRule>());
-        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty \"My String Literal\""))
-                    .expr()
-                    .get<PrimitiveExprRule>()
-                    .is<StrExprRule>());
+        // Relying on the lifetime being extended to the full expression here because I am lazy
+        REQUIRE((prim_expr(TXT("set Foo.Baz:Bar MyProperty 10")).is<NumberExprRule>()));
+        REQUIRE((prim_expr(TXT("set Foo.Baz:Bar MyProperty True")).is<KeywordRule>()));
+        REQUIRE((prim_expr(TXT("set Foo.Baz:Bar MyProperty False")).is<KeywordRule>()));
+        REQUIRE((prim_expr(TXT("set Foo.Baz:Bar MyProperty None")).is<KeywordRule>()));
+        REQUIRE((prim_expr(TXT("set Foo.Baz:Bar MyProperty \"My String Literal\"")).is<StrExprRule>()));
 
         str_view test_cases[]{
             TXT("set Foo.Baz:Bar MyProperty 10"),
@@ -319,8 +317,22 @@ TEST_CASE("Primary Rules") {
             TST_INFO("Test: '{}'", str{test_case});
             auto rule = SetCommandRule::create(parser);
 
-            TXT_DFLT_INFO(test_case, parser, rule);
-            REQUIRE((rule && test_case == rule.to_string(parser)));
+            {
+                TXT_DFLT_INFO(test_case, parser, rule);
+                REQUIRE((rule && test_case == rule.to_string(parser)));
+            }
+        }
+
+        {
+            str_view test_case = TXT("set Foo.Baz:Bar MyProperty (1) (1)");
+            TextModLexer lexer{test_case};
+            TextModParser parser{&lexer};
+            TST_INFO("Test: '{}'", str{test_case});
+            auto rule = SetCommandRule::create(parser);
+
+            REQUIRE(rule.object().to_string(parser) == TXT("Foo.Baz:Bar"));
+            REQUIRE(rule.property().to_string(parser) == TXT("MyProperty (1)"));
+            REQUIRE(rule.expr().to_string(parser) == TXT("(1)"));
         }
     }
 }
