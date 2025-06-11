@@ -10,16 +10,22 @@
 namespace tm_parse::rules {
 
 SetCommandRule SetCommandRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::Kw_Set, "logic error");
 
+    // TODO: Since this can error we need to always restore primary
     SetCommandRule rule{};
+    auto original = parser.primary();
+    parser.set_primary(ParserRuleKind::SetCommand);
 
-    rule.m_TextRegion = parser.peek().TextRegion;
-    parser.advance();
+    parser.require<TokenKind::Kw_Set>();
+    rule.m_TextRegion = parser.peek(-1).TextRegion;
 
     rule.m_Object = ObjectIdentifierRule::create(parser);
     rule.m_Property = PropertyAccessRule::create(parser);
-    rule.m_TextRegion.extend(rule.m_Property.text_region());
+    rule.m_Expression = ExpressionRule::create(parser);
+
+    rule.m_TextRegion.extend(rule.expr().text_region());
+
+    parser.set_primary(original);
 
     return rule;
 }

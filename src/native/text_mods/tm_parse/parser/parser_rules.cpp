@@ -21,59 +21,42 @@ str_view ParserBaseRule::to_string(TextModParser& parser) const {
 // | STATIC FACTORY METHODS |
 ////////////////////////////////////////////////////////////////////////////////
 
-// - NOTE -
-// All parser factory methods must assert the following
-//  1. The current token is the entry token for its rule, that is, a call to peek() after the
-//  2. The current token after create should be the last token of the current rule
-//  3. The parser position on error is the same as when entering, that is, peek() == EntryToken
-//
-// Example (DotIdentifier):
-//
-//  Grammar Def : Identifier ( Dot Identifier )*
-//  Entry Token : Identifier
-//  Exit  Token : Identifier
-//
-//
-
 IdentifierRule IdentifierRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
+    parser.require<TokenKind::Identifier>();
     IdentifierRule rule;
-    rule.m_TextRegion = parser.peek().TextRegion;
+    rule.m_TextRegion = parser.peek(-1).TextRegion;
     return rule;
 }
 
 DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
-
+    parser.require<TokenKind::Identifier>();
     DotIdentifierRule rule{};
-    rule.m_TextRegion = parser.peek().TextRegion;
+    rule.m_TextRegion = parser.peek(-1).TextRegion;
 
     size_t end_token = invalid_index_v;
-    while (parser.maybe_next<TokenKind::Dot>()) {      // Advances to Dot
-        parser.require_next<TokenKind::Identifier>();  // Advances to Identifier
+    while (parser.maybe<TokenKind::Dot>()) {
+        parser.require<TokenKind::Identifier>();
         end_token = parser.index();
     }
 
     // We read more than a single identifier
     if (end_token != invalid_index_v) {
-        const Token& tok = parser.peek();
-        rule.m_TextRegion.extend(tok.TextRegion);
+        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
 
     return rule;
 }
 
 ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
-
     ObjectIdentifierRule rule{};
     rule.m_PrimaryIdentifier = DotIdentifierRule::create(parser);
     rule.m_TextRegion = rule.m_PrimaryIdentifier.text_region();
 
-    if (parser.maybe_next<TokenKind::Colon>()) {
-        parser.require_next<TokenKind::Identifier>();
+    if (parser.maybe<TokenKind::Colon>()) {
         rule.m_ChildIdentifier = DotIdentifierRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ChildIdentifier.text_region());
+    } else {
+        parser.advance();
     }
 
     return rule;
@@ -85,36 +68,63 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT((token.is_any<TokenKind::LeftBracket, TokenKind::LeftParen>()), "logic error");
 
     ArrayAccessRule rule{};
+
     rule.m_TextRegion = parser.peek().TextRegion;
 
-    parser.require_next<TokenKind::Number>();
-    rule.m_Index = NumberExprRule::create(parser);
-
     // ( Number )
-    if (token == TokenKind::LeftParen) {
-        parser.require_next<TokenKind::RightParen>();
-
-        // [ Number ]
-    } else if (token == TokenKind::LeftBracket) {
-        parser.require_next<TokenKind::RightBracket>();
+    if (parser.maybe<TokenKind::LeftParen>()) {
+        rule.m_Index = NumberExprRule::create(parser);
+        parser.require<TokenKind::RightParen>();
+        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
-
-    rule.m_TextRegion.extend(parser.peek().TextRegion);
+    // [ Number ]
+    else if (parser.maybe<TokenKind::LeftBracket>()) {
+        rule.m_Index = NumberExprRule::create(parser);
+        parser.require<TokenKind::RightBracket>();
+        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+    } else {
+        throw std::runtime_error(std::format("Expecting ( or [ but got {}", token.as_str()));
+    }
 
     return rule;
 }
 
 PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::Identifier, "logic error");
-
     PropertyAccessRule rule{};
-    rule.m_TextRegion = parser.peek().TextRegion;
     rule.m_Identifier = IdentifierRule::create(parser);
+    rule.m_TextRegion = rule.m_Identifier.text_region();
 
-    // Identifier ArrayAccess?
-    if (parser.maybe_next<TokenKind::LeftBracket, TokenKind::LeftParen>()) {
-        rule.m_ArrayAccess = ArrayAccessRule::create(parser);
-        rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
+    using T = TokenKind;
+
+    // Note ambiguity here:
+    //   > set Obj Property (1)    | ArrayAccess?
+    //   > set Obj Property(1) (1) | No issues
+    //   > set Obj Property ()     | Errors
+    //
+    // Should only apply to set commands
+
+    if (parser.primary() == ParserRuleKind::SetCommand) {
+        auto& p = parser;
+
+        //           set Obj Property(1) (1)
+        // peek(0) ->                ^   ^
+        // peek(1) ->                 ^  ^
+        // peek(2) ->                  ^ ^
+        // peek(3) ->                    ^
+
+        // ( Number ) [^EOF BlankLine]
+        if (p.peek().is_any<T::LeftBracket, T::LeftParen>() && p.peek(1) == T::Number && !p.peek(3).is_eolf()) {
+            rule.m_ArrayAccess = ArrayAccessRule::create(parser);
+            rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
+        }
+
+    }
+    // Under normal circumstances this ambiguity should apply?
+    else {
+        if (parser.peek().is_any<T::LeftBracket, T::LeftParen>()) {
+            rule.m_ArrayAccess = ArrayAccessRule::create(parser);
+            rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
+        }
     }
 
     return rule;

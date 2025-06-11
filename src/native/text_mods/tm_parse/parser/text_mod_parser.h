@@ -29,7 +29,7 @@ class TextModParser {
     size_t m_Index;
 
    public:
-    explicit TextModParser(TextModLexer* lexer) noexcept;
+    explicit TextModParser(TextModLexer* lexer, bool insert_entry_token = false) noexcept;
     ~TextModParser() = default;
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -99,27 +99,19 @@ class TextModParser {
         m_Index = std::clamp(m_Index + 1, size_t{0}, m_Tokens.size());
     }
 
-    /**
-     * Requires that the next token is any of the provided throwing if none match.
-     *
-     * @tparam Kinds The token kinds to expect.
-     * @tparam CoalesceIdentifiers If true, TokenKind::Identifier will match keyword tokens.
-     * @throws std::runtime_error If the current token is none of the provided.
-     * @note This will advance the stream forward if no exception is thrown.
-     */
-    template <TokenKind... Kinds, bool CoalesceIdentifiers = true>
+   public:
+    template <TokenKind... Kinds>
         requires(sizeof...(Kinds) > 0)
-    void require_next() {
-        const Token& tok = peek(1);
+    void require(const int offset = 0, const bool coalesce = true) {
+        const Token& token = peek(offset);
 
-        // Coalesce + Contains Identifier keyword
-        if constexpr (CoalesceIdentifiers && (... || (TokenKind::Identifier == Kinds))) {
-            if (tok.is_keyword() || (... || (tok == Kinds))) {
+        if (coalesce && (... || (TokenKind::Identifier == Kinds))) {
+            if (token.is_keyword() || (... || (token == Kinds))) {
                 advance();
                 return;
             }
         } else {
-            if ((... || (tok == Kinds))) {
+            if ((... || (token == Kinds))) {
                 advance();
                 return;
             }
@@ -131,21 +123,22 @@ class TextModParser {
         for (const auto& kind : {Kinds...}) {
             ss << std::format(" {},", TokenProxy{kind}.as_str());
         }
-        ss << std::format(" but got '{}'", tok.kind_as_str());
+        ss << std::format(" but got '{}'", token.kind_as_str());
         throw std::runtime_error{ss.str()};
     }
 
-    /**
-     * Peeks at the next token and checks to see if it is any of the provided.
-     * @tparam Kinds The token kinds to check for.
-     * @tparam CoalesceIdentifiers If true, TokenKind::Identifier will match keyword tokens.
-     * @return true if the next token is any of the provided.
-     * @note This will advance the stream if true is returned.
-     */
-    template <TokenKind... Kinds, bool CoalesceIdentifiers = true>
-    bool maybe_next() {
-        const Token& tok = peek(1);
-        if constexpr (CoalesceIdentifiers && (... || (TokenKind::Identifier == Kinds))) {
+    template <TokenKind... Kinds>
+        requires(sizeof...(Kinds) > 0)
+    void require_next(const bool coalesce = true) {
+        require<Kinds...>(1, coalesce);
+    }
+
+    template <TokenKind... Kinds>
+        requires(sizeof...(Kinds) > 0)
+    bool maybe(const int offset = 0, const bool coalesce = true) {
+        const Token& tok = peek(offset);
+
+        if (coalesce && (... || (TokenKind::Identifier == Kinds))) {
             if (tok.is_keyword() || (... || (tok == Kinds))) {
                 advance();
                 return true;
@@ -157,6 +150,12 @@ class TextModParser {
             }
         }
         return false;
+    }
+
+    template <TokenKind... Kinds>
+        requires(sizeof...(Kinds) > 0)
+    bool maybe_next(const bool coalesce = true) {
+        return maybe<Kinds...>(1, coalesce);
     }
 
     const Token& peek(int offset = 0) {

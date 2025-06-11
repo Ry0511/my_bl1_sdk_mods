@@ -12,8 +12,9 @@ namespace tm_parse::rules {
 using namespace txt;
 
 NumberExprRule NumberExprRule::create(TextModParser& parser) {
+
     const Token& token = parser.peek();
-    TXT_MOD_ASSERT(token == TokenKind::Number, "logic error");
+    parser.require<TokenKind::Number>();
 
     NumberExprRule rule{};
     rule.m_TextRegion = token.TextRegion;
@@ -35,31 +36,39 @@ NumberExprRule NumberExprRule::create(TextModParser& parser) {
 StrExprRule StrExprRule::create(TextModParser& parser) {
     const Token& token = parser.peek();
     TXT_MOD_ASSERT((token == TokenKind::StringLiteral), "logic error");
+
     StrExprRule rule{};
     rule.m_TextRegion = token.TextRegion;
+    parser.advance();
+
     return rule;
 }
 
 NameExprRule NameExprRule::create(TextModParser& parser) {
+
     const Token& token = parser.peek();
-    TXT_MOD_ASSERT((token.is_identifier()), "logic error");
+    TXT_MOD_ASSERT(token.is_identifier(), "Expecting a Identifier token");
 
     NameExprRule rule{};
     rule.m_TextRegion = token.TextRegion;
 
     parser.require_next<TokenKind::NameLiteral>();
     rule.m_TextRegion.extend(parser.peek().TextRegion);
+    parser.advance();
 
     return rule;
 }
 
 KeywordRule KeywordRule::create(TextModParser& parser) {
+
     const Token& token = parser.peek();
-    TXT_MOD_ASSERT(token.is_keyword(), "logic error");
+    TXT_MOD_ASSERT(token.is_keyword(), "Expecting a keyword token");
 
     KeywordRule rule{};
     rule.m_TextRegion = token.TextRegion;
     rule.m_Kind = token.Kind;
+    parser.advance();
+
     return rule;
 }
 
@@ -76,6 +85,8 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(parser.peek().TextRegion);
     }
 
+    parser.advance();
+
     return rule;
 }
 
@@ -84,7 +95,6 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
 
     using T = TokenKind;
     const Token& token = par.peek();
-
     auto secondary = par.secondary();
 
     switch (token.Kind) {
@@ -102,9 +112,8 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
             if (token.is_identifier() && par.peek(1) == T::NameLiteral) {
                 rule.m_InnerRule = NameExprRule::create(par);
             }
-
-            // Primarily for: True, False, None
-            if (token.is_keyword()) {
+            // Primarily for: True, False, None; but generically captures any keyword token
+            else if (token.is_keyword()) {
                 rule.m_InnerRule = KeywordRule::create(par);
             }
 

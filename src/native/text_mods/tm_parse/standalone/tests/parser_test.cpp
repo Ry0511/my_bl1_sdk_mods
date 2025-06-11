@@ -15,6 +15,16 @@ using namespace tm_parse;
 
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
+#define TST_INFO(fmt, ...) INFO(std::format(fmt, __VA_ARGS__))
+
+#define TXT_DFLT_INFO(test, parser, actual)        \
+    TST_INFO(                                      \
+        "Rule: ok='{}', to_string='{}'",           \
+        actual.operator bool() ? "True" : "False", \
+        str{actual.to_string(parser)}              \
+    );                                             \
+    TST_INFO("Test: in_str='{}'", str{test})
+
 ////////////////////////////////////////////////////////////////////////////////
 // | COMMON RULES |
 ////////////////////////////////////////////////////////////////////////////////
@@ -34,6 +44,7 @@ TEST_CASE("Parser Rules") {
                 TextModParser parser{&lexer};
 
                 DotIdentifierRule rule = DotIdentifierRule::create(parser);
+                TXT_DFLT_INFO(test_case, parser, rule);
                 REQUIRE((rule && test_case == rule.to_string(parser)));
             }
         }
@@ -48,6 +59,7 @@ TEST_CASE("Parser Rules") {
             for (str_view test_case : test_cases) {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
+                TST_INFO("Should fail: '{}'", str{test_case});
                 REQUIRE_THROWS_AS(DotIdentifierRule::create(parser), std::runtime_error);
             }
         }
@@ -61,6 +73,7 @@ TEST_CASE("Parser Rules") {
             TXT("foo.baz:bar"),
             TXT("foo.baz:bar.baz"),
             TXT("foo.baz:bar.baz.foo"),
+            TXT("foo:bar"),
         };
 
         for (str_view test_case : test_cases) {
@@ -68,10 +81,18 @@ TEST_CASE("Parser Rules") {
             TextModParser parser{&lexer};
 
             ObjectIdentifierRule rule = ObjectIdentifierRule::create(parser);
+            TXT_DFLT_INFO(test_case, parser, rule);
             REQUIRE((rule && rule.primary_identifier() && test_case == rule.to_string(parser)));
 
-            if (test_case.find(TXT(':')) != str_view::npos) {
+            auto pos = test_case.find(TXT(':'));
+            if (pos != str_view::npos) {
+                str_view primary = test_case.substr(0, pos);
+                str_view child = test_case.substr(pos + 1);
+
+                TST_INFO("Primary='{}', Child='{}'", str{primary}, str{child});
                 REQUIRE(rule.child_identifier());
+                REQUIRE(rule.primary_identifier().to_string(parser) == primary);
+                REQUIRE(rule.child_identifier().to_string(parser) == child);
             }
         }
     }
@@ -90,6 +111,7 @@ TEST_CASE("Parser Rules") {
                 TextModParser parser{&lexer};
 
                 auto rule = ArrayAccessRule::create(parser);
+                TXT_DFLT_INFO(test_case, parser, rule);
                 REQUIRE((rule && test_case == rule.to_string(parser)));
             }
         }
@@ -105,6 +127,7 @@ TEST_CASE("Parser Rules") {
             for (str_view test_case : test_cases) {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
+                TST_INFO("Should fail: '{}'", str{test_case});
                 REQUIRE_THROWS_AS(ArrayAccessRule::create(parser), std::runtime_error);
             }
         }
@@ -124,12 +147,15 @@ TEST_CASE("Parser Rules") {
         for (str_view test_case : test_cases) {
             TextModLexer lexer{test_case};
             TextModParser parser{&lexer};
+            TST_INFO("Test: '{}'", str{test_case});
 
             PropertyAccessRule rule = PropertyAccessRule::create(parser);
-            auto s = str{rule.to_string(parser)};
+            TXT_DFLT_INFO(test_case, parser, rule);
             REQUIRE((rule && test_case == rule.to_string(parser)));
 
             if (test_case.find(TXT('(')) != str_view::npos || test_case.find(TXT('[')) != str_view::npos) {
+                const ArrayAccessRule& arr_rule = rule.array_access();
+                TXT_DFLT_INFO(test_case, parser, arr_rule);
                 REQUIRE(rule.array_access());
             }
         }
@@ -230,7 +256,7 @@ TEST_CASE("Primitive Expressions") {
     }
 
     SECTION("Primitive Expression") {
-        str_view test_cases[] {
+        str_view test_cases[]{
             TXT("-3.14"),
             TXT("True"),
             TXT("False"),
@@ -257,6 +283,46 @@ TEST_CASE("Primitive Expressions") {
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Primary Rules") {
+    SECTION("Set Command") {
+        auto set = [](str_view in_str) {
+            TextModLexer lexer{in_str};
+            TextModParser parser{&lexer};
+            return SetCommandRule::create(parser);
+        };
+
+        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty 10")).expr().get<PrimitiveExprRule>().is<NumberExprRule>());
+        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty True")).expr().get<PrimitiveExprRule>().is<KeywordRule>());
+        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty False")).expr().get<PrimitiveExprRule>().is<KeywordRule>());
+        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty None")).expr().get<PrimitiveExprRule>().is<KeywordRule>());
+        REQUIRE(set(TXT("set Foo.Baz:Bar MyProperty \"My String Literal\""))
+                    .expr()
+                    .get<PrimitiveExprRule>()
+                    .is<StrExprRule>());
+
+        str_view test_cases[]{
+            TXT("set Foo.Baz:Bar MyProperty 10"),
+            TXT("set Foo.Baz:Bar MyProperty True"),
+            TXT("set Foo.Baz:Bar MyProperty False"),
+            TXT("set Foo.Baz:Bar MyProperty None"),
+            TXT("set Foo.Baz:Bar MyProperty \"My String Literal\""),
+            TXT("set Foo.Baz:Bar MyProperty Class'Foo.Baz.Bar'"),
+            TXT("set Foo.Baz:Bar MyProperty ()"),
+            TXT("set Foo.Baz:Bar MyProperty(1) ()"),
+            TXT("set Foo.Baz:Bar MyProperty (1) (1)"),
+            TXT("set Foo.Baz:Bar MyProperty (INVALID)"),
+            TXT("set Foo.Baz:Bar MyProperty ( X=10, Y=(A=5,B=5,C=5), Z= )"),
+        };
+
+        for (str_view test_case : test_cases) {
+            TextModLexer lexer{test_case};
+            TextModParser parser{&lexer};
+            TST_INFO("Test: '{}'", str{test_case});
+            auto rule = SetCommandRule::create(parser);
+
+            TXT_DFLT_INFO(test_case, parser, rule);
+            REQUIRE((rule && test_case == rule.to_string(parser)));
+        }
+    }
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)

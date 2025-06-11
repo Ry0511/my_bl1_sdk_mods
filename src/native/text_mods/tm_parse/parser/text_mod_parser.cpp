@@ -10,13 +10,18 @@ namespace tm_parse {
 
 constexpr size_t dflt_pool_size = 128;
 
-TextModParser::TextModParser(TextModLexer* lexer) noexcept
+TextModParser::TextModParser(TextModLexer* lexer, bool insert_entry_token) noexcept
     : m_PrimaryRuleKind(ParserRuleKind::Unknown),
       m_SecondaryRuleKind(ParserRuleKind::Unknown),
       m_EndOfInputReached(false),
       m_Lexer(lexer),
       m_Index(0) {
     m_Tokens.reserve(dflt_pool_size);
+
+    // TODO: Replace this with an actual special entry token
+    if (insert_entry_token) {
+        m_Tokens.emplace_back(TokenKind::TokenKind_Count, TokenTextView{});
+    }
 }
 
 SetCommandRule TextModParser::parse_set_cmd() {
