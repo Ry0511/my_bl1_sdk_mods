@@ -158,7 +158,7 @@ class TextModParser {
         return maybe<Kinds...>(1, coalesce);
     }
 
-    const Token& peek(int offset = 0) {
+    Token peek(int offset = 0) {
         size_t index = m_Index + offset;
 
         // Stream in tokens as needed

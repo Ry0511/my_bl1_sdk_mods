@@ -11,7 +11,10 @@ namespace tm_parse::rules {
 
 AssignmentExprRule::AssignmentExprRule(const AssignmentExprRule& rule)
     : m_Property(rule.m_Property),
-      m_Expression(std::make_unique<ExpressionRule>(*rule.m_Expression)) {}
+      m_Expression(
+          rule.m_Expression != nullptr ? std::make_unique<ExpressionRule>(*rule.m_Expression)
+                                       : std::unique_ptr<ExpressionRule>{}
+      ) {}
 
 AssignmentExprRule& AssignmentExprRule::operator=(const AssignmentExprRule& rule) {
     m_TextRegion = rule.m_TextRegion;
@@ -30,21 +33,28 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
 }
 
 StructExprRule StructExprRule::create(TextModParser& parser) {
-    TXT_MOD_ASSERT(parser.peek() == TokenKind::LeftParen, "logic error");
-
     StructExprRule rule;
     rule.m_TextRegion = parser.peek().TextRegion;
-    parser.advance();
+    parser.require<TokenKind::LeftParen>();
 
-    bool has_next = false;
-    do {
-        AssignmentExprRule expr{};
-        rule.m_Assignments.push_back(expr);
-        parser.require_next<TokenKind::RightParen, TokenKind::Comma>();
-        has_next = (parser.peek() == TokenKind::Comma);
-    } while (has_next);
+    int open_count = 1;
 
-    rule.m_TextRegion.extend(parser.peek().TextRegion);
+    while (open_count > 0 && parser.peek() != TokenKind::EndOfInput) {
+
+        if (parser.peek() == TokenKind::LeftParen) {
+            ++open_count;
+        } else if (parser.peek() == TokenKind::RightParen) {
+            --open_count;
+        }
+
+        parser.advance();
+    }
+
+    if (open_count < 0 || parser.peek(-1) != TokenKind::RightParen) {
+        throw std::runtime_error{std::format("Unbalanced parentheses in expression {}", open_count)};
+    }
+
+    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
 
     return rule;
 }
@@ -53,30 +63,29 @@ ExpressionRule ExpressionRule::create(TextModParser& parser) {
     using T = TokenKind;
     ExpressionRule rule{};
 
-    // TODO: This is wrong use current token
-    if (parser.maybe_next<T::LeftParen>()) {
+    if (parser.peek() == T::LeftParen) {
         rule.m_TextRegion = parser.peek().TextRegion;
 
         // A=()
         if (parser.maybe_next<T::RightParen>()) {
-            rule.m_InnerType = std::monostate{};
             parser.advance();
+            rule.m_InnerType = std::monostate{};
         }
         // Note: This isn't an actual value people will use. It is just the result of dumping an
-        //       invalid enum value from an object.
+        //       invalid enum value from an object. Really shouldn't allow it...
         // A=(INVALID)
         else if (parser.maybe_next<T::Kw_Invalid>()) {
-            rule.m_InnerType = std::monostate{};
-            parser.require_next<T::RightParen>();
             parser.advance();
+            parser.require<T::RightParen>();
+            rule.m_InnerType = std::monostate{};
         }
         // A=(X=10, Y=20, Z=30, W=40)
         else {
             rule.m_InnerType = StructExprRule::create(parser);
+            parser.advance();
         }
 
-        rule.m_TextRegion.extend(parser.peek().TextRegion);
-
+        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
     // We can only assume its a primitive value
     else {
