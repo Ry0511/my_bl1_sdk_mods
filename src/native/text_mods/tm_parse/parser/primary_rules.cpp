@@ -10,7 +10,6 @@
 namespace tm_parse::rules {
 
 SetCommandRule SetCommandRule::create(TextModParser& parser) {
-
     // TODO: Since this can error we need to always restore primary
     SetCommandRule rule{};
     auto original = parser.primary();
@@ -23,6 +22,7 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     rule.m_Property = PropertyAccessRule::create(parser);
     rule.m_Expression = ExpressionRule::create(parser);
 
+    TXT_MOD_ASSERT(rule.expr().operator bool(), "invalid expression");
     rule.m_TextRegion.extend(rule.expr().text_region());
 
     parser.set_primary(original);

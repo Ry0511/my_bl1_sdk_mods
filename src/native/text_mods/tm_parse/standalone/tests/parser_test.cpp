@@ -166,7 +166,7 @@ TEST_CASE("Parser Rules") {
 // | PRIMITIVE EXPRESSIONS |
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("Primitive Expressions") {
+TEST_CASE("Expressions") {
     SECTION("Numbers") {
         {
             constexpr float min = std::numeric_limits<float>::min();
@@ -255,6 +255,159 @@ TEST_CASE("Primitive Expressions") {
         }
     }
 
+    SECTION("Struct Expression") {
+
+        {
+            str_view test_cases[] {
+                TXT("(((A=,B=,C=((1)))))"),
+                TXT("()"),
+                TXT("(())"),
+                TXT("(1)"),
+                TXT("((1))"),
+                TXT("(INVALID)"),
+                TXT("((INVALID))"),
+                TXT("(A=,B=,C=((1)))"),
+                TXT("((A=,B=,C=((1))))"),
+            };
+
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                TST_INFO("Test: {}", str{test_case});
+
+                ExpressionRule rule = ExpressionRule::create(parser);
+                REQUIRE(rule.operator bool());
+                REQUIRE(rule.to_string(parser) == test_case);
+            }
+        }
+    }
+
+    SECTION("Assignment Expressions") {
+        {
+            str test_cases[]{
+                TXT("foo=(A=,B=,C=((1)))"),
+                TXT("foo = baz"),
+                TXT("foo(0) = baz"),
+                TXT("foo[0] = baz"),
+                TXT("foo=baz"),
+                TXT("foo=()"),
+                TXT("foo=(())"),
+                TXT("foo=((1))"),
+            };
+
+            for (str test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                TST_INFO("Test: {}", str{test_case});
+
+                AssignmentExprRule rule = AssignmentExprRule::create(parser);
+                REQUIRE(rule.operator bool());
+
+                TST_INFO(" > '{}'", str{rule.to_string(parser)});
+                REQUIRE(test_case == rule.to_string(parser));
+            }
+
+            {
+                auto validate = [](str_view prop, str_view value, str_view full_test) {
+                    TextModLexer lexer{full_test};
+                    TextModParser parser{&lexer};
+                    TST_INFO("Test: '{}'; '{}', '{}'", str{full_test}, str{prop}, str{value});
+
+                    auto rule = AssignmentExprRule::create(parser);
+                    REQUIRE(rule.operator bool());
+
+                    TST_INFO(" > '{}'", str{rule.to_string(parser)});
+                    TST_INFO(" > '{}'", str{rule.property().to_string(parser)});
+                    TST_INFO(" > '{}'", str{rule.expr().to_string(parser)});
+
+                    REQUIRE(rule.to_string(parser) == full_test);
+                    REQUIRE(rule.property().to_string(parser) == prop);
+                    REQUIRE(rule.expr().to_string(parser) == value);
+                };
+
+                // clang-format off
+                validate(TXT("foo")   , TXT("1")    , TXT("foo = 1"    ));
+                validate(TXT("foo")   , TXT("(1)")  , TXT("foo = (1)"  ));
+                validate(TXT("foo")   , TXT("((1))"), TXT("foo = ((1))"));
+
+                validate(TXT("foo(0)"), TXT("1")    , TXT("foo(0) = 1"    ));
+                validate(TXT("foo(0)"), TXT("(1)")  , TXT("foo(0) = (1)"  ));
+                validate(TXT("foo(0)"), TXT("((1))"), TXT("foo(0) = ((1))"));
+
+                validate(TXT("foo[0]"), TXT("1")    , TXT("foo[0] = 1"    ));
+                validate(TXT("foo[0]"), TXT("(1)")  , TXT("foo[0] = (1)"  ));
+                validate(TXT("foo[0]"), TXT("((1))"), TXT("foo[0] = ((1))"));
+                // clang-format on
+            }
+        }
+    }
+
+    SECTION("Assignment Expression List") {
+
+        {
+            auto validate = [](std::vector<str> expected, str full_text) {
+                TextModLexer lexer{full_text};
+                TextModParser parser{&lexer};
+                TST_INFO("Test: {}", str{full_text});
+                auto rule = AssignmentExprListRule::create(parser);
+                REQUIRE(rule.operator bool());
+
+                size_t index = 0;
+                for (const str& expect : expected) {
+                    const auto& assign = rule[index];
+                    REQUIRE(assign.operator bool());
+                    TST_INFO(" > '{}'", index);
+                    TST_INFO(" > '{}'", str{assign.property().to_string(parser)});
+
+                    if (assign.has_expr()) {
+                        TST_INFO(" > '{}'", str{assign.expr().to_string(parser)});
+                    }
+
+                    REQUIRE(assign.to_string(parser) == expect);
+                    index++;
+                }
+
+                REQUIRE(rule.to_string(parser) == full_text);
+            };
+
+            validate({TXT("A=1"), TXT("B=2"), TXT("C=3")}, TXT("A=1,B=2,C=3"));
+            validate({TXT("A(0)=1"), TXT("B[1]=2"), TXT("C(2)=3")}, TXT("A(0)=1,B[1]=2,C(2)=3"));
+            validate({TXT("A="), TXT("B="), TXT("C=")}, TXT("A=,B=,C="));
+            validate({TXT("A=(1)"), TXT("B=(2)"), TXT("C=(3)")}, TXT("A=(1),B=(2),C=(3)"));
+        }
+
+        {
+
+            str_view test_cases[] {
+                TXT("foo=1,baz=2,bar=3"),
+                TXT("foo(1)=1,baz[2]=2,bar=3"),
+                TXT("foo=,baz=,bar="),
+                TXT("foo=(),baz=(),bar=()"),
+                TXT("foo=(()),baz=(()),bar=(())"),
+                TXT("foo=((1)),baz=((2)),bar=((3))"),
+                TXT("foo=(A=1,B=2),baz=((A=1,B=2)),bar=(((A=1,B=2)))"),
+            };
+
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+
+                TST_INFO("Test: {}", str{test_case});
+                auto rule = AssignmentExprListRule::create(parser);
+
+                REQUIRE(rule.operator bool());
+                REQUIRE(rule.size() > 1);
+
+                for (const auto& expr : rule) {
+                    REQUIRE(expr.operator bool());
+                }
+
+                TST_INFO(" > '{}'", str{rule.to_string(parser)});
+                REQUIRE(test_case == rule.to_string(parser));
+            }
+        }
+    }
+
     SECTION("Primitive Expression") {
         str_view test_cases[]{
             TXT("-3.14"),
@@ -284,6 +437,20 @@ TEST_CASE("Primitive Expressions") {
 
 TEST_CASE("Primary Rules") {
     SECTION("Set Command") {
+
+        {
+            str_view test = TXT("set Foo.Baz:Bar MyProperty ((((1))))");
+            TextModLexer lexer{test};
+            TextModParser parser{&lexer};
+
+            TST_INFO(" > {}", str{test});
+            auto rule = SetCommandRule::create(parser);
+
+            REQUIRE(rule.operator bool());
+            TST_INFO(" > {}", str{rule.to_string(parser)});
+            REQUIRE(test == rule.to_string(parser));
+        }
+
         auto prim_expr = [](str_view in_str) {
             TextModLexer lexer{in_str};
             TextModParser parser{&lexer};
@@ -309,6 +476,9 @@ TEST_CASE("Primary Rules") {
             TXT("set Foo.Baz:Bar MyProperty (1) (1)"),
             TXT("set Foo.Baz:Bar MyProperty (INVALID)"),
             TXT("set Foo.Baz:Bar MyProperty ( X=10, Y=(A=5,B=5,C=5), Z= )"),
+            TXT("set Foo.Baz:Bar MyProperty (())"),
+            TXT("set Foo.Baz:Bar MyProperty ((()))"),
+            TXT("set Foo.Baz:Bar MyProperty ((((1))))"),
         };
 
         for (str_view test_case : test_cases) {

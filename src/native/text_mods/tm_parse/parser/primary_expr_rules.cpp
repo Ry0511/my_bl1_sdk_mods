@@ -9,49 +9,93 @@
 
 namespace tm_parse::rules {
 
-AssignmentExprRule::AssignmentExprRule(const AssignmentExprRule& rule)
-    : m_Property(rule.m_Property),
-      m_Expression(
-          rule.m_Expression != nullptr ? std::make_unique<ExpressionRule>(*rule.m_Expression)
-                                       : std::unique_ptr<ExpressionRule>{}
-      ) {}
+////////////////////////////////////////////////////////////////////////////////
+// | COPYABLE EXPR |
+////////////////////////////////////////////////////////////////////////////////
 
-AssignmentExprRule& AssignmentExprRule::operator=(const AssignmentExprRule& rule) {
-    m_TextRegion = rule.m_TextRegion;
-    m_Property = rule.m_Property;
-    m_Expression = std::make_unique<ExpressionRule>(*rule.m_Expression);
+CopyableExpr::CopyableExpr(const ExpressionRule& expr) : m_Expr(std::make_unique<ExpressionRule>(expr)) {}
+
+CopyableExpr::CopyableExpr(const CopyableExpr& other)
+    : m_Expr((other == nullptr) ? nullptr : std::make_unique<ExpressionRule>(*other.m_Expr)) {}
+
+CopyableExpr& CopyableExpr::operator=(const CopyableExpr& other) {
+    m_Expr = ((other == nullptr) ? nullptr : std::make_unique<ExpressionRule>(*other.m_Expr));
     return *this;
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// | RULES |
+////////////////////////////////////////////////////////////////////////////////
+
 AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
-    AssignmentExprRule rule;
-    rule.m_TextRegion = parser.peek().TextRegion;
+    AssignmentExprRule rule{};
+
     rule.m_Property = PropertyAccessRule::create(parser);
-    rule.m_Expression = std::make_unique<ExpressionRule>(ExpressionRule::create(parser));
-    rule.m_TextRegion.extend(rule.m_Expression->text_region());
+    rule.m_TextRegion = rule.m_Property.text_region();
+
+    parser.require<TokenKind::Equal>();
+    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+
+    // EOF | BlankLine
+    if (parser.peek() != TokenKind::EndOfInput) {
+        if (parser.peek() != TokenKind::Comma) {
+            rule.m_Expr = ExpressionRule::create(parser);
+            rule.m_TextRegion.extend(rule.expr().text_region());
+        }
+    } else {
+        rule.m_Expr = nullptr;
+        rule.m_TextRegion.extend(rule.property().text_region());
+    }
+
     return rule;
+}
+
+AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
+    AssignmentExprListRule list{};
+    list.m_Assignments.reserve(32);  // NOLINT(*-magic-numbers)
+
+    // Initial expression
+    list.m_Assignments.push_back(AssignmentExprRule::create(parser));
+    list.m_TextRegion = list.m_Assignments.front().text_region();
+
+    // ( Comma AssignmentExprRule )*
+    while (parser.maybe<TokenKind::Comma>()) {
+        list.m_Assignments.push_back(AssignmentExprRule::create(parser));
+    }
+
+    // Extend the text region to encompass the full list of expressions
+    if (list.size() > 1) {
+        list.m_TextRegion.extend(list[list.size() - 1].text_region());
+    }
+
+    list.m_Assignments.shrink_to_fit();
+    return list;
 }
 
 StructExprRule StructExprRule::create(TextModParser& parser) {
     StructExprRule rule;
-    rule.m_TextRegion = parser.peek().TextRegion;
+
     parser.require<TokenKind::LeftParen>();
+    rule.m_TextRegion = parser.peek(-1).TextRegion;
 
-    int open_count = 1;
+    int paren_count = 1;
 
-    while (open_count > 0 && parser.peek() != TokenKind::EndOfInput) {
-
+    while (paren_count > 0 && parser.peek() != TokenKind::EndOfInput) {
         if (parser.peek() == TokenKind::LeftParen) {
-            ++open_count;
+            ++paren_count;
         } else if (parser.peek() == TokenKind::RightParen) {
-            --open_count;
+            --paren_count;
         }
-
+        rule.m_TextRegion.extend(parser.peek().TextRegion);
         parser.advance();
     }
 
-    if (open_count < 0 || parser.peek(-1) != TokenKind::RightParen) {
-        throw std::runtime_error{std::format("Unbalanced parentheses in expression {}", open_count)};
+    if (paren_count != 0) {
+        throw std::runtime_error{std::format(
+            "Unbalanced parentheses in expression; Count: {}; Text: '{}'",
+            paren_count,
+            str{rule.to_string(parser)}
+        )};
     }
 
     rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
@@ -59,39 +103,18 @@ StructExprRule StructExprRule::create(TextModParser& parser) {
     return rule;
 }
 
+str_view ExpressionRule::to_string(const TextModParser& parser) const noexcept {
+    return text_region().view_from(parser.text());
+}
+
 ExpressionRule ExpressionRule::create(TextModParser& parser) {
     using T = TokenKind;
     ExpressionRule rule{};
 
     if (parser.peek() == T::LeftParen) {
-        rule.m_TextRegion = parser.peek().TextRegion;
-
-        // A=()
-        if (parser.maybe_next<T::RightParen>()) {
-            parser.advance();
-            rule.m_InnerType = std::monostate{};
-        }
-        // Note: This isn't an actual value people will use. It is just the result of dumping an
-        //       invalid enum value from an object. Really shouldn't allow it...
-        // A=(INVALID)
-        else if (parser.maybe_next<T::Kw_Invalid>()) {
-            parser.advance();
-            parser.require<T::RightParen>();
-            rule.m_InnerType = std::monostate{};
-        }
-        // A=(X=10, Y=20, Z=30, W=40)
-        else {
-            rule.m_InnerType = StructExprRule::create(parser);
-            parser.advance();
-        }
-
-        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
-    }
-    // We can only assume its a primitive value
-    else {
-        rule.m_TextRegion = parser.peek().TextRegion;
+        rule.m_InnerType = StructExprRule::create(parser);
+    } else {
         rule.m_InnerType = PrimitiveExprRule::create(parser);
-        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
 
     return rule;

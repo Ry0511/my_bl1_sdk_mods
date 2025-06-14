@@ -23,7 +23,7 @@ str_view ParserBaseRule::to_string(TextModParser& parser) const {
 
 IdentifierRule IdentifierRule::create(TextModParser& parser) {
     parser.require<TokenKind::Identifier>();
-    IdentifierRule rule;
+    IdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
     return rule;
 }

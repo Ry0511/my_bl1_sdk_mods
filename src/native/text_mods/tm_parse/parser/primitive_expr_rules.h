@@ -135,7 +135,7 @@ class PrimitiveExprRule {
    public:
     TokenTextView text_region() const noexcept {
         return std::visit(
-            [](auto&& val) -> const TokenTextView& {
+            [](auto&& val) -> TokenTextView {
                 using U = std::decay_t<decltype(val)>;
                 if constexpr (std::is_base_of_v<ParserBaseRule, U>) {
                     return val.text_region();

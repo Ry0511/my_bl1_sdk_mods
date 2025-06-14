@@ -14,36 +14,98 @@ class StructExprRule;
 class ExpressionRule;
 class PrimitiveExprRule;
 
+class CopyableExpr {
+   private:
+    std::unique_ptr<ExpressionRule> m_Expr;
+
+   public:
+    constexpr CopyableExpr(nullptr_t) noexcept : m_Expr(nullptr) {}
+    constexpr CopyableExpr() = default;
+    ~CopyableExpr() = default;
+
+   public:  // clang-format off
+    CopyableExpr(const ExpressionRule& expr);
+
+    CopyableExpr(const CopyableExpr&);
+    CopyableExpr& operator=(const CopyableExpr&);
+
+    CopyableExpr(CopyableExpr&&) = default;
+    CopyableExpr& operator=(CopyableExpr&&) = default;
+
+   public:
+    bool operator ==(const CopyableExpr&) const = default;
+    bool operator !=(const CopyableExpr&) const = default;
+
+   public:
+    const ExpressionRule* get() const noexcept { return m_Expr.get(); }
+    ExpressionRule*       get()       noexcept { return m_Expr.get(); }
+
+   public:
+    const ExpressionRule* operator->() const { return m_Expr.get(); }
+    ExpressionRule*       operator->()       { return m_Expr.get(); }
+    const ExpressionRule& operator*() const  { return *m_Expr;      }
+    ExpressionRule&       operator*()        { return *m_Expr;      }
+    // clang-format on
+};
+
+// PropertyAccessRule Equal Expression?
 class AssignmentExprRule : public ParserBaseRule {
    private:
     PropertyAccessRule m_Property;
-    std::unique_ptr<ExpressionRule> m_Expression;
+    CopyableExpr m_Expr;
 
    public:
-    AssignmentExprRule(const AssignmentExprRule& rule);
-    AssignmentExprRule& operator=(const AssignmentExprRule& rule);
-    AssignmentExprRule(AssignmentExprRule&& rule) = default;
-    AssignmentExprRule& operator=(AssignmentExprRule&& rule) = default;
+    bool has_expr() const noexcept { return m_Expr != nullptr; }
 
    public:
     const PropertyAccessRule& property() const { return m_Property; };
-    const ExpressionRule& expr() const noexcept { return *m_Expression; };
+    const ExpressionRule& expr() const noexcept { return *m_Expr; };
 
    public:
     RULE_PUBLIC_API(AssignmentExprRule);
 };
 
-// ( PropertyAssign ( Comma PropertyAssign )* )
-class StructExprRule : public ParserBaseRule {
+// AssignmentExpr (Comma AssignmentExpr )*
+class AssignmentExprListRule : public ParserBaseRule {
    private:
     std::vector<AssignmentExprRule> m_Assignments;
+
+   public:
+    size_t size() const noexcept { return m_Assignments.size(); };
+    const AssignmentExprRule& at(size_t index) const { return m_Assignments.at(index); };
+    AssignmentExprRule& at(size_t index) { return m_Assignments.at(index); };
+
+   public:
+    const AssignmentExprRule& operator[](size_t index) const { return m_Assignments[index]; }
+    AssignmentExprRule& operator[](size_t index) { return m_Assignments[index]; }
+
+    // clang-format off
+   public:
+    decltype(auto) cbegin() const noexcept { return m_Assignments.cbegin(); }
+    decltype(auto) cend()   const noexcept { return m_Assignments.cend();   }
+    decltype(auto) begin()  noexcept       { return m_Assignments.begin();  }
+    decltype(auto) end()    noexcept       { return m_Assignments.end();    }
+    // clang-format on
+
+   public:
+    RULE_PUBLIC_API(AssignmentExprListRule);
+};
+
+// LeftParen Expression? RightParen
+class StructExprRule : public ParserBaseRule {
+   private:
+    CopyableExpr m_Expr;
+
+   public:
+    operator bool() const noexcept { return m_Expr != nullptr; }
+    const ExpressionRule& expr() const noexcept { return *m_Expr; }
 
    public:
     RULE_PUBLIC_API(StructExprRule);
 };
 
 // Any Expression
-class ExpressionRule : public ParserBaseRule {
+class ExpressionRule {
    public:
     using InnerType = std::variant<std::monostate, PrimitiveExprRule, StructExprRule>;
 
@@ -52,6 +114,22 @@ class ExpressionRule : public ParserBaseRule {
 
    public:
     operator bool() const noexcept { return !std::holds_alternative<std::monostate>(m_InnerType); }
+
+    TokenTextView text_region() const noexcept {
+        return std::visit(
+            [](auto&& inner) -> TokenTextView {
+                using T = std::decay_t<decltype(inner)>;
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    return TokenTextView{};
+                } else {
+                    return inner.text_region();
+                }
+            },
+            m_InnerType
+        );
+    }
+
+    str_view to_string(const TextModParser& parser) const noexcept;
 
     template <class T>
     bool is() const noexcept {

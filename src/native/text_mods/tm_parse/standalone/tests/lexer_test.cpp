@@ -6,9 +6,9 @@
 
 #include "pch.h"
 
-#include "tests/catch.hpp"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
+#include "tests/catch.hpp"
 
 namespace tm_parse_tests {
 
@@ -438,6 +438,101 @@ TEST_CASE("Lexing real data") {
                         token.as_str()
                     )
                 );
+            }
+        }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | EXPRESSIONS |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Lexing parenthesis") {
+    using T = TokenKind;
+
+    {
+        struct TestCase {
+            size_t OpenCount;
+            size_t CloseCount;
+            str TestStr;
+        };
+
+        TestCase test_cases[]{
+            TestCase{1, 0,       TXT("(")},
+            TestCase{0, 1,       TXT(")")},
+            TestCase{1, 1,      TXT("()")},
+            TestCase{2, 1,     TXT("(()")},
+            TestCase{1, 2,     TXT("())")},
+            TestCase{2, 2,    TXT("(())")},
+            TestCase{3, 3,  TXT("((()))")},
+            TestCase{3, 3, TXT("(((1)))")},
+        };
+
+        Token first_token = token_invalid;
+        Token last_token{};
+
+        for (const auto& test_case : test_cases) {
+            TextModLexer lexer{test_case.TestStr};
+
+            Token tk{};
+            size_t open_count = 0;
+            size_t close_count = 0;
+
+            while (lexer.read_token(&tk)) {
+                if (first_token == token_invalid) {
+                    first_token = tk;
+                }
+                last_token = tk;
+
+                if (tk == T::LeftParen) {
+                    REQUIRE(tk.to_string() == TXT("("));
+                    open_count++;
+                } else if (tk == T::RightParen) {
+                    REQUIRE(tk.to_string() == TXT(")"));
+                    close_count++;
+                }
+            }
+
+            REQUIRE(open_count == test_case.OpenCount);
+            REQUIRE(close_count == test_case.CloseCount);
+
+            TokenTextView vw = first_token.TextRegion;
+            vw.extend(last_token.TextRegion);
+            REQUIRE(vw.view_from(lexer.text()) == test_case.TestStr);
+        }
+    }
+
+    {
+        TextModLexer lexer{TXT(")))((((()))))(((")};
+        TokenKind expected[]{
+            T::RightParen,
+            T::RightParen,
+            T::RightParen,
+            T::LeftParen,
+            T::LeftParen,
+            T::LeftParen,
+            T::LeftParen,
+            T::LeftParen,
+            T::RightParen,
+            T::RightParen,
+            T::RightParen,
+            T::RightParen,
+            T::RightParen,
+            T::LeftParen,
+            T::LeftParen,
+            T::LeftParen,
+        };
+        Token tk{};
+        size_t index = 0;
+
+        while (lexer.read_token(&tk)) {
+            const TokenKind expect = expected[index++];
+            REQUIRE(tk == expect);
+
+            if (expect == T::LeftParen) {
+                REQUIRE(tk.to_string() == TXT("("));
+            } else if (expect == T::RightParen) {
+                REQUIRE(tk.to_string() == TXT(")"));
             }
         }
     }
