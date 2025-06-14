@@ -159,7 +159,15 @@ class TextModParser {
         return maybe<Kinds...>(1, coalesce);
     }
 
-    Token peek(int offset = 0) {
+    /**
+     * Retrieves a token at the specified offset.
+     * @param offset The offset index from the current position
+     * @return The token at the offset found offset, or token_eof if beyond the stream.
+     * @note This may attempt to fetch more tokens
+     * @note The returned token reference can be invalidated by most methods on the parser i.e.,
+     *       advance() or peek()
+     */
+    const Token& peek(int offset = 0) {
         size_t index = m_Index + offset;
 
         // Stream in tokens as needed

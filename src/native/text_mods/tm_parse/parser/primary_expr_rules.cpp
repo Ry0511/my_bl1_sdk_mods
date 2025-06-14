@@ -81,15 +81,19 @@ StructExprRule StructExprRule::create(TextModParser& parser) {
     int paren_count = 1;
 
     while (paren_count > 0 && parser.peek() != TokenKind::EndOfInput) {
-        if (parser.peek() == TokenKind::LeftParen) {
+        const Token& tk = parser.peek();
+
+        if (tk == TokenKind::LeftParen) {
             ++paren_count;
-        } else if (parser.peek() == TokenKind::RightParen) {
+        } else if (tk == TokenKind::RightParen) {
             --paren_count;
         }
-        rule.m_TextRegion.extend(parser.peek().TextRegion);
+
+        rule.m_TextRegion.extend(tk.TextRegion);
         parser.advance();
     }
 
+    // If you open you must close
     if (paren_count != 0) {
         throw std::runtime_error{std::format(
             "Unbalanced parentheses in expression; Count: {}; Text: '{}'",
