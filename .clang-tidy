@@ -30,6 +30,7 @@ Checks: >
   readability-*,
     -readability-redundant-access-specifiers,
     -readability-qualified-auto,
+    -readability-identifier-length,
   
   -bugprone-narrowing-conversions,
   -cppcoreguidelines-avoid-c-arrays,
