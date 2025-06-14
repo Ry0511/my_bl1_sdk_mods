@@ -47,6 +47,8 @@ class TextModParser {
     size_t index() const noexcept { return m_Index; }
     bool eof() const noexcept { return m_EndOfInputReached; }
 
+    str_view text() const noexcept { return m_Lexer != nullptr ? m_Lexer->text() : str_view{}; }
+
     ////////////////////////////////////////////////////////////////////////////////
     // | PRIMARY OPERATIONS |
     ////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +87,6 @@ class TextModParser {
                 m_Tokens.push_back(tok);
             }
         }
-        m_Index = 0;
     }
 
     /**
