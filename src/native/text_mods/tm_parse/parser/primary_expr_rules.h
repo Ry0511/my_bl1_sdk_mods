@@ -98,6 +98,10 @@ class ParenExprRule : public ParserBaseRule {
     CopyableExpr m_Expr;
 
    public:
+    const ExpressionRule& expr() const noexcept { return *m_Expr; }
+    const ExpressionRule* inner_most() const noexcept;
+
+   public:
     RULE_PUBLIC_API(ParenExprRule);
 };
 

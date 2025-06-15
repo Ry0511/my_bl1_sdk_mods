@@ -92,6 +92,20 @@ bool AssignmentExprListRule::can_parse(TextModParser& p) {
     return false;
 }
 
+const ExpressionRule* ParenExprRule::inner_most() const noexcept {
+    if (m_Expr == nullptr) {
+        return nullptr;
+    }
+
+    // If we hold a ParenExprRule then get what that holds
+    if (m_Expr->is<ParenExprRule>()) {
+        return m_Expr->get<ParenExprRule>().inner_most();
+    }
+
+    // We have an expression
+    return m_Expr.get();
+}
+
 ParenExprRule ParenExprRule::create(TextModParser& parser) {
     ParenExprRule rule{};
     parser.require<TokenKind::LeftParen>();

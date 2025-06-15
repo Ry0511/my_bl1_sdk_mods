@@ -280,6 +280,18 @@ TEST_CASE("Expressions") {
                 REQUIRE(rule.to_string(parser) == test_case);
             }
         }
+
+        { // Why would you do this? ¯\_(ツ)_/¯
+            str_view test = TXT("(((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))");
+            TextModLexer lexer{test};
+            TextModParser parser{&lexer};
+            TST_INFO("Test: {}", str{test});
+
+            auto rule = ParenExprRule::create(parser);
+            REQUIRE(rule.operator bool());
+            REQUIRE(rule.to_string(parser) == test);
+            REQUIRE(rule.inner_most()->get<PrimitiveExprRule>().is<NumberExprRule>());
+        }
     }
 
     SECTION("Assignment Expressions") {
