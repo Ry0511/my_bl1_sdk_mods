@@ -98,7 +98,12 @@ class ParenExprRule : public ParserBaseRule {
     CopyableExpr m_Expr;
 
    public:
+    bool has_expr() const noexcept { return m_Expr != nullptr; }
+
+   public:
     const ExpressionRule& expr() const noexcept { return *m_Expr; }
+    ExpressionRule& expr() noexcept { return *m_Expr; }
+
     const ExpressionRule* inner_most() const noexcept;
 
    public:
@@ -134,12 +139,34 @@ class ExpressionRule {
 
     template <class T>
     bool is() const noexcept {
-        return std::holds_alternative<T>(m_InnerType);
+        // clang-format off
+        if constexpr (
+               std::is_same_v<T, std::monostate>
+            || std::is_same_v<T, PrimitiveExprRule>
+            || std::is_same_v<T, AssignmentExprListRule>
+            || std::is_same_v<T, ParenExprRule>
+        ) {
+            return std::holds_alternative<T>(m_InnerType);
+        } else {
+            return std::get<PrimitiveExprRule>(m_InnerType).is<T>();
+        }
+        // clang-format on
     }
 
     template <class T>
     const T& get() const noexcept {
-        return std::get<T>(m_InnerType);
+        // clang-format off
+        if constexpr (
+               std::is_same_v<T, std::monostate>
+            || std::is_same_v<T, PrimitiveExprRule>
+            || std::is_same_v<T, AssignmentExprListRule>
+            || std::is_same_v<T, ParenExprRule>
+        ) {
+            return std::get<T>(m_InnerType);
+        } else {
+            return std::get<PrimitiveExprRule>(m_InnerType).get<T>();
+        }
+        // clang-format on
     }
 
    public:

@@ -282,15 +282,49 @@ TEST_CASE("Expressions") {
         }
 
         { // Why would you do this? ¯\_(ツ)_/¯
-            str_view test = TXT("(((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))");
-            TextModLexer lexer{test};
-            TextModParser parser{&lexer};
-            TST_INFO("Test: {}", str{test});
 
-            auto rule = ParenExprRule::create(parser);
-            REQUIRE(rule.operator bool());
-            REQUIRE(rule.to_string(parser) == test);
-            REQUIRE(rule.inner_most()->get<PrimitiveExprRule>().is<NumberExprRule>());
+            auto validate = [](str_view test_case) -> ParenExprRule {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                TST_INFO("Test: '{}'", str{test_case});
+                auto rule = ParenExprRule::create(parser);
+                REQUIRE(rule.operator bool());
+                REQUIRE(rule.to_string(parser) == test_case);
+                return rule;
+            };
+
+            auto r = validate(TXT("(((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))"));
+            REQUIRE(r.inner_most()->is<NumberExprRule>());
+            REQUIRE(r.inner_most()->get<PrimitiveExprRule>().is<NumberExprRule>());
+
+            // Doesn't actually hold an inner expression
+            r = validate(TXT("()"));
+            REQUIRE(r.inner_most() == nullptr);
+            REQUIRE(!r.has_expr());
+
+            r = validate(TXT("(())"));
+            REQUIRE(r.inner_most() == nullptr);
+            REQUIRE(r.has_expr()); // Holds a ParenExprRule
+            REQUIRE(r.expr().is<ParenExprRule>());
+
+            // Inner most is a string
+            r = validate(TXT("(((\"Lorem ipsum\")))"));
+            REQUIRE(r.inner_most()->is<StrExprRule>());
+            REQUIRE(r.inner_most()->get<PrimitiveExprRule>().is<StrExprRule>());
+
+            // Inner most is a list of assignments
+            r = validate(TXT("((A=,B=,C=(())))"));
+            REQUIRE(r.inner_most()->is<AssignmentExprListRule>());
+            const auto& list = r.inner_most()->get<AssignmentExprListRule>();
+            REQUIRE(list.size() == 3);
+            REQUIRE(!list[0].has_expr());
+            REQUIRE(!list[1].has_expr());
+
+            // AssignmentExpr ( ParenExpr ( ParenExpr ) )
+            REQUIRE(list[2].has_expr());
+            REQUIRE(list[2].expr().is<ParenExprRule>());
+            REQUIRE(list[2].expr().get<ParenExprRule>().expr().is<ParenExprRule>());
+            REQUIRE(list[2].expr().get<ParenExprRule>().inner_most() == nullptr);
         }
     }
 
