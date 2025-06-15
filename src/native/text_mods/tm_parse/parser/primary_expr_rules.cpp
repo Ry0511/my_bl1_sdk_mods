@@ -38,7 +38,6 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
 
     // EOF | BlankLine
     if (parser.peek() != TokenKind::EndOfInput) {
-
         // Skip: (A=,B=)
         if (!parser.peek().is_any<TokenKind::Comma, TokenKind::RightParen>()) {
             rule.m_Expr = ExpressionRule::create(parser);
@@ -84,10 +83,15 @@ bool AssignmentExprListRule::can_parse(TextModParser& p) {
         return true;
     }
 
-    if (p.peek(1).is_any<T::LeftParen, T::LeftBracket>() && p.peek(2) == T::Number
-        && p.peek(3).is_any<T::RightParen, T::RightBracket>()) {
+    // clang-format off
+    if (
+           p.peek(1).is_any<T::LeftParen, T::LeftBracket>()
+        && p.peek(2) == T::Number
+        && p.peek(3).is_any<T::RightParen, T::RightBracket>()
+    ) {
         return true;
     }
+    // clang-format on
 
     return false;
 }
