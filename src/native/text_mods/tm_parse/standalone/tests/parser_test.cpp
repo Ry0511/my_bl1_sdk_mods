@@ -307,7 +307,7 @@ TEST_CASE("Expressions") {
                 TXT("foo=((1))"),
             };
 
-            for (str test_case : test_cases) {
+            for (const str& test_case : test_cases) {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
                 TST_INFO("Test: {}", str{test_case});
@@ -357,7 +357,7 @@ TEST_CASE("Expressions") {
     SECTION("Assignment Expression List") {
 
         {
-            auto validate = [](std::vector<str> expected, str full_text) {
+            auto validate = [](const std::vector<str>& expected, const str& full_text) {
                 TextModLexer lexer{full_text};
                 TextModParser parser{&lexer};
                 TST_INFO("Test: {}", str{full_text});
