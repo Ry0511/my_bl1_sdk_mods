@@ -137,6 +137,7 @@ class ParserPrimaryRule : public ParserBaseRule {
 };
 
 #define RULE_PUBLIC_API(type)                   \
+   public:                                      \
     constexpr type() noexcept(true) = default;  \
     constexpr ~type() noexcept(true) = default; \
     static type create(TextModParser&)

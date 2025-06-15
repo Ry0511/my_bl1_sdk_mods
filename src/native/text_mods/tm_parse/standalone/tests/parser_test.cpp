@@ -275,7 +275,7 @@ TEST_CASE("Expressions") {
                 TextModParser parser{&lexer};
                 TST_INFO("Test: {}", str{test_case});
 
-                ExpressionRule rule = ExpressionRule::create(parser);
+                auto rule = ParenExprRule::create(parser);
                 REQUIRE(rule.operator bool());
                 REQUIRE(rule.to_string(parser) == test_case);
             }

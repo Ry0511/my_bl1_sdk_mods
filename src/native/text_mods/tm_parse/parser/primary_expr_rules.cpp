@@ -38,7 +38,9 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
 
     // EOF | BlankLine
     if (parser.peek() != TokenKind::EndOfInput) {
-        if (parser.peek() != TokenKind::Comma) {
+
+        // Skip: (A=,B=)
+        if (!parser.peek().is_any<TokenKind::Comma, TokenKind::RightParen>()) {
             rule.m_Expr = ExpressionRule::create(parser);
             rule.m_TextRegion.extend(rule.expr().text_region());
         }
@@ -72,37 +74,51 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
     return list;
 }
 
-StructExprRule StructExprRule::create(TextModParser& parser) {
-    StructExprRule rule;
+bool AssignmentExprListRule::can_parse(TextModParser& p) {
+    using T = TokenKind;
+    if (!p.peek().is_identifier()) {
+        return false;
+    }
 
+    if (p.peek(1) == T::Equal) {
+        return true;
+    }
+
+    if (p.peek(1).is_any<T::LeftParen, T::LeftBracket>() && p.peek(2) == T::Number
+        && p.peek(3).is_any<T::RightParen, T::RightBracket>()) {
+        return true;
+    }
+
+    return false;
+}
+
+ParenExprRule ParenExprRule::create(TextModParser& parser) {
+    ParenExprRule rule{};
     parser.require<TokenKind::LeftParen>();
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
-    int paren_count = 1;
+    //
+    // We will need to recursively handle expressions like the following:
+    //  > (1)                         -> ParenExpr( NumberExpr )
+    //  > ((1))                       -> ParenExpr( ParenExpr( NumberExpr ) )
+    //  > (((1)))                     -> ParenExpr( ParenExpr( ParenExpr( NumberExpr ) ) )
+    //  > ((A=1,B=(C=2,D=((3))),E=4)) -> ...
+    //
+    // Downside of this is that it pollutes the result with bloat as the actual inner value is
+    // disguised. There really isn't a great to avoid this however we can initially parse as this
+    // and then flatten the structure after the fact.
+    //
 
-    while (paren_count > 0 && parser.peek() != TokenKind::EndOfInput) {
-        const Token& tk = parser.peek();
-
-        if (tk == TokenKind::LeftParen) {
-            ++paren_count;
-        } else if (tk == TokenKind::RightParen) {
-            --paren_count;
-        }
-
-        rule.m_TextRegion.extend(tk.TextRegion);
-        parser.advance();
+    // A=()
+    if (parser.maybe<TokenKind::RightParen>()) {
+        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
-
-    // If you open you must close
-    if (paren_count != 0) {
-        throw std::runtime_error{std::format(
-            "Unbalanced parentheses in expression; Count: {}; Text: '{}'",
-            paren_count,
-            str{rule.to_string(parser)}
-        )};
+    // ( Expression )
+    else {
+        rule.m_Expr = ExpressionRule::create(parser);
+        parser.require<TokenKind::RightParen>();
+        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
-
-    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
 
     return rule;
 }
@@ -115,8 +131,12 @@ ExpressionRule ExpressionRule::create(TextModParser& parser) {
     using T = TokenKind;
     ExpressionRule rule{};
 
-    if (parser.peek() == T::LeftParen) {
-        rule.m_InnerType = StructExprRule::create(parser);
+    const Token& tk = parser.peek();
+
+    if (tk == T::LeftParen) {
+        rule.m_InnerType = ParenExprRule::create(parser);
+    } else if (AssignmentExprListRule::can_parse(parser)) {
+        rule.m_InnerType = AssignmentExprListRule::create(parser);
     } else {
         rule.m_InnerType = PrimitiveExprRule::create(parser);
     }

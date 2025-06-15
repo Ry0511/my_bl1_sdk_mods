@@ -10,7 +10,7 @@
 
 namespace tm_parse::rules {
 
-class StructExprRule;
+class ParenExprRule;
 class ExpressionRule;
 class PrimitiveExprRule;
 
@@ -89,25 +89,22 @@ class AssignmentExprListRule : public ParserBaseRule {
 
    public:
     RULE_PUBLIC_API(AssignmentExprListRule);
+    static bool can_parse(TextModParser& parser);
 };
 
 // LeftParen Expression? RightParen
-class StructExprRule : public ParserBaseRule {
+class ParenExprRule : public ParserBaseRule {
    private:
     CopyableExpr m_Expr;
 
    public:
-    operator bool() const noexcept { return m_Expr != nullptr; }
-    const ExpressionRule& expr() const noexcept { return *m_Expr; }
-
-   public:
-    RULE_PUBLIC_API(StructExprRule);
+    RULE_PUBLIC_API(ParenExprRule);
 };
 
 // Any Expression
 class ExpressionRule {
    public:
-    using InnerType = std::variant<std::monostate, PrimitiveExprRule, StructExprRule>;
+    using InnerType = std::variant<std::monostate, PrimitiveExprRule, AssignmentExprListRule, ParenExprRule>;
 
    private:
     InnerType m_InnerType;
