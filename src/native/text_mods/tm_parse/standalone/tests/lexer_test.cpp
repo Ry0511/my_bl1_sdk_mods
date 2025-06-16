@@ -543,6 +543,7 @@ TEST_CASE("Lexing parenthesis") {
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Lexer Helpers") {
+
     SECTION("::get_line_start && ::get_line_number") {
         TextModLexer lexer{TXT("\n1\n12\n123\n1234\n\n\n12345")};
         Token token{};
@@ -582,6 +583,7 @@ TEST_CASE("Lexer Helpers") {
         REQUIRE(lexer.get_line_start(token.TextRegion) == 17);
         REQUIRE(lexer.get_line_number(token.TextRegion) == 7);
     }
+
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
