@@ -29,7 +29,7 @@ class TextModParser {
     size_t m_Index;
 
    public:
-    explicit TextModParser(TextModLexer* lexer, bool insert_entry_token = false) noexcept;
+    explicit TextModParser(TextModLexer* lexer) noexcept;
     ~TextModParser() = default;
 
     ////////////////////////////////////////////////////////////////////////////////
