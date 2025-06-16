@@ -24,7 +24,6 @@ class TextModLexer {
     size_t m_Position{0};
     size_t m_Start{0};
     Token* m_Token{nullptr};
-    size_t m_CurrentLine{0};
     LexerState m_State{};
 
    private:
@@ -36,7 +35,6 @@ class TextModLexer {
     void reset() {
         m_Position = 0;
         m_Start = 0;
-        m_CurrentLine = 0;
         m_Token = nullptr;
     }
 
@@ -61,11 +59,6 @@ class TextModLexer {
      * @return Current position in the stream
      */
     [[nodiscard]] size_t position() const noexcept { return m_Position; }
-
-    /**
-     * @return Current line number; Zero based.
-     */
-    [[nodiscard]] size_t line() const noexcept { return m_CurrentLine; }
 
     size_t get_line_start(size_t pos) const noexcept {
         if (size() < pos) {
@@ -199,7 +192,7 @@ class TextModLexer {
         // Didn't ask for more context
         if (context_size < 1) {
             size_t pos = m_Position;
-            throw ErrorWithContext(msg, m_CurrentLine, pos, str{error_snippet});
+            throw ErrorWithContext(msg, get_line_number(pos), pos, str{error_snippet});
         }
 
         using LineContext = ErrorWithContext::LineContext;
@@ -233,7 +226,7 @@ class TextModLexer {
         }
 
         size_t pos = m_Position;
-        throw ErrorWithContext(msg, m_CurrentLine, pos, str{error_snippet}, context);
+        throw ErrorWithContext(msg, get_line_number(pos), pos, str{error_snippet}, context);
     }
 
    private:

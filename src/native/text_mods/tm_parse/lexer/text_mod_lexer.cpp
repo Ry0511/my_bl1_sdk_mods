@@ -114,7 +114,6 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
     for (; m_Position < m_Text.size(); ++m_Position) {
         const txt_char ch = peek();  // NOLINT(*-identifier-length)
         if (ch == lit::lf) {
-            ++m_CurrentLine;
             continue;
         }
 
@@ -136,12 +135,10 @@ bool TextModLexer::read_multiline_comment() noexcept(false) {
 bool TextModLexer::read_empty_lines() noexcept(true) {
     TXT_MOD_ASSERT(!eof() && peek() == lit::lf, "Expected empty line");
     ++m_Position;
-    ++m_CurrentLine;  // Count the initial line
 
     // NOLINTNEXTLINE(*-identifier-length)
     read_while([this](txt_char ch) -> bool {
         if (ch == lit::lf) {
-            ++m_CurrentLine;
             return true;
         }
 
