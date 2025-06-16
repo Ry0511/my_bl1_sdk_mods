@@ -538,6 +538,52 @@ TEST_CASE("Lexing parenthesis") {
     }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// | LEXER METHODS |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Lexer Helpers") {
+    SECTION("::get_line_start && ::get_line_number") {
+        TextModLexer lexer{TXT("\n1\n12\n123\n1234\n\n\n12345")};
+        Token token{};
+
+        auto next_token = [&lexer](Token& token) {
+            do {
+                REQUIRE(lexer.read_token(&token));
+            } while (token.is_eolf());
+        };
+
+        REQUIRE(lexer.get_line_start(0) == 0);
+        REQUIRE(lexer.get_line_number(0) == 0);
+
+        next_token(token);
+        REQUIRE(token.as_str_view() == TXT("1"));
+        REQUIRE(token.TextRegion.Start == 1);
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 1);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 1);
+
+        next_token(token);
+        REQUIRE(token.as_str_view() == TXT("12"));
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 3);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 2);
+
+        next_token(token);
+        REQUIRE(token.as_str_view() == TXT("123"));
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 6);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 3);
+
+        next_token(token);
+        REQUIRE(token.as_str_view() == TXT("1234"));
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 10);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 4);
+
+        next_token(token);
+        REQUIRE(token.as_str_view() == TXT("12345"));
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 17);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 7);
+    }
+}
+
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
 
 }  // namespace tm_parse_tests

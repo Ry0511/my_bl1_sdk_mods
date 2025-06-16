@@ -67,6 +67,45 @@ class TextModLexer {
      */
     [[nodiscard]] size_t line() const noexcept { return m_CurrentLine; }
 
+    size_t get_line_start(size_t pos) const noexcept {
+        if (size() < pos) {
+            return invalid_index_v;
+        }
+
+        if (pos == 0) {
+            return 0;
+        }
+
+        size_t line_start = pos;
+        do {
+            if (m_Text[line_start] == TXT('\n')) {
+                return line_start + 1;
+            }
+            --line_start;
+        } while (line_start > 0);
+
+        if (m_Text[line_start] == TXT('\n')) {
+            return line_start + 1;
+        }
+
+        return 0;
+    }
+
+    size_t get_line_start(const TokenTextView& vw) const noexcept { return get_line_start(vw.Start); }
+
+    [[nodiscard]] size_t get_line_number(size_t pos) const noexcept {
+        size_t line_count = 0;
+
+        for (size_t i = 0; i < pos; i++) {
+            if (m_Text[i] == TXT('\n')) {
+                line_count++;
+            }
+        }
+        return line_count;
+    }
+
+    [[nodiscard]] size_t get_line_number(const TokenTextView& vw) const noexcept { return get_line_number(vw.Start); }
+
     /**
      * Skips the provided number of characters.
      * @param count The number of characters to skip
@@ -82,6 +121,7 @@ class TextModLexer {
     bool read_token(Token* token);
 
     void save() noexcept { m_State = LexerState{.Start = m_Start, .Position = m_Position}; }
+
     void restore() noexcept {
         m_Position = m_State.Position;
         m_Start = m_State.Start;
