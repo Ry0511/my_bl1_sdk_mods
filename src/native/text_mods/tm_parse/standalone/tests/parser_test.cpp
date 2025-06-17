@@ -37,15 +37,20 @@ TEST_CASE("Parser Rules") {
                 TXT("foo.baz"),
                 TXT("foo.baz.bar"),
                 TXT("foo_bar._baz_foo"),
+                TXT("\nfoo.baz.bar"),
+                TXT("\n\nfoo_bar._baz_foo"),
+                TXT("\n\n\nfoo.baz"),
             };
-
             for (str_view test_case : test_cases) {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
 
                 DotIdentifierRule rule = DotIdentifierRule::create(parser);
                 TXT_DFLT_INFO(test_case, parser, rule);
-                REQUIRE((rule && test_case == rule.to_string(parser)));
+                REQUIRE(rule.operator bool());
+
+                auto pos = test_case.find_first_not_of(TXT('\n'));
+                REQUIRE(rule.to_string(parser) == test_case.substr(pos));
             }
         }
 

@@ -17,6 +17,12 @@ namespace tm_parse {
 using namespace rules;
 
 class TextModParser {
+   public:
+    struct PeekOptions {
+        bool Coalesce = true;
+        bool FailOnBlankLine = false;
+    };
+
    private:
     friend ParserBaseRule;
 
@@ -25,6 +31,8 @@ class TextModParser {
     ParserRuleKind m_SecondaryRuleKind;  // Current parent rule kind i.e., ParenExpr
     bool m_EndOfInputReached;
     TextModLexer* m_Lexer;
+
+    // Contains all tokens
     std::vector<Token> m_Tokens;
     size_t m_Index;
 
@@ -103,10 +111,35 @@ class TextModParser {
    public:
     template <TokenKind... Kinds>
         requires(sizeof...(Kinds) > 0)
-    void require(const int offset = 0, const bool coalesce = true) {
+    void require(const int offset = 0, const PeekOptions& opt = {}) {
+        auto impl_error = [](const Token& token) {
+            // Failed, build error message and throw
+            std::stringstream ss{};  // NOLINT(*-identifier-length)
+            ss << "Expecting:";
+            for (const auto& kind : {Kinds...}) {
+                ss << std::format(" {},", TokenProxy{kind}.as_str());
+            }
+            ss << std::format(" but got '{}'", token.kind_as_str());
+            throw std::runtime_error{ss.str()};
+        };
+
+        // Not looking for BlankLine or EOF?
+        if constexpr ((... && (Kinds != TokenKind::BlankLine && Kinds != TokenKind::EndOfInput))) {
+            const Token& tk = peek();
+            bool is_eof_or_lf = tk.is_eolf();
+
+            if (is_eof_or_lf) {
+                if (opt.FailOnBlankLine) {
+                    impl_error(tk);
+                } else {
+                    advance();
+                }
+            }
+        }
+
         const Token& token = peek(offset);
 
-        if (coalesce && (... || (TokenKind::Identifier == Kinds))) {
+        if (opt.Coalesce && (... || (TokenKind::Identifier == Kinds))) {
             if (token.is_keyword() || (... || (token == Kinds))) {
                 advance();
                 return;
@@ -118,28 +151,42 @@ class TextModParser {
             }
         }
 
-        // Failed, build error message and throw
-        std::stringstream ss{};  // NOLINT(*-identifier-length)
-        ss << "Expecting:";
-        for (const auto& kind : {Kinds...}) {
-            ss << std::format(" {},", TokenProxy{kind}.as_str());
+        impl_error(token);
+    }
+
+    template <TokenKind... Kinds>
+        requires(sizeof...(Kinds) > 0)
+    void require_next(const PeekOptions& opt = {}) {
+        require<Kinds...>(1, opt);
+    }
+
+    template <TokenKind... Kinds>
+        requires(sizeof...(Kinds) > 0)
+    bool maybe(const int offset = 0, const PeekOptions& opt = {}) {
+        // If not looking for \n or EOF then skip them
+        if constexpr ((... && (Kinds != TokenKind::BlankLine && Kinds != TokenKind::EndOfInput))) {
+            const Token& tk = peek();
+            bool is_eof_or_lf = tk.is_eolf();
+
+            if (is_eof_or_lf) {
+                if (opt.FailOnBlankLine) {
+                    return false;
+                }
+                advance();
+            }
         }
-        ss << std::format(" but got '{}'", token.kind_as_str());
-        throw std::runtime_error{ss.str()};
-    }
 
-    template <TokenKind... Kinds>
-        requires(sizeof...(Kinds) > 0)
-    void require_next(const bool coalesce = true) {
-        require<Kinds...>(1, coalesce);
-    }
+        // If not looking for \n or EOF then skip them
+        if constexpr ((... && (Kinds != TokenKind::BlankLine && Kinds != TokenKind::EndOfInput))) {
+            // TokenKind::BlankLine is greedy and EOF is special
+            if (peek().is_eolf()) {
+                advance();  // TODO: Might want to enable a flag to error rather than skip for some rules
+            }
+        }
 
-    template <TokenKind... Kinds>
-        requires(sizeof...(Kinds) > 0)
-    bool maybe(const int offset = 0, const bool coalesce = true) {
         const Token& tok = peek(offset);
 
-        if (coalesce && (... || (TokenKind::Identifier == Kinds))) {
+        if (opt.Coalesce && (... || (TokenKind::Identifier == Kinds))) {
             if (tok.is_keyword() || (... || (tok == Kinds))) {
                 advance();
                 return true;
@@ -155,8 +202,8 @@ class TextModParser {
 
     template <TokenKind... Kinds>
         requires(sizeof...(Kinds) > 0)
-    bool maybe_next(const bool coalesce = true) {
-        return maybe<Kinds...>(1, coalesce);
+    bool maybe_next(const PeekOptions& opt = {}) {
+        return maybe<Kinds...>(1, opt);
     }
 
     /**
