@@ -23,6 +23,12 @@ class TextModParser {
         bool FailOnBlankLine = false;
     };
 
+    struct MatchOptions {
+        bool Coalesce = true;            // Allow Identifier to match Kw_*
+        bool SkipBlankLines = true;      // Skips BlankLine tokens
+        bool ToggleOnBlankLine = false;  // Toggles the above on BlankLine tokens in provided sequence
+    };
+
    private:
     friend ParserBaseRule;
 
@@ -53,7 +59,7 @@ class TextModParser {
     }
 
     size_t index() const noexcept { return m_Index; }
-    bool eof() const noexcept { return m_EndOfInputReached; }
+    bool eof() const noexcept { return m_EndOfInputReached && m_Index >= m_Tokens.size(); }
 
     str_view text() const noexcept { return m_Lexer != nullptr ? m_Lexer->text() : str_view{}; }
 
@@ -106,6 +112,57 @@ class TextModParser {
             fetch_tokens();
         }
         m_Index = std::clamp(m_Index + 1, size_t{0}, m_Tokens.size());
+    }
+
+   public:
+    template <TokenKind... Sequence>
+        requires(sizeof...(Sequence) > 0)
+    int match_seq(MatchOptions opt = {}) noexcept {
+        using T = TokenKind;
+
+        if (eof()) {
+            return -1;
+        }
+
+        // TODO: Cleanup
+
+        int cur_pos = 1;
+        size_t pos = m_Index;
+        for (TokenKind expected_kind : {Sequence...}) {
+            // Check if we need to fetch more tokens
+            fetch_tokens();
+
+            Token tk = get_token(pos);
+
+            // Toggle on blank lines, applies to next token
+            if (opt.ToggleOnBlankLine && expected_kind == T::BlankLine) {
+                opt.SkipBlankLines = !opt.SkipBlankLines;
+                continue;
+            }
+
+            // Skip any blank lines if skipping is enabled
+            if (opt.SkipBlankLines && tk == T::BlankLine && expected_kind != T::BlankLine) {
+                ++pos;
+                tk = get_token(pos);
+            }
+
+            // Identifiers match all
+            if (opt.Coalesce && tk.is_identifier() && expected_kind == T::Identifier) {
+                ++cur_pos;
+                ++pos;
+                continue;
+            }
+
+            // Unexpected token in bagging area
+            if (tk != expected_kind) {
+                return cur_pos;
+            }
+
+            ++cur_pos;
+            ++pos;
+        }
+
+        return 0;
     }
 
    public:

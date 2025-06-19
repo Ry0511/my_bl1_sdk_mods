@@ -261,9 +261,8 @@ TEST_CASE("Expressions") {
     }
 
     SECTION("Struct Expression") {
-
         {
-            str_view test_cases[] {
+            str_view test_cases[]{
                 TXT("(((A=,B=,C=((1)))))"),
                 TXT("()"),
                 TXT("(())"),
@@ -286,7 +285,7 @@ TEST_CASE("Expressions") {
             }
         }
 
-        { // Why would you do this? ¯\_(ツ)_/¯
+        {  // Why would you do this? ¯\_(ツ)_/¯
 
             auto validate = [](str_view test_case) -> ParenExprRule {
                 TextModLexer lexer{test_case};
@@ -309,7 +308,7 @@ TEST_CASE("Expressions") {
 
             r = validate(TXT("(())"));
             REQUIRE(r.inner_most() == nullptr);
-            REQUIRE(r.has_expr()); // Holds a ParenExprRule
+            REQUIRE(r.has_expr());  // Holds a ParenExprRule
             REQUIRE(r.expr().is<ParenExprRule>());
 
             // Inner most is a string
@@ -394,7 +393,6 @@ TEST_CASE("Expressions") {
     }
 
     SECTION("Assignment Expression List") {
-
         {
             auto validate = [](const std::vector<str>& expected, const str& full_text) {
                 TextModLexer lexer{full_text};
@@ -428,8 +426,7 @@ TEST_CASE("Expressions") {
         }
 
         {
-
-            str_view test_cases[] {
+            str_view test_cases[]{
                 TXT("foo=1,baz=2,bar=3"),
                 TXT("foo(1)=1,baz[2]=2,bar=3"),
                 TXT("foo=,baz=,bar="),
@@ -488,7 +485,6 @@ TEST_CASE("Expressions") {
 
 TEST_CASE("Primary Rules") {
     SECTION("Set Command") {
-
         {
             str_view test = TXT("set Foo.Baz:Bar MyProperty ((((1))))");
             TextModLexer lexer{test};
@@ -555,6 +551,102 @@ TEST_CASE("Primary Rules") {
             REQUIRE(rule.property().to_string(parser) == TXT("MyProperty (1)"));
             REQUIRE(rule.expr().to_string(parser) == TXT("(1)"));
         }
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | HELPERS |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Match Sequence") {
+    using T = TokenKind;
+    str_view test_case = TXT("set\nfoo\n\nbaz\nbar\n10\n\"\"\n20\n");
+    TextModLexer lexer{test_case};
+    TextModParser parser{&lexer};
+
+    auto match_options = TextModParser::MatchOptions{
+        .Coalesce = false,
+        .SkipBlankLines = true,
+        .ToggleOnBlankLine = false,
+    };
+
+    SECTION("Skip blank lines") {
+        REQUIRE(
+            parser.match_seq<
+                T::Kw_Set,
+                T::Identifier,
+                T::Identifier,
+                T::Identifier,
+                T::Number,
+                T::StringLiteral,
+                T::Number,
+                T::BlankLine  // Still able to use it to validate
+                >(match_options)
+            == 0
+        );
+
+        // Should Match
+        REQUIRE(parser.match_seq<T::Kw_Set>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::Identifier>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine, T::Identifier>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine, T::Identifier, T::BlankLine>(match_options) == 0);
+
+        // Shouldn't Match
+        REQUIRE(parser.match_seq<T::BlankLine>(match_options) == 1);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine, T::Number>(match_options) == 3);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::Number>(match_options) == 2);
+        REQUIRE(parser.match_seq<T::Kw_True, T::Number>(match_options) == 1);
+    }
+
+    match_options.SkipBlankLines = false;
+
+    SECTION("Dont skip blank lines") {
+        // Full Match
+        REQUIRE(
+            parser.match_seq<
+                T::Kw_Set,
+                T::BlankLine,
+                T::Identifier,
+                T::BlankLine,
+                T::Identifier,
+                T::BlankLine,
+                T::Identifier,
+                T::BlankLine,
+                T::Number,
+                T::BlankLine,
+                T::StringLiteral,
+                T::BlankLine,
+                T::Number,
+                T::BlankLine>(match_options)
+            == 0
+        );
+
+        // Should Match
+        REQUIRE(parser.match_seq<T::Kw_Set>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine, T::Identifier, T::BlankLine>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine, T::Identifier>(match_options) == 0);
+
+        // Shouldn't Match
+        REQUIRE(parser.match_seq<T::Kw_True>(match_options) == 1);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::Number>(match_options) == 2);
+        REQUIRE(parser.match_seq<T::Kw_Set, T::BlankLine, T::Number>(match_options) == 3);
+    }
+
+    SECTION("Coalesce identifiers") {
+        match_options.SkipBlankLines = true;
+        match_options.Coalesce = true;
+
+        // Should Match
+        REQUIRE(parser.match_seq<T::Identifier>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Identifier, T::Identifier>(match_options) == 0);
+        REQUIRE(parser.match_seq<T::Identifier, T::Identifier, T::Identifier>(match_options) == 0);
+
+        // Shouldn't Match
+        REQUIRE(parser.match_seq<T::Kw_True>(match_options) == 1);
+        REQUIRE(parser.match_seq<T::Identifier, T::Kw_Set>(match_options) == 2);
+        REQUIRE(parser.match_seq<T::Identifier, T::Identifier, T::BlankLine, T::Number>(match_options) == 4);
+
     }
 }
 
