@@ -566,8 +566,7 @@ TEST_CASE("Match Sequence") {
 
     auto match_options = TextModParser::MatchOptions{
         .Coalesce = false,
-        .SkipBlankLines = true,
-        .ToggleOnBlankLine = false,
+        .SkipBlankLines = true
     };
 
     SECTION("Skip blank lines") {

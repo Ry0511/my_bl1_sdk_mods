@@ -26,7 +26,6 @@ class TextModParser {
     struct MatchOptions {
         bool Coalesce = true;            // Allow Identifier to match Kw_*
         bool SkipBlankLines = true;      // Skips BlankLine tokens
-        bool ToggleOnBlankLine = false;  // Toggles the above on BlankLine tokens in provided sequence
     };
 
    private:
@@ -124,21 +123,16 @@ class TextModParser {
             return -1;
         }
 
-        // TODO: Cleanup
-
-        int cur_pos = 1;
+        int cur_tok_index = 1;
         size_t pos = m_Index;
         for (TokenKind expected_kind : {Sequence...}) {
-            // Check if we need to fetch more tokens
-            fetch_tokens();
+
+            // doaweneedamoretokens?
+            while (!m_EndOfInputReached && pos >= m_Tokens.size()) {
+                fetch_tokens();
+            }
 
             Token tk = get_token(pos);
-
-            // Toggle on blank lines, applies to next token
-            if (opt.ToggleOnBlankLine && expected_kind == T::BlankLine) {
-                opt.SkipBlankLines = !opt.SkipBlankLines;
-                continue;
-            }
 
             // Skip any blank lines if skipping is enabled
             if (opt.SkipBlankLines && tk == T::BlankLine && expected_kind != T::BlankLine) {
@@ -148,17 +142,17 @@ class TextModParser {
 
             // Identifiers match all
             if (opt.Coalesce && tk.is_identifier() && expected_kind == T::Identifier) {
-                ++cur_pos;
+                ++cur_tok_index;
                 ++pos;
                 continue;
             }
 
             // Unexpected token in bagging area
             if (tk != expected_kind) {
-                return cur_pos;
+                return cur_tok_index;
             }
 
-            ++cur_pos;
+            ++cur_tok_index;
             ++pos;
         }
 
