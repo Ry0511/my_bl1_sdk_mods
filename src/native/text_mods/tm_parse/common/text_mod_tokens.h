@@ -51,6 +51,43 @@ enum class TokenKind : token_int {
     TokenKind_Count  , // Keep this last
 };
 
+namespace tokens {
+// NOLINTBEGIN(*-unused-using-decls)
+using TokenKind::Kw_Set;
+using TokenKind::Kw_None;
+using TokenKind::Kw_Level;
+using TokenKind::Kw_Begin;
+using TokenKind::Kw_Object;
+using TokenKind::Kw_Class;
+using TokenKind::Kw_Name;
+using TokenKind::Kw_Package;
+using TokenKind::Kw_End;
+using TokenKind::Kw_True;
+using TokenKind::Kw_False;
+using TokenKind::Kw_Invalid;
+using TokenKind::Kw_Count;
+using TokenKind::LeftParen;
+using TokenKind::RightParen;
+using TokenKind::Dot;
+using TokenKind::Colon;
+using TokenKind::Slash;
+using TokenKind::Star;
+using TokenKind::Comma;
+using TokenKind::LeftBracket;
+using TokenKind::RightBracket;
+using TokenKind::Number;
+using TokenKind::Equal;
+using TokenKind::Identifier;
+using TokenKind::StringLiteral;
+using TokenKind::NameLiteral;
+using TokenKind::LineComment;
+using TokenKind::MultiLineComment;
+using TokenKind::BlankLine;
+using TokenKind::EndOfInput;
+using TokenKind::TokenKind_Count;
+// NOLINTEND(*-unused-using-decls)
+}
+
 constexpr token_int begin_kw_token     = static_cast<token_int>(TokenKind::Kw_Set);
 constexpr token_int end_kw_token       = static_cast<token_int>(TokenKind::Kw_Count);
 constexpr token_int begin_symbol_token = static_cast<token_int>(TokenKind::LeftParen);
