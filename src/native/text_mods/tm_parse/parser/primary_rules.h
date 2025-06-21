@@ -14,7 +14,7 @@ namespace tm_parse::rules {
 class SetCommandRule : public ParserBaseRule {
    private:
     ObjectIdentifierRule m_Object;
-    PropertyAccessRule m_Property;
+    PropertyAccessRule m_Property;  // TODO: This can be NameExprRule
     ExpressionRule m_Expression;
 
    public:
@@ -24,6 +24,21 @@ class SetCommandRule : public ParserBaseRule {
 
    public:
     RULE_PUBLIC_API(SetCommandRule);
+};
+
+// Begin Object Class=Foo.Baz Name=Foo.Baz:Bar
+//   Foo=1
+// End Object
+//
+class ObjectDefinitionRule : public ParserBaseRule {
+   private:
+    DotIdentifierRule m_Class;
+    ObjectIdentifierRule m_Name;
+    std::vector<std::shared_ptr<ObjectDefinitionRule>> m_ChildObjects;
+    std::vector<AssignmentExprRule> m_Assignments;
+
+   public:
+    RULE_PUBLIC_API(ObjectDefinitionRule);
 };
 
 }  // namespace tm_parse::rules

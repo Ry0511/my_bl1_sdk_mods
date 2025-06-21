@@ -6,16 +6,14 @@
 
 #include "pch.h"
 
+#include "utils.h"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
-#include "tests/catch.hpp"
 
 namespace tm_parse_tests {
 using namespace tm_parse;
 
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
-
-#define TST_INFO(fmt, ...) INFO(std::format(fmt, __VA_ARGS__))
 
 #define TXT_DFLT_INFO(test, parser, actual)        \
     TST_INFO(                                      \
@@ -564,10 +562,7 @@ TEST_CASE("Match Sequence") {
     TextModLexer lexer{test_case};
     TextModParser parser{&lexer};
 
-    auto match_options = TextModParser::MatchOptions{
-        .Coalesce = false,
-        .SkipBlankLines = true
-    };
+    auto match_options = TextModParser::MatchOptions{.Coalesce = false, .SkipBlankLines = true};
 
     SECTION("Skip blank lines") {
         REQUIRE(
@@ -645,7 +640,6 @@ TEST_CASE("Match Sequence") {
         REQUIRE(parser.match_seq<T::Kw_True>(match_options) == 1);
         REQUIRE(parser.match_seq<T::Identifier, T::Kw_Set>(match_options) == 2);
         REQUIRE(parser.match_seq<T::Identifier, T::Identifier, T::BlankLine, T::Number>(match_options) == 4);
-
     }
 }
 

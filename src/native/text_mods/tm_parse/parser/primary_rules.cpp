@@ -30,4 +30,28 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     return rule;
 }
 
+ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
+
+    using T = TokenKind;
+
+    ObjectDefinitionRule rule{};
+    rule.m_TextRegion = parser.peek().TextRegion;
+    parser.require<T::Kw_Begin>();
+    parser.require<T::Kw_Object>();
+
+    // Class=Foo.Baz.Bar
+    parser.require<T::Kw_Class>();
+    parser.require<T::Equal>();
+    rule.m_Class = DotIdentifierRule::create(parser);
+
+    // Name=Foo.Baz:Bar
+    parser.require<T::Kw_Name>();
+    parser.require<T::Equal>();
+    rule.m_Name = ObjectIdentifierRule::create(parser);
+
+
+
+    return rule;
+}
+
 }  // namespace tm_parse::rules

@@ -9,6 +9,7 @@
 #include "common/text_mod_common.h"
 #include "lexer/text_mod_lexer.h"
 
+#include "parser/parser_iterator.h"
 #include "parser/parser_rules.h"
 #include "parser/primary_rules.h"
 
@@ -24,12 +25,20 @@ class TextModParser {
     };
 
     struct MatchOptions {
-        bool Coalesce = true;            // Allow Identifier to match Kw_*
-        bool SkipBlankLines = true;      // Skips BlankLine tokens
+        bool Coalesce = true;        // Allow Identifier to match Kw_*
+        bool SkipBlankLines = true;  // Skips BlankLine tokens
+    };
+
+    class Iterator {
+       private:
+        TextModParser* m_Parser;
+        size_t m_Index;
+        bool m_SkipBlankLines;
     };
 
    private:
     friend ParserBaseRule;
+    friend class ParserIterator;
 
    private:
     ParserRuleKind m_PrimaryRuleKind;    // Current primary rule i.e., Set Command, Object Definition
@@ -81,6 +90,11 @@ class TextModParser {
     ParserRuleKind secondary() const noexcept { return m_SecondaryRuleKind; }
 
    public:
+    ParserIterator create_iterator(const MatchOptions& opt = {}) noexcept {
+        return ParserIterator{this, m_Index, opt.SkipBlankLines, opt.Coalesce};
+    }
+
+   public:
     void fetch_tokens() {
         if (m_EndOfInputReached) {
             return;
@@ -100,6 +114,13 @@ class TextModParser {
                 m_Tokens.push_back(tok);
             }
         }
+    }
+
+    bool fetch_to_fit(size_t index) {
+        while (m_Tokens.size() <= index && !m_EndOfInputReached) {
+            fetch_tokens();
+        }
+        return m_Index < m_Tokens.size();
     }
 
     /**
@@ -126,7 +147,6 @@ class TextModParser {
         int cur_tok_index = 1;
         size_t pos = m_Index;
         for (TokenKind expected_kind : {Sequence...}) {
-
             // doaweneedamoretokens?
             while (!m_EndOfInputReached && pos >= m_Tokens.size()) {
                 fetch_tokens();
@@ -163,14 +183,21 @@ class TextModParser {
     template <TokenKind... Kinds>
         requires(sizeof...(Kinds) > 0)
     void require(const int offset = 0, const PeekOptions& opt = {}) {
-        auto impl_error = [](const Token& token) {
+        auto impl_error = [this](const Token& token) {
             // Failed, build error message and throw
             std::stringstream ss{};  // NOLINT(*-identifier-length)
-            ss << "Expecting:";
+            ss << "Expecting ";
             for (const auto& kind : {Kinds...}) {
                 ss << std::format(" {},", TokenProxy{kind}.as_str());
             }
-            ss << std::format(" but got '{}'", token.kind_as_str());
+            ss << std::format(" but got {}", token.kind_as_str());
+
+            TokenTextView vw = token.TextRegion;
+            size_t start = this->m_Lexer->get_line_start(vw);
+            vw.extend(TokenTextView{start, 0});
+
+            ss << std::format("; Current Line: '{}'", str{vw.view_from(this->m_Lexer->text())});
+
             throw std::runtime_error{ss.str()};
         };
 

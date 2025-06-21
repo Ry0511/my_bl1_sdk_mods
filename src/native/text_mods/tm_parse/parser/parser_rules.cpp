@@ -94,7 +94,7 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     rule.m_Identifier = IdentifierRule::create(parser);
     rule.m_TextRegion = rule.m_Identifier.text_region();
 
-    using T = TokenKind;
+    using namespace tokens;
 
     // Note ambiguity here:
     //   > set Obj Property (1)    | ArrayAccess?
@@ -103,28 +103,27 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     //
     // Should only apply to set commands
 
-    if (parser.primary() == ParserRuleKind::SetCommand) {
-        auto& p = parser;
+    //           set Obj Property(1) (1)
+    // peek(0) ->                ^   ^
+    // peek(1) ->                 ^  ^
+    // peek(2) ->                  ^ ^
+    // peek(3) ->                    ^
 
-        //           set Obj Property(1) (1)
-        // peek(0) ->                ^   ^
-        // peek(1) ->                 ^  ^
-        // peek(2) ->                  ^ ^
-        // peek(3) ->                    ^
-
-        // ( Number ) [^EOF BlankLine]
-        if (p.peek().is_any<T::LeftBracket, T::LeftParen>() && p.peek(1) == T::Number && !p.peek(3).is_eolf()) {
-            rule.m_ArrayAccess = ArrayAccessRule::create(parser);
-            rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
-        }
-
+    // Shouldn't be any edge cases here
+    if (parser.match_seq<LeftBracket, Number, RightBracket>() == 0) {
+        rule.m_ArrayAccess = ArrayAccessRule::create(parser);
+        rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
-    // Under normal circumstances this ambiguity should apply?
-    else {
-        if (parser.peek().is_any<T::LeftBracket, T::LeftParen>()) {
-            rule.m_ArrayAccess = ArrayAccessRule::create(parser);
-            rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
-        }
+
+    // No array expression
+    if (parser.match_seq<LeftParen, Number, RightParen>() != 0) {
+        return rule;
+    }
+
+    // If something other than
+    if (parser.primary() != ParserRuleKind::SetCommand || !parser.peek(3).is_eolf()) {
+        rule.m_ArrayAccess = ArrayAccessRule::create(parser);
+        rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
 
     return rule;
