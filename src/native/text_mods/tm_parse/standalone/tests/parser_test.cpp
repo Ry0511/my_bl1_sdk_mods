@@ -495,8 +495,8 @@ TEST_CASE("Expressions") {
 // | PRIMARY RULES |
 ////////////////////////////////////////////////////////////////////////////////
 
-TEST_CASE("Primary Rules") {
-    SECTION("Set Command") {
+TEST_CASE("Set Command") {
+    SECTION("Original Tests") {
         {
             str_view test = TXT("set Foo.Baz:Bar MyProperty ((((1))))");
             TextModLexer lexer{test};
@@ -563,6 +563,63 @@ TEST_CASE("Primary Rules") {
             REQUIRE(rule.property().to_string(parser) == TXT("MyProperty (1)"));
             REQUIRE(rule.expr().to_string(parser) == TXT("(1)"));
         }
+    }
+
+    SECTION("Object NameLiteralExpr") {
+        auto validate = [](str_view object, str_view property, str_view expr, str_view full_test) {
+            TextModLexer lexer{full_test};
+            TextModParser parser{&lexer};
+
+            TST_INFO("Test: {}", str{full_test});
+
+            auto rule = SetCommandRule::create(parser);
+            REQUIRE(rule.operator bool());
+            TST_INFO("Result: '{}'", str{rule.to_string(parser)});
+
+            REQUIRE(rule.has_object<NameExprRule>());
+            REQUIRE(!rule.has_object<ObjectIdentifierRule>());
+            REQUIRE(rule.object<NameExprRule>().to_string(parser) == object);
+            REQUIRE(rule.property().to_string(parser) == property);
+            REQUIRE(rule.expr().to_string(parser) == expr);
+        };
+
+        // clang-format off
+        validate( TXT("Class'foo.baz'"),
+                  TXT("prop"),
+                  TXT("1"),
+                  TXT("set Class'foo.baz' prop 1")
+                );
+
+        validate( TXT("Foo'foo.baz'"),
+                  TXT("prop"),
+                  TXT("(((1)))"),
+                  TXT("set Foo'foo.baz' prop (((1)))")
+                );
+
+        validate( TXT("SomeClass'foo.baz'"),
+                  TXT("prop"),
+                  TXT("(A=10,B=(),C=(X=10,Y=20))"),
+                  TXT("set SomeClass'foo.baz' prop (A=10,B=(),C=(X=10,Y=20))")
+                );
+
+        validate( TXT("some_class'foo.baz'"),
+                  TXT("prop"),
+                  TXT("False"),
+                  TXT("set some_class'foo.baz' prop False")
+                );
+
+        validate( TXT("_'foo.baz'"),
+                  TXT("prop"),
+                  TXT("None"),
+                  TXT("set _'foo.baz' prop None")
+                );
+
+        validate( TXT("_0'foo.baz'"),
+                  TXT("prop"),
+                  TXT("\"String\""),
+                  TXT("set _0'foo.baz' prop \"String\"")
+                );
+        // clang-format on
     }
 }
 
@@ -658,7 +715,6 @@ TEST_CASE("Match Sequence") {
 }
 
 TEST_CASE("require & maybe") {
-
     SECTION("require") {
         auto test_str = TXT("set\nFoo.Baz\n:\nBar\nMyProperty");
 
@@ -709,7 +765,6 @@ TEST_CASE("require & maybe") {
                 REQUIRE_NOTHROW(parser.require<Identifier>());
             } while (parser.peek() != EndOfInput);
         }
-
     }
 
     SECTION("maybe") {
@@ -762,7 +817,6 @@ TEST_CASE("require & maybe") {
                 REQUIRE(parser.maybe<Identifier>());
             } while (parser.peek() != EndOfInput);
         }
-
     }
 }
 
