@@ -39,6 +39,7 @@ class TextModParser {
    private:
     friend ParserBaseRule;
     friend class ParserIterator;
+    using T = TokenKind;
 
    private:
     ParserRuleKind m_PrimaryRuleKind;    // Current primary rule i.e., Set Command, Object Definition
@@ -124,8 +125,9 @@ class TextModParser {
     }
 
     /**
-     * Attempts to advance the stream forward.
+     * Attempts to advance the stream forward a single token.
      * @note This will attempt to fetch more tokens.
+     * @note This will *only* advance one token. The result is that peek(-1) is the previous token.
      */
     void advance() {
         if ((m_Index + 1) >= m_Tokens.size()) {
@@ -143,7 +145,6 @@ class TextModParser {
     template <TokenKind... Sequence>
         requires(sizeof...(Sequence) > 0)
     int match_seq(MatchOptions opt = {}) noexcept {
-        using T = TokenKind;
 
         if (eof()) {
             return -1;
@@ -207,7 +208,7 @@ class TextModParser {
         };
 
         // Not looking for BlankLine or EOF?
-        if constexpr ((... && (Kinds != TokenKind::BlankLine && Kinds != TokenKind::EndOfInput))) {
+        if constexpr ((... && (Kinds != T::BlankLine && Kinds != T::EndOfInput))) {
             const Token& tk = peek();
             bool is_eof_or_lf = tk.is_eolf();
 
@@ -222,7 +223,7 @@ class TextModParser {
 
         const Token& token = peek(offset);
 
-        if (opt.Coalesce && (... || (TokenKind::Identifier == Kinds))) {
+        if (opt.Coalesce && (... || (T::Identifier == Kinds))) {
             if (token.is_keyword() || (... || (token == Kinds))) {
                 advance();
                 return;
@@ -247,7 +248,7 @@ class TextModParser {
         requires(sizeof...(Kinds) > 0)
     bool maybe(const int offset = 0, const PeekOptions& opt = {}) {
         // If not looking for \n or EOF then skip them
-        if constexpr ((... && (Kinds != TokenKind::BlankLine && Kinds != TokenKind::EndOfInput))) {
+        if constexpr ((... && (Kinds != T::BlankLine && Kinds != T::EndOfInput))) {
             const Token& tk = peek();
             bool is_eof_or_lf = tk.is_eolf();
 
@@ -260,7 +261,7 @@ class TextModParser {
         }
 
         // If not looking for \n or EOF then skip them
-        if constexpr ((... && (Kinds != TokenKind::BlankLine && Kinds != TokenKind::EndOfInput))) {
+        if constexpr ((... && (Kinds != T::BlankLine && Kinds != T::EndOfInput))) {
             // TokenKind::BlankLine is greedy and EOF is special
             if (peek().is_eolf()) {
                 advance();  // TODO: Might want to enable a flag to error rather than skip for some rules
@@ -269,7 +270,7 @@ class TextModParser {
 
         const Token& tok = peek(offset);
 
-        if (opt.Coalesce && (... || (TokenKind::Identifier == Kinds))) {
+        if (opt.Coalesce && (... || (T::Identifier == Kinds))) {
             if (tok.is_keyword() || (... || (tok == Kinds))) {
                 advance();
                 return true;
