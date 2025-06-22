@@ -48,6 +48,13 @@ class ObjectDefinitionRule : public ParserBaseRule {
     std::vector<CopyPtr<ObjectDefinitionRule>> m_ChildObjects;
     std::vector<AssignmentExprRule> m_Assignments;
 
+   public: // clang-format off
+    const DotIdentifierRule& clazz()                     const noexcept { return m_Class;        }
+    const ObjectIdentifierRule& name()                   const noexcept { return m_Name;         }
+    const decltype(m_ChildObjects)& child_objects()      const noexcept { return m_ChildObjects; }
+    const std::vector<AssignmentExprRule>& assignments() const noexcept { return m_Assignments;  }
+    // clang-format on
+
    public:
     RULE_PUBLIC_API(ObjectDefinitionRule);
 };

@@ -355,6 +355,7 @@ TEST_CASE("Expressions") {
                 TXT("foo=()"),
                 TXT("foo=(())"),
                 TXT("foo=((1))"),
+                TXT("Property_7    = False"),
             };
 
             for (const str& test_case : test_cases) {
@@ -620,6 +621,60 @@ TEST_CASE("Set Command") {
                   TXT("set _0'foo.baz' prop \"String\"")
                 );
         // clang-format on
+    }
+}
+
+TEST_CASE("Object Definition") {
+    SECTION("Simple Object") {
+        str_view test_str = TXT(R"(
+        Begin Object Class=Foo.Baz Name=Foo.Baz:Bar
+          Property_0    =
+          Property_0    = 10
+          Property_1    = ()
+          Property_2    = ((()))
+          Property_3    = (A=10, B=20, C=30)
+          Property_4    = "String"
+          Property_5    = Class'Foo.Baz.Bar'
+          Property_6    = True
+          Property_7    = False
+          Property_8(0) = (1)
+          Property_8(1) = (2)
+          Property_8(2) = (3)
+          Property_8(3) = (4)
+          Property_9[0] = "0"
+          Property_9[1] = "1"
+          Property_9[2] = "2"
+          Property_9[3] = "3"
+        End Object
+        )");
+
+        TextModLexer lexer{test_str};
+        TextModParser parser{&lexer};
+
+        auto rule = ObjectDefinitionRule::create(parser);
+        REQUIRE(rule.operator bool());
+        REQUIRE(rule.child_objects().empty());
+        REQUIRE(rule.clazz().to_string(parser) == TXT("Foo.Baz"));
+        REQUIRE(rule.name().to_string(parser) == TXT("Foo.Baz:Bar"));
+
+        REQUIRE(rule.assignments().size() == 16);
+        REQUIRE(rule.assignments()[0].to_string(parser) == TXT(R"(Property_0    = 10)"));
+        REQUIRE(rule.assignments()[1].to_string(parser) == TXT(R"(Property_1    = ())"));
+        REQUIRE(rule.assignments()[2].to_string(parser) == TXT(R"(Property_2    = ((())))"));
+        REQUIRE(rule.assignments()[3].to_string(parser) == TXT(R"(Property_3    = (A=10, B=20, C=30))"));
+        REQUIRE(rule.assignments()[4].to_string(parser) == TXT(R"(Property_4    = "String")"));
+        REQUIRE(rule.assignments()[5].to_string(parser) == TXT(R"(Property_5    = Class'Foo.Baz.Bar')"));
+        REQUIRE(rule.assignments()[6].to_string(parser) == TXT(R"(Property_6    = True)"));
+        REQUIRE(rule.assignments()[7].to_string(parser) == TXT(R"(Property_7    = False)"));
+        REQUIRE(rule.assignments()[8].to_string(parser) == TXT(R"(Property_8(0) = (1))"));
+        REQUIRE(rule.assignments()[9].to_string(parser) == TXT(R"(Property_8(1) = (2))"));
+        REQUIRE(rule.assignments()[10].to_string(parser) == TXT(R"(Property_8(2) = (3))"));
+        REQUIRE(rule.assignments()[11].to_string(parser) == TXT(R"(Property_8(3) = (4))"));
+        REQUIRE(rule.assignments()[12].to_string(parser) == TXT(R"(Property_9[0] = "0")"));
+        REQUIRE(rule.assignments()[13].to_string(parser) == TXT(R"(Property_9[1] = "1")"));
+        REQUIRE(rule.assignments()[14].to_string(parser) == TXT(R"(Property_9[2] = "2")"));
+        REQUIRE(rule.assignments()[15].to_string(parser) == TXT(R"(Property_9[3] = "3")"));
+
     }
 }
 

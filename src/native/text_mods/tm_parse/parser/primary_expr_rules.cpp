@@ -32,7 +32,7 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
     auto it = parser.create_iterator();
 
     // EOF | BlankLine
-    if (it != TokenKind::EndOfInput) {
+    if (it.match_seq<EndOfInput>() != 0) {
         // Skip: (A=,B=)
         if (!it->is_any<TokenKind::Comma, TokenKind::RightParen>()) {
             rule.m_Expr = ExpressionRule::create(parser);
@@ -72,6 +72,12 @@ bool AssignmentExprListRule::can_parse(TextModParser& p) {
     using T = TokenKind;
 
     auto it = p.create_iterator();
+
+    // ( A=1, B=2 )
+    if ((--it) != LeftParen) {
+        return false;
+    }
+    ++it;
 
     // Must start with an identifier
     if (!it->is_identifier()) {

@@ -41,22 +41,75 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
 }
 
 ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
-    using T = TokenKind;
+    /*
+     *  Begin Object Class=Foo.Baz.Bar Name=Some.Object.Name:Child.Name
+     *    Foo(0)=\n
+     *    Baz[0]=(1)
+     *    Bar   =(X=10, Y=20)
+     *  End Object
+     */
 
     ObjectDefinitionRule rule{};
-    rule.m_TextRegion = parser.peek().TextRegion;
-    parser.require<T::Kw_Begin>();
-    parser.require<T::Kw_Object>();
+    parser.require<Kw_Begin>();
+    rule.m_TextRegion = parser.previous().TextRegion;
+    parser.require<Kw_Object>();
 
     // Class=Foo.Baz.Bar
-    parser.require<T::Kw_Class>();
-    parser.require<T::Equal>();
+    parser.require<Kw_Class>();
+    parser.require<Equal>();
     rule.m_Class = DotIdentifierRule::create(parser);
 
     // Name=Foo.Baz:Bar
-    parser.require<T::Kw_Name>();
-    parser.require<T::Equal>();
+    parser.require<Kw_Name>();
+    parser.require<Equal>();
     rule.m_Name = ObjectIdentifierRule::create(parser);
+
+    // Skip blank line here
+    if (parser.peek() == BlankLine) {
+        parser.advance();
+    }
+
+    auto is_assignment = [&parser]() -> bool {
+        // A    =
+        // A(0) =
+        // B[0] =
+        constexpr TextModParser::MatchOptions opt{.Coalesce = true, .SkipBlankLines = false};
+        return parser.match_seq<Identifier, Equal>(opt)
+               || parser.match_seq<Identifier, LeftParen, Number, RightParen, Equal>(opt)
+               || parser.match_seq<Identifier, LeftBracket, Number, RightBracket, Equal>(opt);
+    };
+
+    while (parser.match_seq<Kw_End, Kw_Object>() != 0) {
+
+        if (is_assignment()) {
+
+            auto it = parser.create_iterator({.SkipBlankLines = false});
+            while (it != Equal) {
+                ++it;
+            }
+
+            // A=\n
+            if ((++it) == BlankLine) {
+                while (parser.peek() != Equal) {
+                    parser.advance();
+                }
+                parser.require<Equal>();
+                parser.require<BlankLine>();
+            } else {
+                rule.m_Assignments.emplace_back(AssignmentExprRule::create(parser));
+                auto s = rule.m_Assignments.back().to_string(parser);
+                parser.require<BlankLine>();
+            }
+
+        } else if (parser.match_seq<Kw_Begin, Kw_Object>() != 0) {
+            rule.m_ChildObjects.emplace_back(ObjectDefinitionRule::create(parser));
+        }
+    }
+
+    parser.require<Kw_End>();
+    parser.require<Kw_Object>();
+
+    rule.m_TextRegion.extend(parser.previous().TextRegion);
 
     return rule;
 }

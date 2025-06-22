@@ -33,9 +33,11 @@ DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
     DotIdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
+    constexpr TextModParser::PeekOptions opt{.SkipOnBlankLine = false};
+
     bool extend_view = false;
-    while (parser.maybe<TokenKind::Dot>()) {
-        parser.require<TokenKind::Identifier>();
+    while (parser.maybe<TokenKind::Dot>(0, opt)) {
+        parser.require<TokenKind::Identifier>(0, opt);
         extend_view = true;
     }
 
