@@ -24,7 +24,7 @@ class ParserIterator {
     bool m_Coalesce;
 
    public:
-    ParserIterator(TextModParser* parser, size_t index, bool skip_blank_lines, bool coalesce_identifiers) noexcept
+    ParserIterator(TextModParser* parser, size_t index, bool skip_blank_lines, bool coalesce_identifiers)
         : m_Parser(parser),
           m_Index(index),
           m_SkipBlankLines(skip_blank_lines),
@@ -61,14 +61,20 @@ class ParserIterator {
     }
 
    public:
-    template<TokenKind... Kinds>
-    int match_seq() {
+    const Token& peek_next() {
+        operator++();
+        const Token& token = operator*();
+        operator--();
+        return token;
+    }
 
+   public:
+    template <TokenKind... Kinds>
+    int match_seq() {
         int pos = 1;
         size_t index = m_Index;
 
         for (auto kind : {Kinds...}) {
-
             if (operator==(TokenKind::EndOfInput) && kind != TokenKind::EndOfInput) {
                 m_Index = index;
                 return -1;

@@ -10,11 +10,12 @@
 namespace tm_parse::rules {
 
 using namespace txt;
+using namespace tokens;
 
 NumberExprRule NumberExprRule::create(TextModParser& parser) {
 
     const Token& token = parser.peek();
-    parser.require<TokenKind::Number>();
+    parser.require<Number>();
 
     NumberExprRule rule{};
     rule.m_TextRegion = token.TextRegion;
@@ -97,7 +98,9 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
     const Token& token = par.peek();
     auto secondary = par.secondary();
 
-    switch (token.Kind) {
+    auto it = par.create_iterator();
+
+    switch (it->Kind) {
         case T::Number:
             rule.m_InnerRule = NumberExprRule::create(par);
             break;
@@ -109,14 +112,13 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
         default: {
             // Note: Can't match against identifier directly due to overlap in keywords and identifiers
             // i.e., Class is a keyword so Class'Foo' would fail when it shouldn't
-            if (token.is_identifier() && par.peek(1) == T::NameLiteral) {
+            if (it->is_identifier() && it.peek_next() == T::NameLiteral) {
                 rule.m_InnerRule = NameExprRule::create(par);
             }
             // Primarily for: True, False, None; but generically captures any keyword token
-            else if (token.is_keyword()) {
+            else if (it->is_keyword()) {
                 rule.m_InnerRule = KeywordRule::create(par);
             }
-
             break;
         }
     }

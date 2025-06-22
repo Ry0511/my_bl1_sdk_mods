@@ -9,6 +9,8 @@
 
 namespace tm_parse::rules {
 
+using namespace tokens;
+
 ////////////////////////////////////////////////////////////////////////////////
 // | COPYABLE EXPR |
 ////////////////////////////////////////////////////////////////////////////////
@@ -30,16 +32,23 @@ CopyableExpr& CopyableExpr::operator=(const CopyableExpr& other) {
 AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
     AssignmentExprRule rule{};
 
+    //
+    // Property(0) = Expression
+    // ( A=(), B=(1), C=(X=10,Y=20) )
+    //    ^^^   ^^^^    ^^^^^^^^^^^
+
     rule.m_Property = PropertyAccessRule::create(parser);
     rule.m_TextRegion = rule.m_Property.text_region();
 
     parser.require<TokenKind::Equal>();
-    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+    rule.m_TextRegion.extend(parser.previous().TextRegion);
+
+    auto it = parser.create_iterator();
 
     // EOF | BlankLine
-    if (parser.peek() != TokenKind::EndOfInput) {
+    if (it != TokenKind::EndOfInput) {
         // Skip: (A=,B=)
-        if (!parser.peek().is_any<TokenKind::Comma, TokenKind::RightParen>()) {
+        if (!it->is_any<TokenKind::Comma, TokenKind::RightParen>()) {
             rule.m_Expr = ExpressionRule::create(parser);
             rule.m_TextRegion.extend(rule.expr().text_region());
         }
@@ -75,19 +84,23 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
 
 bool AssignmentExprListRule::can_parse(TextModParser& p) {
     using T = TokenKind;
-    if (!p.peek().is_identifier()) {
+
+    auto it = p.create_iterator();
+
+    // Must start with an identifier
+    if (!it->is_identifier()) {
         return false;
     }
 
-    if (p.peek(1) == T::Equal) {
+    if ((++it) == T::Equal) {
         return true;
     }
 
     // clang-format off
     if (
-           p.peek(1).is_any<T::LeftParen, T::LeftBracket>()
-        && p.peek(2) == T::Number
-        && p.peek(3).is_any<T::RightParen, T::RightBracket>()
+           (++it)->is_any<LeftParen, LeftBracket>()
+        && (++it) == T::Number
+        && (++it)->is_any<T::RightParen, T::RightBracket>()
     ) {
         return true;
     }
@@ -113,7 +126,8 @@ const ExpressionRule* ParenExprRule::inner_most() const noexcept {
 ParenExprRule ParenExprRule::create(TextModParser& parser) {
     ParenExprRule rule{};
     parser.require<TokenKind::LeftParen>();
-    rule.m_TextRegion = parser.peek(-1).TextRegion;
+
+    rule.m_TextRegion = parser.previous().TextRegion;
 
     //
     // We will need to recursively handle expressions like the following:
@@ -124,18 +138,18 @@ ParenExprRule ParenExprRule::create(TextModParser& parser) {
     //
     // Downside of this is that it pollutes the result with bloat as the actual inner value is
     // disguised. There really isn't a great to avoid this however we can initially parse as this
-    // and then flatten the structure after the fact.
+    // and then flatten the structure afterwards.
     //
 
     // A=()
     if (parser.maybe<TokenKind::RightParen>()) {
-        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+        rule.m_TextRegion.extend(parser.previous().TextRegion);
     }
     // ( Expression )
     else {
         rule.m_Expr = ExpressionRule::create(parser);
         parser.require<TokenKind::RightParen>();
-        rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+        rule.m_TextRegion.extend(parser.previous().TextRegion);
     }
 
     return rule;
@@ -149,7 +163,8 @@ ExpressionRule ExpressionRule::create(TextModParser& parser) {
     using T = TokenKind;
     ExpressionRule rule{};
 
-    const Token& tk = parser.peek();
+    auto it = parser.create_iterator();
+    const Token& tk = *it;
 
     if (tk == T::LeftParen) {
         rule.m_InnerType = ParenExprRule::create(parser);
