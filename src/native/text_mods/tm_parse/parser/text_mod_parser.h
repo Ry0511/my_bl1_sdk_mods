@@ -135,6 +135,11 @@ class TextModParser {
     }
 
    public:
+    const Token& previous() noexcept {
+        return *(--create_iterator());
+    }
+
+   public:
     template <TokenKind... Sequence>
         requires(sizeof...(Sequence) > 0)
     int match_seq(MatchOptions opt = {}) noexcept {
