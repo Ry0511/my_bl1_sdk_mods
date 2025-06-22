@@ -6,9 +6,9 @@
 
 #include "pch.h"
 
-#include "utils.h"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
+#include "utils.h"
 
 namespace tm_parse_tests {
 using namespace tm_parse;
@@ -246,15 +246,28 @@ TEST_CASE("Expressions") {
             TXT(", baz, foo, bar"),
             TXT("baz, foo, bar"),
             TXT("baz"),
+            TXT("foo baz bar\n"),
+            TXT(", baz, foo, bar\n"),
+            TXT("baz, foo, bar\n"),
+            TXT("baz\n"),
+            TXT("foo baz\nbar\n"),
+            TXT(", baz, foo,\nbar\n"),
+            TXT("baz, foo,\nbar\n"),
+            TXT("baz\n"),
         };
 
         for (str_view test_case : test_cases) {
             TextModLexer lexer{test_case};
             TextModParser parser{&lexer};
+
             parser.set_secondary(ParserRuleKind::PrimitiveExpr);
             LiteralExprRule rule = LiteralExprRule::create(parser);
-            auto test = rule.to_string(parser);
-            REQUIRE((rule && test_case == rule.to_string(parser)));
+            TST_INFO("Result: '{}'", str{rule.to_string(parser)});
+
+            str expected = str{test_case.substr(0, test_case.find_first_of(TXT("\n")))};
+
+            REQUIRE(rule.operator bool());
+            REQUIRE(expected == rule.to_string(parser));
         }
     }
 
