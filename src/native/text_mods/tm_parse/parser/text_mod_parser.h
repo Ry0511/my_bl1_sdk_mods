@@ -22,6 +22,7 @@ class TextModParser {
     struct PeekOptions {
         bool Coalesce = true;
         bool FailOnBlankLine = false;
+        bool SkipOnBlankLine = true;
     };
 
     struct MatchOptions {
@@ -137,15 +138,12 @@ class TextModParser {
     }
 
    public:
-    const Token& previous() noexcept {
-        return *(--create_iterator());
-    }
+    const Token& previous() noexcept { return *(--create_iterator()); }
 
    public:
     template <TokenKind... Sequence>
         requires(sizeof...(Sequence) > 0)
     int match_seq(MatchOptions opt = {}) noexcept {
-
         if (eof()) {
             return -1;
         }
@@ -207,15 +205,17 @@ class TextModParser {
             throw std::runtime_error{ss.str()};
         };
 
-        // Not looking for BlankLine or EOF?
-        if constexpr ((... && (Kinds != T::BlankLine && Kinds != T::EndOfInput))) {
-            const Token& tk = peek();
-            bool is_eof_or_lf = tk.is_eolf();
+        constexpr bool has_lf = (... || (T::BlankLine == Kinds));
+        constexpr bool has_identifier = (... || (T::Identifier == Kinds));
 
-            if (is_eof_or_lf) {
+        // Not looking for BlankLine so skip it ( or error )
+        if constexpr (!has_lf) {
+            const Token& tk = peek();
+
+            if (tk == T::BlankLine) {
                 if (opt.FailOnBlankLine) {
                     impl_error(tk);
-                } else {
+                } else if (opt.SkipOnBlankLine) {
                     advance();
                 }
             }
@@ -223,8 +223,8 @@ class TextModParser {
 
         const Token& token = peek(offset);
 
-        if (opt.Coalesce && (... || (T::Identifier == Kinds))) {
-            if (token.is_keyword() || (... || (token == Kinds))) {
+        if constexpr (has_identifier) {
+            if ((opt.Coalesce && token.is_identifier()) || (... || (token == Kinds))) {
                 advance();
                 return;
             }
@@ -247,40 +247,38 @@ class TextModParser {
     template <TokenKind... Kinds>
         requires(sizeof...(Kinds) > 0)
     bool maybe(const int offset = 0, const PeekOptions& opt = {}) {
-        // If not looking for \n or EOF then skip them
-        if constexpr ((... && (Kinds != T::BlankLine && Kinds != T::EndOfInput))) {
-            const Token& tk = peek();
-            bool is_eof_or_lf = tk.is_eolf();
 
-            if (is_eof_or_lf) {
+        constexpr bool has_lf = (... || (T::BlankLine == Kinds));
+        constexpr bool has_identifier = (... || (T::Identifier == Kinds));
+
+        // Not looking for BlankLine so skip it ( or error )
+        if constexpr (!has_lf) {
+            const Token& tk = peek();
+
+            if (tk == T::BlankLine) {
                 if (opt.FailOnBlankLine) {
                     return false;
                 }
-                advance();
+                if (opt.SkipOnBlankLine) {
+                    advance();
+                }
             }
         }
 
-        // If not looking for \n or EOF then skip them
-        if constexpr ((... && (Kinds != T::BlankLine && Kinds != T::EndOfInput))) {
-            // TokenKind::BlankLine is greedy and EOF is special
-            if (peek().is_eolf()) {
-                advance();  // TODO: Might want to enable a flag to error rather than skip for some rules
-            }
-        }
+        const Token& token = peek(offset);
 
-        const Token& tok = peek(offset);
-
-        if (opt.Coalesce && (... || (T::Identifier == Kinds))) {
-            if (tok.is_keyword() || (... || (tok == Kinds))) {
+        if constexpr (has_identifier) {
+            if ((opt.Coalesce && token.is_identifier()) || (... || (token == Kinds))) {
                 advance();
                 return true;
             }
         } else {
-            if ((... || (tok == Kinds))) {
+            if ((... || (token == Kinds))) {
                 advance();
                 return true;
             }
         }
+
         return false;
     }
 

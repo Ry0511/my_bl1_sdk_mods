@@ -12,6 +12,7 @@
 
 namespace tm_parse_tests {
 using namespace tm_parse;
+using namespace tokens;
 
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
@@ -653,6 +654,115 @@ TEST_CASE("Match Sequence") {
         REQUIRE(parser.match_seq<T::Kw_True>(match_options) == 1);
         REQUIRE(parser.match_seq<T::Identifier, T::Kw_Set>(match_options) == 2);
         REQUIRE(parser.match_seq<T::Identifier, T::Identifier, T::BlankLine, T::Number>(match_options) == 4);
+    }
+}
+
+TEST_CASE("require & maybe") {
+
+    SECTION("require") {
+        auto test_str = TXT("set\nFoo.Baz\n:\nBar\nMyProperty");
+
+        {
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+
+            constexpr TextModParser::PeekOptions opt{.SkipOnBlankLine = false};
+
+            REQUIRE_NOTHROW(parser.require<Kw_Set>());
+            REQUIRE_NOTHROW(parser.require<BlankLine>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<Dot>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<BlankLine>());
+            REQUIRE_NOTHROW(parser.require<Colon>());
+            REQUIRE_NOTHROW(parser.require<BlankLine>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<BlankLine>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<EndOfInput>());
+        }
+
+        {
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+
+            constexpr TextModParser::PeekOptions opt{.SkipOnBlankLine = true};
+
+            REQUIRE_NOTHROW(parser.require<Kw_Set>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<Dot>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<Colon>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<Identifier>());
+            REQUIRE_NOTHROW(parser.require<EndOfInput>());
+        }
+
+        {
+            auto test_str = TXT("set true false none True False None Set");
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+
+            constexpr TextModParser::PeekOptions opt{.Coalesce = true};
+
+            do {
+                REQUIRE_NOTHROW(parser.require<Identifier>());
+            } while (parser.peek() != EndOfInput);
+        }
+
+    }
+
+    SECTION("maybe") {
+        auto test_str = TXT("set\nFoo.Baz\n:\nBar\nMyProperty");
+
+        {
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+
+            constexpr TextModParser::PeekOptions opt{.SkipOnBlankLine = false};
+
+            REQUIRE(parser.maybe<Kw_Set>());
+            REQUIRE(parser.maybe<BlankLine>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<Dot>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<BlankLine>());
+            REQUIRE(parser.maybe<Colon>());
+            REQUIRE(parser.maybe<BlankLine>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<BlankLine>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<EndOfInput>());
+        }
+
+        {
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+
+            constexpr TextModParser::PeekOptions opt{.SkipOnBlankLine = true};
+
+            REQUIRE(parser.maybe<Kw_Set>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<Dot>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<Colon>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<Identifier>());
+            REQUIRE(parser.maybe<EndOfInput>());
+        }
+
+        {
+            auto test_str = TXT("set true false none True False None Set");
+            TextModLexer lexer{test_str};
+            TextModParser parser{&lexer};
+
+            constexpr TextModParser::PeekOptions opt{.Coalesce = true};
+
+            do {
+                REQUIRE(parser.maybe<Identifier>());
+            } while (parser.peek() != EndOfInput);
+        }
+
     }
 }
 
