@@ -53,6 +53,38 @@ class ParserIterator {
    public:
     bool operator==(TokenKind kind) const noexcept;
     bool operator!=(TokenKind kind) const noexcept;
+
+    void skip(int count) {
+        for (int i = 1; i < count; ++i) {
+            operator++();
+        }
+    }
+
+   public:
+    template<TokenKind... Kinds>
+    int match_seq() {
+
+        int pos = 1;
+        size_t index = m_Index;
+
+        for (auto kind : {Kinds...}) {
+
+            if (operator==(TokenKind::EndOfInput) && kind != TokenKind::EndOfInput) {
+                m_Index = index;
+                return -1;
+            }
+
+            if (operator!=(kind)) {
+                m_Index = index;
+                return pos;
+            }
+
+            operator++();
+            ++pos;
+        }
+
+        return 0;
+    }
 };
 
 }  // namespace tm_parse

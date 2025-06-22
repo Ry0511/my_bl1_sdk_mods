@@ -203,7 +203,9 @@ TEST_CASE("TextModParser") {
         --it; require(Dot);
         --it; require(Identifier);
         --it; require(Kw_Set);
-        --it; require(EndOfInput);
+
+        // --it here does nothing
+        --it; require(Kw_Set);
 
         require(Kw_Set);     ++it;
         require(Identifier); ++it;
@@ -214,6 +216,70 @@ TEST_CASE("TextModParser") {
         require(EndOfInput);
 
         // clang-format on
+    }
+
+    SECTION("match seq") {
+        TextModLexer lexer{TXT("set\nfoo\n.baz\n\nprop\n1")};
+        TextModParser parser{&lexer};
+
+        {
+            auto it = parser.create_iterator({.Coalesce = true, .SkipBlankLines = true});
+            int val = it.match_seq<Kw_Set, Identifier, Dot, Identifier, Identifier, Number>();
+            REQUIRE(val == 0);
+            REQUIRE(it == EndOfInput);
+        }
+
+        {
+            auto it = parser.create_iterator({.Coalesce = true, .SkipBlankLines = false});
+            int val = it.match_seq<
+                Kw_Set,
+                BlankLine,
+                Identifier,
+                BlankLine,
+                Dot,
+                Identifier,
+                BlankLine,
+                Identifier,
+                BlankLine,
+                Number>();
+            REQUIRE(val == 0);
+            REQUIRE(it == EndOfInput);
+        }
+
+        {
+            auto it = parser.create_iterator({.Coalesce = true, .SkipBlankLines = true});
+            int val = it.match_seq<Kw_Set, Identifier>();
+            REQUIRE(val == 0);
+            REQUIRE(it == Dot);
+        }
+
+        {
+            auto it = parser.create_iterator({.Coalesce = true, .SkipBlankLines = true});
+
+            REQUIRE(it.match_seq<Kw_Set, Number>() == 2);
+            REQUIRE(it.match_seq<Kw_Set, Identifier, Number>() == 3);
+            REQUIRE(it.match_seq<Kw_Set, Identifier, Dot, Number>() == 4);
+            REQUIRE(it.match_seq<Kw_Set, Identifier, Dot, Identifier, BlankLine>() == 5);
+
+            {
+                it.skip(it.match_seq<Kw_Set, Identifier>());
+                TST_INFO("Current: {}", it->kind_as_str());
+                REQUIRE(it == Dot);
+            }
+
+            {
+                it.skip(it.match_seq<Dot, Identifier>());
+                TST_INFO("Current: {}", it->kind_as_str());
+                REQUIRE(it == Identifier);
+            }
+
+            {
+                it.set_skip_blank_lines(false);
+                it.skip(it.match_seq<Identifier, BlankLine>());
+                TST_INFO("Current: {}", it->kind_as_str());
+                REQUIRE(it == Number);
+            }
+        }
     }
 }
 
