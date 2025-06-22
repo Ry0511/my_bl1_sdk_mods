@@ -12,20 +12,6 @@ namespace tm_parse::rules {
 using namespace tokens;
 
 ////////////////////////////////////////////////////////////////////////////////
-// | COPYABLE EXPR |
-////////////////////////////////////////////////////////////////////////////////
-
-CopyableExpr::CopyableExpr(const ExpressionRule& expr) : m_Expr(std::make_unique<ExpressionRule>(expr)) {}
-
-CopyableExpr::CopyableExpr(const CopyableExpr& other)
-    : m_Expr((other == nullptr) ? nullptr : std::make_unique<ExpressionRule>(*other.m_Expr)) {}
-
-CopyableExpr& CopyableExpr::operator=(const CopyableExpr& other) {
-    m_Expr = ((other == nullptr) ? nullptr : std::make_unique<ExpressionRule>(*other.m_Expr));
-    return *this;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // | RULES |
 ////////////////////////////////////////////////////////////////////////////////
 

@@ -11,15 +11,16 @@
 
 namespace tm_parse::rules {
 
+// set Foo'Baz.Bar' Property (1)
 class SetCommandRule : public ParserBaseRule {
    private:
     ObjectIdentifierRule m_Object;
-    PropertyAccessRule m_Property;  // TODO: This can be NameExprRule
+    std::variant<PropertyAccessRule, NameExprRule> m_Property;
     ExpressionRule m_Expression;
 
-   public:
+   public: // TODO: Revise this
     const ObjectIdentifierRule& object() const noexcept { return m_Object; };
-    const PropertyAccessRule& property() const noexcept { return m_Property; };
+    const PropertyAccessRule& property() const noexcept { return std::get<PropertyAccessRule>(m_Property); };
     const ExpressionRule& expr() const noexcept { return m_Expression; };
 
    public:
@@ -34,7 +35,7 @@ class ObjectDefinitionRule : public ParserBaseRule {
    private:
     DotIdentifierRule m_Class;
     ObjectIdentifierRule m_Name;
-    std::vector<std::shared_ptr<ObjectDefinitionRule>> m_ChildObjects;
+    std::vector<CopyPtr<ObjectDefinitionRule>> m_ChildObjects;
     std::vector<AssignmentExprRule> m_Assignments;
 
    public:

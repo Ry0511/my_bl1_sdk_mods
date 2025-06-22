@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "parser/copy_ptr.h"
 #include "parser/parser_rules.h"
 
 namespace tm_parse::rules {
@@ -14,45 +15,11 @@ class ParenExprRule;
 class ExpressionRule;
 class PrimitiveExprRule;
 
-class CopyableExpr {
-   private:
-    std::unique_ptr<ExpressionRule> m_Expr;
-
-   public:
-    constexpr CopyableExpr(nullptr_t) noexcept : m_Expr(nullptr) {}
-    constexpr CopyableExpr() = default;
-    ~CopyableExpr() = default;
-
-   public:  // clang-format off
-    CopyableExpr(const ExpressionRule& expr);
-
-    CopyableExpr(const CopyableExpr&);
-    CopyableExpr& operator=(const CopyableExpr&);
-
-    CopyableExpr(CopyableExpr&&) = default;
-    CopyableExpr& operator=(CopyableExpr&&) = default;
-
-   public:
-    bool operator ==(const CopyableExpr&) const = default;
-    bool operator !=(const CopyableExpr&) const = default;
-
-   public:
-    const ExpressionRule* get() const noexcept { return m_Expr.get(); }
-    ExpressionRule*       get()       noexcept { return m_Expr.get(); }
-
-   public:
-    const ExpressionRule* operator->() const { return m_Expr.get(); }
-    ExpressionRule*       operator->()       { return m_Expr.get(); }
-    const ExpressionRule& operator*() const  { return *m_Expr;      }
-    ExpressionRule&       operator*()        { return *m_Expr;      }
-    // clang-format on
-};
-
 // PropertyAccessRule Equal Expression?
 class AssignmentExprRule : public ParserBaseRule {
    private:
     PropertyAccessRule m_Property;
-    CopyableExpr m_Expr;
+    CopyPtr<ExpressionRule> m_Expr;
 
    public:
     bool has_expr() const noexcept { return m_Expr != nullptr; }
@@ -95,7 +62,7 @@ class AssignmentExprListRule : public ParserBaseRule {
 // LeftParen Expression? RightParen
 class ParenExprRule : public ParserBaseRule {
    private:
-    CopyableExpr m_Expr;
+    CopyPtr<ExpressionRule> m_Expr;
 
    public:
     bool has_expr() const noexcept { return m_Expr != nullptr; }
