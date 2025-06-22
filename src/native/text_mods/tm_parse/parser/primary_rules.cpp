@@ -9,8 +9,9 @@
 
 namespace tm_parse::rules {
 
+using namespace tokens;
+
 SetCommandRule SetCommandRule::create(TextModParser& parser) {
-    // TODO: Since this can error we need to always restore primary
     SetCommandRule rule{};
     auto original = parser.primary();
     parser.set_primary(ParserRuleKind::SetCommand);
@@ -18,7 +19,16 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     parser.require<TokenKind::Kw_Set>();
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
-    rule.m_Object = ObjectIdentifierRule::create(parser);
+    // TODO: Revise this at some point
+    // Class'foo.baz:bar'
+    if (parser.match_seq<Identifier, NameLiteral>() == 0) {
+        rule.m_Object = NameExprRule::create(parser);
+    }
+    // foo.baz:bar
+    else {
+        rule.m_Object = ObjectIdentifierRule::create(parser);
+    }
+
     rule.m_Property = PropertyAccessRule::create(parser);
     rule.m_Expression = ExpressionRule::create(parser);
 
@@ -31,7 +41,6 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
 }
 
 ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
-
     using T = TokenKind;
 
     ObjectDefinitionRule rule{};
@@ -48,8 +57,6 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     parser.require<T::Kw_Name>();
     parser.require<T::Equal>();
     rule.m_Name = ObjectIdentifierRule::create(parser);
-
-
 
     return rule;
 }

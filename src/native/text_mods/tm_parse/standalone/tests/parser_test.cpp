@@ -559,7 +559,7 @@ TEST_CASE("Primary Rules") {
             TST_INFO("Test: '{}'", str{test_case});
             auto rule = SetCommandRule::create(parser);
 
-            REQUIRE(rule.object().to_string(parser) == TXT("Foo.Baz:Bar"));
+            REQUIRE(rule.object<ObjectIdentifierRule>().to_string(parser) == TXT("Foo.Baz:Bar"));
             REQUIRE(rule.property().to_string(parser) == TXT("MyProperty (1)"));
             REQUIRE(rule.expr().to_string(parser) == TXT("(1)"));
         }
