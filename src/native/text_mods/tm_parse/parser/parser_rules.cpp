@@ -33,14 +33,14 @@ DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
     DotIdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
-    size_t end_token = invalid_index_v;
+    bool extend_view = false;
     while (parser.maybe<TokenKind::Dot>()) {
         parser.require<TokenKind::Identifier>();
-        end_token = parser.index();
+        extend_view = true;
     }
 
     // We read more than a single identifier
-    if (end_token != invalid_index_v) {
+    if (extend_view) {
         rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
 
