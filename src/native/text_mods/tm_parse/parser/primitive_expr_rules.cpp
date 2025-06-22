@@ -95,7 +95,6 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
     PrimitiveExprRule rule{};
 
     using T = TokenKind;
-    const Token& token = par.peek();
     auto secondary = par.secondary();
 
     auto it = par.create_iterator();
