@@ -12,6 +12,8 @@ namespace tm_parse {
 
 // clang-format off
 
+// TODO: Revisit this documentation, likely good to remove it and keep the actual definitions in the markdowns docs.
+
 /**
 ================================================================================
 
@@ -68,7 +70,6 @@ I have tried to avoid reusing names from the Lexer but somethings
 
 - #[[ParserDoc_ParenExpr]]
   - LeftParen * RightParen
-    - TODO: Currently doesn't parse the expression just consumes parens
   - RelativeRotation=(Pitch=0,Yaw=0,Roll=0)
 
 - #[[ParserDoc_CompositeExpr]]
@@ -91,6 +92,7 @@ I have tried to avoid reusing names from the Lexer but somethings
 
 using parser_rule_int = uint8_t;
 
+// TODO: I don't know the extent at which this is used... Very rarely is it actually used.
 // clang-format off
 enum class ParserRuleKind : parser_rule_int {
     DotIdentifier     ,
