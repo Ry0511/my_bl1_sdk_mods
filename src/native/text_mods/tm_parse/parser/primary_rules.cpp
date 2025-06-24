@@ -49,14 +49,16 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
      *  End Object
      */
 
+    constexpr TextModParser::PeekOptions opt{.Coalesce = true, .SkipOnBlankLine = false};
+
     ObjectDefinitionRule rule{};
-    parser.require<Kw_Begin>();
-    rule.m_TextRegion = parser.previous().TextRegion;
-    parser.require<Kw_Object>();
+    parser.require<Kw_Begin>(); // Skip blank lines to this
+    rule.m_TextRegion = parser.peek(-1).TextRegion;
+    parser.require<Kw_Object>(0, opt);
 
     // Class=Foo.Baz.Bar
-    parser.require<Kw_Class>();
-    parser.require<Equal>();
+    parser.require<Kw_Class>(0, opt);
+    parser.require<Equal>(0, opt);
     rule.m_Class = DotIdentifierRule::create(parser);
 
     // Name=Foo.Baz:Bar
@@ -64,52 +66,81 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     parser.require<Equal>();
     rule.m_Name = ObjectIdentifierRule::create(parser);
 
-    // Skip blank line here
-    if (parser.peek() == BlankLine) {
-        parser.advance();
-    }
-
-    auto is_assignment = [&parser]() -> bool {
-        // A    =
-        // A(0) =
-        // B[0] =
-        constexpr TextModParser::MatchOptions opt{.Coalesce = true, .SkipBlankLines = false};
-        return parser.match_seq<Identifier, Equal>(opt)
-               || parser.match_seq<Identifier, LeftParen, Number, RightParen, Equal>(opt)
-               || parser.match_seq<Identifier, LeftBracket, Number, RightBracket, Equal>(opt);
+    auto is_assignment = [&parser](ParserIterator& it) -> bool {
+        return it.match_seq<Identifier, Equal>() == 0
+               || it.match_seq<Identifier, LeftParen, Number, RightParen, Equal>() == 0
+               || it.match_seq<Identifier, LeftBracket, Number, RightBracket, Equal>() == 0;
     };
 
-    while (parser.match_seq<Kw_End, Kw_Object>() != 0) {
+    while (parser.peek() != EndOfInput) {
+        auto it = parser.create_iterator();
+        if (it == BlankLine) {
+            ++it;
+        }
+        it.set_skip_blank_lines(false);
 
-        if (is_assignment()) {
+        if (it.match_seq<Kw_End, Kw_Object>() == 0) {
+            break;
+        }
 
-            auto it = parser.create_iterator({.SkipBlankLines = false});
-            while (it != Equal) {
-                ++it;
-            }
 
-            // A=\n
-            if ((++it) == BlankLine) {
-                while (parser.peek() != Equal) {
+        // Recursive child objects
+        if (it.match_seq<Kw_Begin, Kw_Object, Kw_Class, Equal, Identifier>() == 0) {
+            rule.m_ChildObjects.emplace_back(ObjectDefinitionRule::create(parser));
+        }
+        // Assignments
+        else if (is_assignment(it)) {
+            if (it == BlankLine) {
+                while (parser.peek() != BlankLine) {
                     parser.advance();
                 }
-                parser.require<Equal>();
                 parser.require<BlankLine>();
             } else {
                 rule.m_Assignments.emplace_back(AssignmentExprRule::create(parser));
-                auto s = rule.m_Assignments.back().to_string(parser);
                 parser.require<BlankLine>();
             }
+        }
+        // Don't know what this is but whatever it is it can go fuck itself
+        else {
+            std::stringstream ss{};
+            auto it = parser.create_iterator();
+            ss << "Failed to parse object definition, got sequence: ";
 
-        } else if (parser.match_seq<Kw_Begin, Kw_Object>() != 0) {
-            rule.m_ChildObjects.emplace_back(ObjectDefinitionRule::create(parser));
+            Token current = *it;
+            Token begin{};
+            Token end{};
+
+            it.set_skip_blank_lines(false);
+            do {
+                --it;
+            } while (!it->is_any<BlankLine, EndOfInput>());
+
+            if (it == BlankLine) {
+                ++it;
+            }
+            begin = *it;
+
+            do {
+                ++it;
+            } while (!it->is_any<BlankLine, EndOfInput>());
+
+            if (it == BlankLine) {
+                --it;
+            }
+            end = *it;
+
+            TokenTextView vw = begin.TextRegion;
+            vw.extend(end.TextRegion);
+            ss << std::format("'{}' current is '{}'", str{vw.view_from(parser.text())}, current.to_string());
+
+            throw std::runtime_error{ss.str()};
         }
     }
 
     parser.require<Kw_End>();
     parser.require<Kw_Object>();
 
-    rule.m_TextRegion.extend(parser.previous().TextRegion);
+    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
 
     return rule;
 }

@@ -14,6 +14,11 @@ namespace tm_parse_tests {
 using namespace tm_parse;
 using namespace tokens;
 
+// NOTE
+//  This only validates at a high-level more complex tests might be added in specialised files if
+//  there is ever a need.
+//
+
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
 #define TXT_DFLT_INFO(test, parser, actual)        \
@@ -226,7 +231,8 @@ TEST_CASE("Expressions") {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
                 auto name = NameExprRule::create(parser);
-                REQUIRE((name && name.to_string(parser) == test_case));
+                REQUIRE(name.operator bool());
+                REQUIRE(name.to_string(parser) == test_case);
             }
         }
     }
@@ -637,6 +643,7 @@ TEST_CASE("Object Definition") {
           Property_5    = Class'Foo.Baz.Bar'
           Property_6    = True
           Property_7    = False
+          Property_7    = Unquoted True 1 Literal Class () '' 'A'
           Property_8(0) = (1)
           Property_8(1) = (2)
           Property_8(2) = (3)
@@ -657,7 +664,9 @@ TEST_CASE("Object Definition") {
         REQUIRE(rule.clazz().to_string(parser) == TXT("Foo.Baz"));
         REQUIRE(rule.name().to_string(parser) == TXT("Foo.Baz:Bar"));
 
-        REQUIRE(rule.assignments().size() == 16);
+        REQUIRE(rule.assignments().size() == 17);
+
+        // clang-format off
         REQUIRE(rule.assignments()[0].to_string(parser) == TXT(R"(Property_0    = 10)"));
         REQUIRE(rule.assignments()[1].to_string(parser) == TXT(R"(Property_1    = ())"));
         REQUIRE(rule.assignments()[2].to_string(parser) == TXT(R"(Property_2    = ((())))"));
@@ -666,15 +675,97 @@ TEST_CASE("Object Definition") {
         REQUIRE(rule.assignments()[5].to_string(parser) == TXT(R"(Property_5    = Class'Foo.Baz.Bar')"));
         REQUIRE(rule.assignments()[6].to_string(parser) == TXT(R"(Property_6    = True)"));
         REQUIRE(rule.assignments()[7].to_string(parser) == TXT(R"(Property_7    = False)"));
-        REQUIRE(rule.assignments()[8].to_string(parser) == TXT(R"(Property_8(0) = (1))"));
-        REQUIRE(rule.assignments()[9].to_string(parser) == TXT(R"(Property_8(1) = (2))"));
-        REQUIRE(rule.assignments()[10].to_string(parser) == TXT(R"(Property_8(2) = (3))"));
-        REQUIRE(rule.assignments()[11].to_string(parser) == TXT(R"(Property_8(3) = (4))"));
-        REQUIRE(rule.assignments()[12].to_string(parser) == TXT(R"(Property_9[0] = "0")"));
-        REQUIRE(rule.assignments()[13].to_string(parser) == TXT(R"(Property_9[1] = "1")"));
-        REQUIRE(rule.assignments()[14].to_string(parser) == TXT(R"(Property_9[2] = "2")"));
-        REQUIRE(rule.assignments()[15].to_string(parser) == TXT(R"(Property_9[3] = "3")"));
+        REQUIRE(rule.assignments()[8].to_string(parser) == TXT(R"(Property_7    = Unquoted True 1 Literal Class () '' 'A')"));
+        REQUIRE(rule.assignments()[9].to_string(parser) == TXT(R"(Property_8(0) = (1))"));
+        REQUIRE(rule.assignments()[10].to_string(parser) == TXT(R"(Property_8(1) = (2))"));
+        REQUIRE(rule.assignments()[11].to_string(parser) == TXT(R"(Property_8(2) = (3))"));
+        REQUIRE(rule.assignments()[12].to_string(parser) == TXT(R"(Property_8(3) = (4))"));
+        REQUIRE(rule.assignments()[13].to_string(parser) == TXT(R"(Property_9[0] = "0")"));
+        REQUIRE(rule.assignments()[14].to_string(parser) == TXT(R"(Property_9[1] = "1")"));
+        REQUIRE(rule.assignments()[15].to_string(parser) == TXT(R"(Property_9[2] = "2")"));
+        REQUIRE(rule.assignments()[16].to_string(parser) == TXT(R"(Property_9[3] = "3")"));
+        // clang-format on
+    }
 
+    SECTION("Child Objects") {
+        str test_case = TXT(R"(
+          Begin Object Class=Foo.Baz Name=Outermost
+            A=1
+            Begin Object Class=Foo Name=Child_0
+              B=2
+              Begin Object Class=Foo Name=Child_0_0
+                C=3
+              End Object
+            End Object
+          End Object
+        )");
+
+        {
+            TextModLexer lexer{test_case};
+
+            // clang-format off
+            std::vector<TokenKind> expected {
+                BlankLine, Kw_Begin, Kw_Object,
+                Kw_Class, Equal, Identifier, Dot, Identifier,
+                Kw_Name, Equal, Identifier, BlankLine,
+                Identifier, Equal, Number, BlankLine,
+                Kw_Begin, Kw_Object, Kw_Class
+            };
+            // clang-format on
+
+            Token tk{};
+            size_t index = 0;
+            while (lexer.read_token(&tk) && index < expected.size()) {
+                TokenKind expected_kind = expected[index];  // NOLINT(*-pro-bounds-constant-array-index)
+                TST_INFO(
+                    "actual={} expecting={} index={}",
+                    tk.kind_as_str(),
+                    TokenProxy{expected_kind}.as_str(),
+                    index
+                );
+                REQUIRE(tk.Kind == expected_kind);
+                ++index;
+            }
+        }
+
+        TextModLexer lexer{test_case};
+        TextModParser parser{&lexer};
+
+        auto rule = ObjectDefinitionRule::create(parser);
+
+        // Outermost
+        REQUIRE(rule.operator bool());
+        REQUIRE(rule.assignments().size() == 1);
+        REQUIRE(rule.child_objects().size() == 1);
+        REQUIRE(rule.child_objects().front()->child_objects().size() == 1);
+        REQUIRE(rule.child_objects().front()->child_objects().front()->child_objects().empty());
+
+        REQUIRE(rule.assignments().size() == 1);
+        REQUIRE(rule.assignments()[0].to_string(parser) == TXT("A=1"));
+
+        {  // Child_0
+            const ObjectDefinitionRule& child = *rule.child_objects()[0];
+            REQUIRE(child.clazz().to_string(parser) == TXT("Foo"));
+            REQUIRE(child.name().to_string(parser) == TXT("Child_0"));
+            REQUIRE(child.assignments().size() == 1);
+            REQUIRE(child.assignments()[0].to_string(parser) == TXT("B=2"));
+        }
+
+        {  // Child_0_0
+            const ObjectDefinitionRule& child = *rule.child_objects()[0]->child_objects()[0];
+            REQUIRE(child.clazz().to_string(parser) == TXT("Foo"));
+            REQUIRE(child.name().to_string(parser) == TXT("Child_0_0"));
+            REQUIRE(child.assignments().size() == 1);
+            REQUIRE(child.assignments()[0].to_string(parser) == TXT("C=3"));
+        }
+
+        { // Strings should be the same
+            str the_str = str{rule.to_string(parser)};
+            auto pos = test_case.find(TXT("Begin"));
+            str trimmed = str{test_case.substr(pos)};
+            trimmed = trimmed.substr(0, trimmed.find_last_of(TXT("Object")) + 1);
+            REQUIRE(the_str == trimmed);
+        }
     }
 }
 

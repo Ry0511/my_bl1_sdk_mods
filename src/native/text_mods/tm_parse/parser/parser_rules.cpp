@@ -57,8 +57,6 @@ ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
     if (parser.maybe<TokenKind::Colon>()) {
         rule.m_ChildIdentifier = DotIdentifierRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ChildIdentifier.text_region());
-    } else {
-        parser.advance();
     }
 
     return rule;
