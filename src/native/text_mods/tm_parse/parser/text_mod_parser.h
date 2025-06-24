@@ -197,10 +197,13 @@ class TextModParser {
             ss << std::format(" but got {}", token.kind_as_str());
 
             TokenTextView vw = token.TextRegion;
-            size_t start = this->m_Lexer->get_line_start(vw);
-            vw.extend(TokenTextView{start, 0});
-
-            ss << std::format("; Current Line: '{}'", str{vw.view_from(this->m_Lexer->text())});
+            if (vw.is_valid()) {
+                size_t start = this->m_Lexer->get_line_start(vw);
+                vw.extend(TokenTextView{start, 0});
+                ss << std::format("; Current Line: '{}'", str{vw.view_from(this->m_Lexer->text())});
+            } else {
+                ss << "; Current line is invalid";
+            }
 
             throw std::runtime_error{ss.str()};
         };

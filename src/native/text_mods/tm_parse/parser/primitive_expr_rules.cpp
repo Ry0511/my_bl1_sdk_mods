@@ -14,8 +14,8 @@ using namespace tokens;
 
 NumberExprRule NumberExprRule::create(TextModParser& parser) {
 
-    const Token& token = parser.peek();
     parser.require<Number>();
+    const Token& token = parser.peek(-1);
 
     NumberExprRule rule{};
     rule.m_TextRegion = token.TextRegion;
@@ -35,40 +35,41 @@ NumberExprRule NumberExprRule::create(TextModParser& parser) {
 }
 
 StrExprRule StrExprRule::create(TextModParser& parser) {
-    const Token& token = parser.peek();
-    TXT_MOD_ASSERT((token == TokenKind::StringLiteral), "logic error");
 
+    parser.require<StringLiteral>();
     StrExprRule rule{};
+    const Token& token = parser.peek(-1);
     rule.m_TextRegion = token.TextRegion;
-    parser.advance();
 
     return rule;
 }
 
 NameExprRule NameExprRule::create(TextModParser& parser) {
 
-    const Token& token = parser.peek();
-    TXT_MOD_ASSERT(token.is_identifier(), "Expecting a Identifier token");
+    parser.require<Identifier>();
+    const Token& token = parser.peek(-1);
 
     NameExprRule rule{};
     rule.m_TextRegion = token.TextRegion;
 
-    parser.require_next<TokenKind::NameLiteral>();
-    rule.m_TextRegion.extend(parser.peek().TextRegion);
-    parser.advance();
+    parser.require<TokenKind::NameLiteral>();
+    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
 
     return rule;
 }
 
 KeywordRule KeywordRule::create(TextModParser& parser) {
 
-    const Token& token = parser.peek();
-    TXT_MOD_ASSERT(token.is_keyword(), "Expecting a keyword token");
+    parser.require<Identifier>();
+    const Token& token = parser.peek(-1);
+
+    if (!token.is_keyword()) {
+        throw std::runtime_error{"Invalid keyword token"};
+    }
 
     KeywordRule rule{};
     rule.m_TextRegion = token.TextRegion;
     rule.m_Kind = token.Kind;
-    parser.advance();
 
     return rule;
 }
@@ -79,12 +80,10 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
     rule.m_TextRegion = parser.peek().TextRegion;
     auto secondary = parser.secondary();
 
-    if (secondary == ParserRuleKind::PrimitiveExpr) {
-        while (!parser.peek(1).is_eolf()) {
-            parser.advance();
-        }
-        rule.m_TextRegion.extend(parser.peek().TextRegion);
+    while (!parser.peek(1).is_eolf()) {
+        parser.advance();
     }
+    rule.m_TextRegion.extend(parser.peek().TextRegion);
 
     parser.advance();
 

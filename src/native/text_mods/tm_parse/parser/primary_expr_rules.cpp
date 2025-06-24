@@ -34,7 +34,7 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
     // EOF | BlankLine
     if (it.match_seq<EndOfInput>() != 0) {
         // Skip: (A=,B=)
-        if (!it->is_any<TokenKind::Comma, TokenKind::RightParen>()) {
+        if (!it->is_any<Comma, RightParen>()) {
             rule.m_Expr = ExpressionRule::create(parser);
             rule.m_TextRegion.extend(rule.expr().text_region());
         }
@@ -55,7 +55,7 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
     list.m_TextRegion = list.m_Assignments.front().text_region();
 
     // ( Comma AssignmentExprRule )*
-    while (parser.maybe<TokenKind::Comma>()) {
+    while (parser.maybe<Comma>()) {
         list.m_Assignments.push_back(AssignmentExprRule::create(parser));
     }
 
@@ -69,36 +69,14 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
 }
 
 bool AssignmentExprListRule::can_parse(TextModParser& p) {
-    using T = TokenKind;
-
     auto it = p.create_iterator();
 
-    // ( A=1, B=2 )
-    if ((--it) != LeftParen) {
-        return false;
-    }
-    ++it;
+    it.set_skip_blank_lines(false);
+    it.set_coalesce(true);
 
-    // Must start with an identifier
-    if (!it->is_identifier()) {
-        return false;
-    }
-
-    if ((++it) == T::Equal) {
-        return true;
-    }
-
-    // clang-format off
-    if (
-           (++it)->is_any<LeftParen, LeftBracket>()
-        && (++it) == T::Number
-        && (++it)->is_any<T::RightParen, T::RightBracket>()
-    ) {
-        return true;
-    }
-    // clang-format on
-
-    return false;
+    return it.match_seq<Identifier, Equal>() == 0
+           || it.match_seq<Identifier, LeftParen, Number, RightParen, Equal>() == 0
+           || it.match_seq<Identifier, LeftBracket, Number, RightBracket, Equal>() == 0;
 }
 
 const ExpressionRule* ParenExprRule::inner_most() const noexcept {
@@ -152,13 +130,12 @@ str_view ExpressionRule::to_string(const TextModParser& parser) const noexcept {
 }
 
 ExpressionRule ExpressionRule::create(TextModParser& parser) {
-    using T = TokenKind;
     ExpressionRule rule{};
 
     auto it = parser.create_iterator();
     const Token& tk = *it;
 
-    if (tk == T::LeftParen) {
+    if (it == LeftParen) {
         rule.m_InnerType = ParenExprRule::create(parser);
     } else if (AssignmentExprListRule::can_parse(parser)) {
         rule.m_InnerType = AssignmentExprListRule::create(parser);
