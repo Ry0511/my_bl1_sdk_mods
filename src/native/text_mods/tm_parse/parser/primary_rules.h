@@ -48,15 +48,56 @@ class ObjectDefinitionRule : public ParserBaseRule {
     std::vector<CopyPtr<ObjectDefinitionRule>> m_ChildObjects;
     std::vector<AssignmentExprRule> m_Assignments;
 
-   public: // clang-format off
+   public:  // clang-format off
     const DotIdentifierRule& clazz()                     const noexcept { return m_Class;        }
     const ObjectIdentifierRule& name()                   const noexcept { return m_Name;         }
     const decltype(m_ChildObjects)& child_objects()      const noexcept { return m_ChildObjects; }
     const std::vector<AssignmentExprRule>& assignments() const noexcept { return m_Assignments;  }
-    // clang-format on
+            // clang-format on
 
    public:
     RULE_PUBLIC_API(ObjectDefinitionRule);
+};
+
+// ( SetCommandRule | ObjectDefinitionRule | EOF )*
+class ProgramRule {
+   public:
+    using Inner = std::variant<SetCommandRule, ObjectDefinitionRule>;
+
+   private:
+    std::vector<Inner> m_Rules;
+
+   public:
+    operator bool() const noexcept { return true; }
+
+   public:
+    const std::vector<Inner>& rules() const noexcept { return m_Rules; }
+
+   public:
+    template <class T>
+    const T& get(size_t index) const {
+        if (index >= m_Rules.size()) {
+            throw std::out_of_range("index out of range");
+        }
+        return std::get<T>(m_Rules[index]);
+    }
+
+    template <class T>
+    T& get(size_t index) {
+        if (index >= m_Rules.size()) {
+            throw std::out_of_range("index out of range");
+        }
+        return std::get<T>(m_Rules[index]);
+    }
+
+   public:
+    template <class T>
+    bool has(size_t index) const noexcept {
+        return index < m_Rules.size() && std::holds_alternative<T>(m_Rules[index]);
+    }
+
+   public:
+    RULE_PUBLIC_API(ProgramRule);
 };
 
 }  // namespace tm_parse::rules

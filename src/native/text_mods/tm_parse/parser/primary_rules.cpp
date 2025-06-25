@@ -52,7 +52,7 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     constexpr TextModParser::PeekOptions opt{.Coalesce = true, .SkipOnBlankLine = false};
 
     ObjectDefinitionRule rule{};
-    parser.require<Kw_Begin>(); // Skip blank lines to this
+    parser.require<Kw_Begin>();  // Skip blank lines to this
     rule.m_TextRegion = parser.peek(-1).TextRegion;
     parser.require<Kw_Object>(0, opt);
 
@@ -127,6 +127,37 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     parser.require<Kw_Object>();
 
     rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+
+    return rule;
+}
+
+ProgramRule ProgramRule::create(TextModParser& parser) {
+    ProgramRule rule{};
+    bool eof_reached = parser.peek() == EndOfInput;
+
+    while (!eof_reached) {
+
+        while (parser.peek() == BlankLine) {
+            parser.advance();
+        }
+
+        // Set ...
+        if (parser.match_seq<Kw_Set>() == 0) {
+            rule.m_Rules.emplace_back(SetCommandRule::create(parser));
+        }
+        // Begin Object ... End Object
+        else if (parser.match_seq<Kw_Begin, Kw_Object, Kw_Class, Equal>() == 0) {
+            rule.m_Rules.emplace_back(ObjectDefinitionRule::create(parser));
+        }
+        // EOF token reached
+        else if (parser.peek(0) == EndOfInput) {
+            eof_reached = true;
+        }
+        // Unknown/Unsupported
+        else {
+            throw std::runtime_error{"Invalid program rule"};
+        }
+    }
 
     return rule;
 }
