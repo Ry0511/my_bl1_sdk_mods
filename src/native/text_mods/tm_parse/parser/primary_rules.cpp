@@ -79,14 +79,13 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
         }
         it.set_skip_blank_lines(false);
 
-        if (it.match_seq<Kw_End, Kw_Object>() == 0) {
-            break;
-        }
-
-
         // Recursive child objects
         if (it.match_seq<Kw_Begin, Kw_Object, Kw_Class, Equal, Identifier>() == 0) {
             rule.m_ChildObjects.emplace_back(ObjectDefinitionRule::create(parser));
+        }
+        // Reached terminating sequence
+        else if (it.match_seq<Kw_End, Kw_Object>() == 0) {
+            break;
         }
         // Assignments
         else if (is_assignment(it)) {
@@ -104,34 +103,21 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
         else {
             std::stringstream ss{};
             auto it = parser.create_iterator();
-            ss << "Failed to parse object definition, got sequence: ";
-
-            Token current = *it;
-            Token begin{};
-            Token end{};
-
             it.set_skip_blank_lines(false);
-            do {
-                --it;
-            } while (!it->is_any<BlankLine, EndOfInput>());
+            --it;
+            const Token& tk = *it;
+            TokenTextView vw = tk.TextRegion;
 
-            if (it == BlankLine) {
-                ++it;
+            ss << "Failed to parse object definition";
+
+            if (vw.is_valid()) {
+                auto* lexer = parser.lexer();
+                size_t line_number = lexer->get_line_number(vw);
+                size_t line_start = lexer->get_line_number(vw);
+                vw.Start = line_start;
+
+                ss << std::format("; Error at line {}, line: '{}'", line_number, str{vw.view_from(lexer->text())});
             }
-            begin = *it;
-
-            do {
-                ++it;
-            } while (!it->is_any<BlankLine, EndOfInput>());
-
-            if (it == BlankLine) {
-                --it;
-            }
-            end = *it;
-
-            TokenTextView vw = begin.TextRegion;
-            vw.extend(end.TextRegion);
-            ss << std::format("'{}' current is '{}'", str{vw.view_from(parser.text())}, current.to_string());
 
             throw std::runtime_error{ss.str()};
         }

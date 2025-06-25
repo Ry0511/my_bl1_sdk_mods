@@ -631,6 +631,7 @@ TEST_CASE("Set Command") {
 }
 
 TEST_CASE("Object Definition") {
+
     SECTION("Simple Object") {
         str_view test_str = TXT(R"(
         Begin Object Class=Foo.Baz Name=Foo.Baz:Bar
@@ -766,6 +767,32 @@ TEST_CASE("Object Definition") {
             trimmed = trimmed.substr(0, trimmed.find_last_of(TXT("Object")) + 1);
             REQUIRE(the_str == trimmed);
         }
+    }
+
+    SECTION("Malformed Object") {
+
+        str test_case = TXT(R"(
+          Begin Object Class=Foo Name=Baz
+            Property=
+            Property=()
+            Property=(INVALID)
+            Property=1
+            Property=("String")
+          End
+        )");
+
+        TextModLexer lexer{test_case};
+        TextModParser parser{&lexer};
+
+        try {
+            auto rule = ObjectDefinitionRule::create(parser);
+            FAIL();
+        } catch (const std::runtime_error& error) {
+            TST_INFO("{}", error.what());
+            std::string msg = error.what();
+            REQUIRE(msg.find("at line 7"));
+        }
+
     }
 }
 

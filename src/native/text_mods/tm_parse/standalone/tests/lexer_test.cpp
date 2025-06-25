@@ -377,7 +377,7 @@ TEST_CASE("Lexing real data") {
             TXT("Timers"),
             TXT("bNetDirty"),
             TXT("PSSMLightCheckLocation"),
-            TXT("WillowPlayerController_1"),
+            TXT("WillowPlayerController_0"),
         };
 
         size_t found_count = 0;

@@ -61,6 +61,7 @@ class TextModParser {
     ////////////////////////////////////////////////////////////////////////////////
 
    public:
+    const TextModLexer* lexer() const noexcept { return m_Lexer; }
     const Token& get_token(size_t index) noexcept(true) {
         if (index >= m_Tokens.size()) {
             return token_eof;
