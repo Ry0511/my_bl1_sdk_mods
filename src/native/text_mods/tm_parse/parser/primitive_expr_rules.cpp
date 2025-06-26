@@ -53,7 +53,14 @@ NameExprRule NameExprRule::create(TextModParser& parser) {
     rule.m_TextRegion = token.TextRegion;
 
     parser.require<TokenKind::NameLiteral>();
-    rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+    auto literal_region = parser.peek(-1).TextRegion;
+    rule.m_TextRegion.extend(literal_region);
+
+    // Hack because I am lazy and don't want to mess with the lexer; -2 for both single quotes
+    auto text = parser.text().substr(literal_region.Start+1, literal_region.Length-2);
+    TextModLexer temp_lexer{text};
+    TextModParser temp_parser{&temp_lexer};
+    rule.m_Identifier = ObjectIdentifierRule::create(temp_parser);
 
     return rule;
 }

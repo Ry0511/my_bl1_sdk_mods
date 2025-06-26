@@ -9,6 +9,7 @@
 #include "pch.h"
 
 #include "parser/parser_rule_enum.h"
+#include "parser/copy_ptr.h"
 
 namespace tm_parse::rules {
 
@@ -25,6 +26,8 @@ class NameExprRule;     // Identifier NameLiteral
 class KeywordRule;      // True | False | None
 class LiteralExprRule;  // * -> Terminator
 
+class ObjectIdentifierRule;
+
 using PrimitiveRuleVariant =
     std::variant<std::monostate, NumberExprRule, StrExprRule, NameExprRule, KeywordRule, LiteralExprRule>;
 
@@ -39,7 +42,7 @@ class NumberExprRule : public ParserBaseRule {
    public:
     template <class T>
         requires(std::is_integral_v<T> || std::is_floating_point_v<T>)
-    T get() const noexcept(true) {
+    T value() const noexcept(true) {
         return std::visit(
             [](auto&& value) -> T {
                 using HeldType = std::decay_t<decltype(value)>;
@@ -65,6 +68,14 @@ class StrExprRule : public ParserBaseRule {
 };
 
 class NameExprRule : public ParserBaseRule {
+   private:
+    str_view m_Class{};
+    CopyPtr<ObjectIdentifierRule> m_Identifier{};
+
+   public:
+    str_view class_ref() const noexcept { return m_Class; }
+    const CopyPtr<ObjectIdentifierRule>& object_ref() const noexcept { return m_Identifier; }
+
    public:
     RULE_PUBLIC_API(NameExprRule);
 };
@@ -122,14 +133,17 @@ class PrimitiveExprRule {
 
    public:
     str_view to_string(TextModParser& parser) const {
-        return std::visit([&parser](auto&& val) -> str_view {
-            using U = std::decay_t<decltype(val)>;
-            if constexpr (std::is_same_v<U, std::monostate>) {
-                return str_view{};
-            } else {
-                return val.to_string(parser);
-            }
-        }, m_InnerRule);
+        return std::visit(
+            [&parser](const auto& val) -> str_view {
+                using U = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<U, std::monostate>) {
+                    return str_view{};
+                } else {
+                    return val.to_string(parser);
+                }
+            },
+            m_InnerRule
+        );
     }
 
    public:

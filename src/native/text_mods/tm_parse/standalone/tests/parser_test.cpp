@@ -200,7 +200,7 @@ TEST_CASE("Expressions") {
                 REQUIRE((rule && test_case == rule.to_string(parser)));
 
                 constexpr double epsilon = std::numeric_limits<float>::epsilon();
-                double actual = rule.get<float>();
+                double actual = rule.value<float>();
                 REQUIRE(std::fabs(actual - val) < epsilon);
             }
         }  // namespace tm_parse_tests
@@ -221,10 +221,11 @@ TEST_CASE("Expressions") {
     SECTION("Name Literals") {
         {
             str_view test_cases[]{
-                TXT("Class'Foo.Baz.Bar'"),
-                TXT("SomeClass''"),
-                TXT("_Some_Class''"),
-                TXT("_Some_Class'Some Object Name'"),
+                TXT("Class'Foo'"),
+                TXT("Class'foo._baz:_bar'"),
+                TXT("_Some_Class'Foo'"),
+                TXT("_Some_Class'Foo.Baz'"),
+                TXT("_Some_Class'Foo.Baz:Bar'"),
             };
 
             for (str_view test_case : test_cases) {
@@ -233,6 +234,24 @@ TEST_CASE("Expressions") {
                 auto name = NameExprRule::create(parser);
                 REQUIRE(name.operator bool());
                 REQUIRE(name.to_string(parser) == test_case);
+            }
+        }
+
+        {
+            str_view test_cases[] {
+                TXT("Class''"),
+                TXT("Class'foo.'"),
+                TXT("Class'foo:bar.'"),
+                TXT("Class'foo.bar:'"),
+                TXT("Class'1.2.3'"),
+                TXT("0'foo.baz:bar'"),
+                TXT("Foo.'foo.baz:bar'")
+            };
+
+            for (str_view test_case : test_cases) {
+                TextModLexer lexer{test_case};
+                TextModParser parser{&lexer};
+                REQUIRE_THROWS_AS(NameExprRule::create(parser), std::runtime_error);
             }
         }
     }
@@ -484,7 +503,7 @@ TEST_CASE("Expressions") {
             TXT("\"String Literal\""),
             TXT("\"\""),
             TXT("SomeClass'SomeName'"),
-            TXT("SomeClass''"),
+            TXT("SomeClass'foo.baz:bar'"),
             TXT("Unquoted String Literal"),
             TXT("AnyLiteral"),
         };
