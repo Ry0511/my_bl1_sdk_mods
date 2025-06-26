@@ -31,7 +31,9 @@ class DotIdentifierRule : public ParserBaseRule {
 
 // [[ParserDoc_ObjectIdentifier]]
 class ObjectIdentifierRule : public ParserBaseRule {
-   private:
+    // Originally assumed this was at most one child identifier but now that I think of it there
+    //  can be any number of children here. i.e., A:B:C:D:E which does complicate things slightly.
+    private:
     DotIdentifierRule m_PrimaryIdentifier;  // The primary identifier (guaranteed)
     DotIdentifierRule m_ChildIdentifier;    // The child identifier (optional)
 
