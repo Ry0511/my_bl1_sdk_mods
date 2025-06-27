@@ -8,8 +8,8 @@
 
 #include "pch.h"
 
-#include "parser/parser_rule_enum.h"
 #include "parser/copy_ptr.h"
+#include "parser/parser_rule_enum.h"
 
 namespace tm_parse::rules {
 
@@ -24,7 +24,7 @@ class NumberExprRule;   // Number
 class StrExprRule;      // \".*?\"
 class NameExprRule;     // Identifier NameLiteral
 class KeywordRule;      // True | False | None
-class LiteralExprRule;  // * -> Terminator
+class LiteralExprRule;  // * Terminator
 
 class ObjectIdentifierRule;
 

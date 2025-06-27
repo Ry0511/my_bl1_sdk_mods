@@ -35,7 +35,6 @@ NumberExprRule NumberExprRule::create(TextModParser& parser) {
 }
 
 StrExprRule StrExprRule::create(TextModParser& parser) {
-
     parser.require<StringLiteral>();
     StrExprRule rule{};
     const Token& token = parser.peek(-1);
