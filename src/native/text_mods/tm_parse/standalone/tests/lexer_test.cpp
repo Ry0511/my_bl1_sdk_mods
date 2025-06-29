@@ -539,11 +539,37 @@ TEST_CASE("Lexing parenthesis") {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// | LEXING PAREN EXPRESSIONS |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("should lex valid sequence") {
+    using namespace tokens;
+    str_view test_case = TXT(
+        R"(PresenceStrings(0)=(Description="Character, Level, Health",PresenceMode=1,PresenceContext=EPMC_Any,Max=0))"
+    );
+    TextModLexer lexer{test_case};
+    Token tk{};
+
+    std::vector<TokenKind> expected{
+        Identifier,    LeftParen, Number,     RightParen, Equal,  LeftParen,  Identifier, Equal,
+        StringLiteral, Comma,     Identifier, Equal,      Number, Comma,      Identifier, Equal,
+        Identifier,    Comma,     Identifier, Equal,      Number, RightParen,
+    };
+
+    for (TokenKind expect : expected) {
+        REQUIRE(lexer.read_token(&tk));
+        REQUIRE(tk.Kind == expect);
+    }
+
+    REQUIRE(!lexer.read_token(&tk));
+    REQUIRE(tk == EndOfInput);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // | LEXER METHODS |
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Lexer Helpers") {
-
     SECTION("::get_line_start && ::get_line_number") {
         TextModLexer lexer{TXT("\n1\n12\n123\n1234\n\n\n12345")};
         Token token{};
@@ -583,7 +609,6 @@ TEST_CASE("Lexer Helpers") {
         REQUIRE(lexer.get_line_start(token.TextRegion) == 17);
         REQUIRE(lexer.get_line_number(token.TextRegion) == 7);
     }
-
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
