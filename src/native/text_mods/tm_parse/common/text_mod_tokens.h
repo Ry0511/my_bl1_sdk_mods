@@ -329,6 +329,10 @@ struct Token {
     // Token Compare
     bool operator==(const Token& other) const noexcept { return this->Kind == other.Kind; }
     bool operator!=(const Token& other) const noexcept { return this->Kind != other.Kind; }
+
+    // Text Equality
+    bool operator==(const TokenTextView& other) const noexcept { return TextRegion == other; }
+    bool operator!=(const TokenTextView& other) const noexcept { return TextRegion != other; }
 };
 
 static constexpr Token token_eof{TokenKind::EndOfInput, TokenTextView{}};
