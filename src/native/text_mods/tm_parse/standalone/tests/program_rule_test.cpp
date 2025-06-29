@@ -121,4 +121,46 @@ End Object
     }
 }
 
+TEST_CASE("Real Data") {
+
+    // Dumped from WillowPlayerController
+    str_view test_str = TXT(R"(
+      Begin Object Class=Foo Name=Baz
+        ShakeOffsetLength=0.000000
+        ShakeRotLength=0.000000
+        ShakeFOVLength=0.000000
+        PresenceUpdateInterval=240
+        PresenceStrings(0)=(Description="Character, Level, Health",PresenceMode=1,PresenceContext=EPMC_Any,Max=0)
+        PresenceStrings(1)=(Description="Weapon Mfg Data",PresenceMode=2,PresenceContext=EPMC_OnFoot,Max=0)
+        PresenceStrings(2)=(Description="Driving",PresenceMode=3,PresenceContext=EPMC_Driving,Max=0)
+        PresenceStrings(3)=(Description="Kills",PresenceMode=4,PresenceContext=EPMC_Any,Max=9000)
+        PresenceStrings(4)=(Description="Guns found",PresenceMode=5,PresenceContext=EPMC_Any,Max=999999)
+        PresenceStrings(5)=(Description="Duels won",PresenceMode=6,PresenceContext=EPMC_Any,Max=999)
+        PresenceStrings(6)=(Description="Dueling",PresenceMode=7,PresenceContext=EPMC_Dueling,Max=0)
+        PresenceStrings(7)=(Description="Arenaing",PresenceMode=8,PresenceContext=EPMC_Arenaing,Max=0)
+        PresenceStrings(8)=(Description="PlaythroughProgress",PresenceMode=9,PresenceContext=EPMC_Any,Max=126)
+        PresenceStrings(9)=(Description="TotalProgress",PresenceMode=10,PresenceContext=EPMC_Any,Max=252)
+        PresenceStrings(10)=(Description="JoinMyFight",PresenceMode=11,PresenceContext=EPMC_OpenSlots,Max=4)
+        CurrentLunge=(Target=None,Length=0.000000,Start=0.000000,SavedAccelRate=0.000000)
+        LungeSpeedModifier=None
+        MaxLungeDistance=0.000000
+        MaxLungeDistanceBaseValue=0.000000
+        CurrentLurch=(StartTime=0.000000,LocMagnitude=0.000000,RotMagnitude=0.000000,Duration=0.000000,FalloffRate=0.000000)
+      End Object
+    )");
+
+    TextModLexer lexer{test_str};
+    TextModParser parser{&lexer};
+
+    try {
+        ProgramRule rule = ProgramRule::create(parser);
+        REQUIRE(rule.operator bool());
+        REQUIRE(rule.rules().size() == 1);
+    } catch (const std::runtime_error& err) {
+        TXT_LOG("Exception parsing program rule: {}", err.what());
+        FAIL();
+    }
+
+}
+
 }  // namespace tm_parse_tests
