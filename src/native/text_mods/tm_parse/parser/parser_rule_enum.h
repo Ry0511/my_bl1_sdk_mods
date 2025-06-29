@@ -92,7 +92,6 @@ I have tried to avoid reusing names from the Lexer but somethings
 
 using parser_rule_int = uint8_t;
 
-// TODO: I don't know the extent at which this is used... Very rarely is it actually used.
 // clang-format off
 enum class ParserRuleKind : parser_rule_int {
     DotIdentifier     ,
@@ -100,6 +99,8 @@ enum class ParserRuleKind : parser_rule_int {
     ArrayAccess       ,
     PropertyAccess    ,
     PropertyAssignment,
+    AssignmentExpr    ,
+    AssignmentExprList,
     ObjectNameLiteral ,
     IdentifierChain   ,
     PrimitiveExpr     ,

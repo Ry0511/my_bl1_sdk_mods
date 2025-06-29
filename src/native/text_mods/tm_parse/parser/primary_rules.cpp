@@ -13,8 +13,8 @@ using namespace tokens;
 
 SetCommandRule SetCommandRule::create(TextModParser& parser) {
     SetCommandRule rule{};
-    auto original = parser.primary();
-    parser.set_primary(ParserRuleKind::SetCommand);
+
+    parser.push_rule(ParserRuleKind::SetCommand);
 
     parser.require<TokenKind::Kw_Set>();
     rule.m_TextRegion = parser.peek(-1).TextRegion;
@@ -35,7 +35,7 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT(rule.expr().operator bool(), "invalid expression");
     rule.m_TextRegion.extend(rule.expr().text_region());
 
-    parser.set_primary(original);
+    parser.pop_rule();
 
     return rule;
 }
@@ -73,10 +73,13 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     };
 
     while (parser.peek() != EndOfInput) {
-        auto it = parser.create_iterator();
-        if (it == BlankLine) {
-            ++it;
+        size_t index_snapshot = parser.index();
+
+        while (parser.peek() == BlankLine) {
+            parser.advance();
         }
+
+        auto it = parser.create_iterator();
         it.set_skip_blank_lines(false);
 
         // Recursive child objects
@@ -102,21 +105,22 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
         // Don't know what this is but whatever it is it can go fuck itself
         else {
             std::stringstream ss{};
-            auto it = parser.create_iterator();
-            it.set_skip_blank_lines(false);
-            --it;
-            const Token& tk = *it;
-            TokenTextView vw = tk.TextRegion;
+            Token current_token = parser.peek();
+            auto it = parser.create_iterator(index_snapshot, {.SkipBlankLines = false});
 
-            ss << "Failed to parse object definition";
+            ss << "Error parsing Object Definition got sequence:\n  ";
+            while (it->TextRegion != current_token.TextRegion) {
+                ss << std::format("{} ", it->kind_as_str());
+                ++it;
+            }
 
+            TokenTextView vw = current_token.TextRegion;
             if (vw.is_valid()) {
-                auto* lexer = parser.lexer();
-                size_t line_number = lexer->get_line_number(vw);
-                size_t line_start = lexer->get_line_number(vw);
-                vw.Start = line_start;
+                vw.Start = parser.lexer()->get_line_start(vw);
+                size_t line_number = parser.lexer()->get_line_number(vw.Start);
 
-                ss << std::format("; Error at line {}, line: '{}'", line_number, str{vw.view_from(lexer->text())});
+                ss << "\n";
+                ss << std::format("at line {} with text '{}'", line_number, str{vw.view_from(parser.text())});
             }
 
             throw std::runtime_error{ss.str()};
@@ -136,7 +140,6 @@ ProgramRule ProgramRule::create(TextModParser& parser) {
     bool eof_reached = parser.peek() == EndOfInput;
 
     while (!eof_reached) {
-
         while (parser.peek() == BlankLine) {
             parser.advance();
         }
@@ -155,7 +158,14 @@ ProgramRule ProgramRule::create(TextModParser& parser) {
         }
         // Unknown/Unsupported
         else {
-            throw std::runtime_error{"Invalid program rule"};
+            // clang-format off
+            throw std::runtime_error{
+                std::format(
+                    "Invalid program rule unknown token '{}'",
+                    parser.peek().kind_as_str()
+                )
+            };
+            // clang-format on
         }
     }
 

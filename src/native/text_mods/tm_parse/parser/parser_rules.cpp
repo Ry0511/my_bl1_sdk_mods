@@ -121,7 +121,7 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     }
 
     // If something other than
-    if (parser.primary() != ParserRuleKind::SetCommand || !parser.peek(3).is_eolf()) {
+    if (parser.peek_rule() != ParserRuleKind::SetCommand || !parser.peek(3).is_eolf()) {
         rule.m_ArrayAccess = ArrayAccessRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }

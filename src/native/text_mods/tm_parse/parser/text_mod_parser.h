@@ -43,8 +43,7 @@ class TextModParser {
     using T = TokenKind;
 
    private:
-    ParserRuleKind m_PrimaryRuleKind;    // Current primary rule i.e., Set Command, Object Definition
-    ParserRuleKind m_SecondaryRuleKind;  // Current parent rule kind i.e., ParenExpr
+    std::deque<ParserRuleKind> m_RuleStack;
     bool m_EndOfInputReached;
     TextModLexer* m_Lexer;
 
@@ -86,15 +85,45 @@ class TextModParser {
     // | INTERNAL HELPERS |
     ////////////////////////////////////////////////////////////////////////////////
 
-   public:  // This is only for rules which need extra context information
-    void set_primary(ParserRuleKind kind) noexcept { m_PrimaryRuleKind = kind; }
-    void set_secondary(ParserRuleKind kind) noexcept { m_SecondaryRuleKind = kind; }
-    ParserRuleKind primary() const noexcept { return m_PrimaryRuleKind; }
-    ParserRuleKind secondary() const noexcept { return m_SecondaryRuleKind; }
+   public:
+    ParserRuleKind peek_rule() const noexcept {
+        if (m_RuleStack.empty()) {
+            return ParserRuleKind::Unknown;
+        }
+        return m_RuleStack.back();
+    }
+
+    void push_rule(ParserRuleKind rule) noexcept { m_RuleStack.push_back(rule); }
+
+    ParserRuleKind pop_rule() noexcept {
+        if (m_RuleStack.empty()) {
+            return ParserRuleKind::Unknown;
+        }
+        auto top = m_RuleStack.back();
+        m_RuleStack.pop_back();
+        return top;
+    }
+
+    bool has_rule(ParserRuleKind rule) const noexcept {
+        if (m_RuleStack.empty()) {
+            return false;
+        }
+
+        for (size_t i = m_RuleStack.size() - 1; i > 0; --i) {
+            if (m_RuleStack[i] == rule) {
+                return true;
+            }
+        }
+        return false;
+    }
 
    public:
     ParserIterator create_iterator(const MatchOptions& opt = {}) noexcept {
         return ParserIterator{this, m_Index, opt.SkipBlankLines, opt.Coalesce};
+    }
+
+    ParserIterator create_iterator(size_t index, const MatchOptions& opt = {}) noexcept {
+        return ParserIterator{this, index, opt.SkipBlankLines, opt.Coalesce};
     }
 
    public:
@@ -160,7 +189,7 @@ class TextModParser {
             Token tk = get_token(pos);
 
             // Skip any blank lines if skipping is enabled
-            if (opt.SkipBlankLines && tk == T::BlankLine && expected_kind != T::BlankLine) {
+            while (opt.SkipBlankLines && tk == T::BlankLine && expected_kind != T::BlankLine) {
                 ++pos;
                 tk = get_token(pos);
             }
@@ -191,17 +220,32 @@ class TextModParser {
         auto impl_error = [this](const Token& token) {
             // Failed, build error message and throw
             std::stringstream ss{};  // NOLINT(*-identifier-length)
-            ss << "Expecting ";
+            ss << "Expecting one of [";
+            bool first = true;
             for (const auto& kind : {Kinds...}) {
-                ss << std::format(" {},", TokenProxy{kind}.as_str());
+                if (!first) {
+                    ss << ", ";
+                }
+                first = false;
+                ss << std::format("{}", TokenProxy{kind}.as_str());
             }
-            ss << std::format(" but got {}", token.kind_as_str());
+            ss << std::format("] but got {}", token.kind_as_str());
 
             TokenTextView vw = token.TextRegion;
             if (vw.is_valid()) {
-                size_t start = this->m_Lexer->get_line_start(vw);
-                vw.extend(TokenTextView{start, 0});
-                ss << std::format("; Current Line: '{}'", str{vw.view_from(this->m_Lexer->text())});
+                size_t line_number = this->m_Lexer->get_line_number(vw);
+                vw.Start = this->m_Lexer->get_line_start(vw);
+                vw.Length = m_Lexer->get_line_end(vw.Start) - vw.Start;
+                ss << std::format("; at line {}\n  > {}\n", line_number, str{vw.view_from(this->m_Lexer->text())});
+
+                // Position Indicator
+                std::string indicator(vw.Length, ' ');
+                const size_t start = token.TextRegion.Start - vw.Start;
+                const size_t length = std::min(vw.Length, token.TextRegion.Length + 1);
+                for (size_t i = start; i < length; ++i) {
+                    indicator[i] = '^';
+                }
+                ss << std::format("  > {}", indicator);
             } else {
                 ss << "; Current line is invalid";
             }
@@ -214,12 +258,10 @@ class TextModParser {
 
         // Not looking for BlankLine so skip it ( or error )
         if constexpr (!has_lf) {
-            const Token& tk = peek();
-
-            if (tk == T::BlankLine) {
-                if (opt.FailOnBlankLine) {
-                    impl_error(tk);
-                } else if (opt.SkipOnBlankLine) {
+            if (peek() == T::BlankLine && opt.FailOnBlankLine) {
+                impl_error(peek());
+            } else {
+                while (peek() == T::BlankLine && opt.SkipOnBlankLine) {
                     advance();
                 }
             }
@@ -251,19 +293,15 @@ class TextModParser {
     template <TokenKind... Kinds>
         requires(sizeof...(Kinds) > 0)
     bool maybe(const int offset = 0, const PeekOptions& opt = {}) {
-
         constexpr bool has_lf = (... || (T::BlankLine == Kinds));
         constexpr bool has_identifier = (... || (T::Identifier == Kinds));
 
         // Not looking for BlankLine so skip it ( or error )
         if constexpr (!has_lf) {
-            const Token& tk = peek();
-
-            if (tk == T::BlankLine) {
-                if (opt.FailOnBlankLine) {
-                    return false;
-                }
-                if (opt.SkipOnBlankLine) {
+            if (peek() == T::BlankLine && opt.FailOnBlankLine) {
+                return false;
+            } else {
+                while (peek() == T::BlankLine && opt.SkipOnBlankLine) {
                     advance();
                 }
             }

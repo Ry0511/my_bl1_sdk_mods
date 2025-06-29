@@ -84,13 +84,15 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
 
     LiteralExprRule rule{};
     rule.m_TextRegion = parser.peek().TextRegion;
-    auto secondary = parser.secondary();
 
-    while (!parser.peek(1).is_eolf()) {
-        parser.advance();
+    const bool has_expr_list = parser.has_rule(ParserRuleKind::AssignmentExprList);
+
+    if (!has_expr_list) {
+        while (!parser.peek(1).is_eolf()) {
+            parser.advance();
+        }
+        rule.m_TextRegion.extend(parser.peek().TextRegion);
     }
-    rule.m_TextRegion.extend(parser.peek().TextRegion);
-
     parser.advance();
 
     return rule;
@@ -99,50 +101,33 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
 PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
     PrimitiveExprRule rule{};
 
-    using T = TokenKind;
-    auto secondary = par.secondary();
-
     auto it = par.create_iterator();
 
     switch (it->Kind) {
-        case T::Number:
+        case Number:
             rule.m_InnerRule = NumberExprRule::create(par);
             break;
 
-        case T::StringLiteral:
+        case StringLiteral:
             rule.m_InnerRule = StrExprRule::create(par);
             break;
 
         default: {
             // Note: Can't match against identifier directly due to overlap in keywords and identifiers
             // i.e., Class is a keyword so Class'Foo' would fail when it shouldn't
-            if (it->is_identifier() && it.peek_next() == T::NameLiteral) {
+            if (it->is_identifier() && it.peek_next() == NameLiteral) {
                 rule.m_InnerRule = NameExprRule::create(par);
             }
             // Primarily for: True, False, None; but generically captures any keyword token
             else if (it->is_keyword()) {
                 rule.m_InnerRule = KeywordRule::create(par);
             }
+            // Unquoted string literals or enumerations
+            else {
+                rule.m_InnerRule = LiteralExprRule::create(par);
+            }
             break;
         }
-    }
-
-    // When not parsing as a ParenExpr we can use LiteralExpr we really don't want to use this if we
-    // can avoid it but it is the only way to handle sequences like this:
-    //
-    //   > set Foo Baz My Unquoted String
-    //   > Property= My Unquoted String
-    //   > (A=My Unquoted String,B=)
-    //
-    // I have yet to see an unquoted literal inside a ParenExpr and will assume it doesn't exist
-    // because thats annoying to handle. Regardless, whatever is returned will be validated by the
-    // caller since they can strongly assert what the next token **should** be. We can technically
-    // do it here but it complicates things for us and the caller, so dont.
-    //
-    if (secondary != ParserRuleKind::ParenExpr && rule.is<std::monostate>()) {
-        par.set_secondary(ParserRuleKind::PrimitiveExpr);
-        rule.m_InnerRule = LiteralExprRule::create(par);
-        par.set_secondary(secondary); // Restore
     }
 
     return rule;

@@ -23,6 +23,7 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
     // ( A=(), B=(1), C=(X=10,Y=20) )
     //    ^^^   ^^^^    ^^^^^^^^^^^
 
+    parser.push_rule(ParserRuleKind::AssignmentExpr);
     rule.m_Property = PropertyAccessRule::create(parser);
     rule.m_TextRegion = rule.m_Property.text_region();
 
@@ -43,12 +44,16 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(rule.property().text_region());
     }
 
+    parser.pop_rule();
+
     return rule;
 }
 
 AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
     AssignmentExprListRule list{};
     list.m_Assignments.reserve(32);  // NOLINT(*-magic-numbers)
+
+    parser.push_rule(ParserRuleKind::AssignmentExprList);
 
     // Initial expression
     list.m_Assignments.push_back(AssignmentExprRule::create(parser));
@@ -65,6 +70,7 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
     }
 
     list.m_Assignments.shrink_to_fit();
+    parser.pop_rule();
     return list;
 }
 
