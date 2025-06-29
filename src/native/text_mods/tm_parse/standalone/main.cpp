@@ -21,24 +21,6 @@ using namespace tm_parse;
 
 int main() {
 
-    TXT_LOG("== WPC LEXING ==================================================================");
-    const txt_char* utf8_file = TXT("wpc_obj_dump_utf-8.txt");
-    const txt_char* utf16le_file = TXT("wpc_obj_dump_utf-16le.txt");
-    fs::path the_file = fs::current_path() / utf8_file;
-
-    if (!fs::is_regular_file(the_file)) {
-        TXT_LOG("File does not exist: '{}'", the_file.string());
-        return -1;
-    }
-
-    std::wifstream stream{the_file};
-
-    using It = std::istreambuf_iterator<wchar_t>;
-    str content{It{stream}, It{}};
-
-    TextModLexer lexer{content};
-    // TextModParser parser{&lexer};
-
     TXT_LOG("== SYMBOLS =====================================================================");
     for (TokenProxy proxy : SymbolTokenIterator{}) {
         TXT_LOG("  {:>2} -> {}", proxy.as_int(), proxy.as_str());
@@ -47,6 +29,19 @@ int main() {
     TXT_LOG("== KEYWORDS ====================================================================");
     for (TokenProxy proxy : KeywordTokenIterator{}) {
         TXT_LOG("  {:>2} -> {}", proxy.as_int(), proxy.as_str());
+    }
+
+    {
+        fs::path wpc_dump = fs::current_path() / "wpc_obj_dump_utf-8.txt";
+        if (fs::is_regular_file(wpc_dump)) {
+            std::wifstream stream{wpc_dump};
+            using It = std::istreambuf_iterator<wchar_t>;
+            str content = std::wstring{It{stream}, It{}};
+
+            TextModLexer lexer{content};
+            TextModParser parser{&lexer};
+            ProgramRule program = ProgramRule::create(parser);
+        }
     }
 
     // Will pickup tests in linked source files
