@@ -84,7 +84,33 @@ class TextModLexer {
         return 0;
     }
 
+    size_t get_line_end(size_t pos) const noexcept {
+        if (size() < pos) {
+            return invalid_index_v;
+        }
+
+        if (pos == text().size() - 1) {
+            return pos;
+        }
+
+        size_t line_end = pos;
+        do {
+            if (m_Text[line_end] == TXT('\n')) {
+                return line_end;
+            }
+            ++line_end;
+        } while (line_end < text().size());
+
+        return text().size() - 1;
+    }
+
     size_t get_line_start(const TokenTextView& vw) const noexcept { return get_line_start(vw.Start); }
+
+    TokenTextView get_line(size_t pos) const noexcept {
+        size_t line_start = get_line_start(pos);
+        size_t line_end = get_line_end(pos);
+        return TokenTextView{line_start, line_end - line_start + 1};
+    }
 
     [[nodiscard]] size_t get_line_number(size_t pos) const noexcept {
         size_t line_count = 0;
