@@ -357,11 +357,11 @@ Begin Object Class=WillowPlayerController Name=WillowPlayerController_0
   PlayerLocationSparkPulseInterval=5
   bLastUsingGamepad=0
   LastKnownExpPoints=0
-  __OnSkillGradeChanged__Delegate=(null).None
-  __OnSkillPointsChanged__Delegate=(null).None
-  __OnSkillTreeReset__Delegate=(null).None
-  __OnElementalSkillEquipped__Delegate=(null).None
-  __OnSetSkillGrade__Delegate=(null).None
+#  __OnSkillGradeChanged__Delegate=(null).None
+#  __OnSkillPointsChanged__Delegate=(null).None
+#  __OnSkillTreeReset__Delegate=(null).None
+#  __OnElementalSkillEquipped__Delegate=(null).None
+#  __OnSetSkillGrade__Delegate=(null).None
   CurrentViewShake=(OffsetMag=(X=0.000000,Y=0.000000,Z=0.000000),OffsetRate=(X=0.000000,Y=0.000000,Z=0.000000),OffsetTime=0.000000,RotMag=(X=0.000000,Y=0.000000,Z=0.000000),RotRate=(X=0.000000,Y=0.000000,Z=0.000000),RotTime=0.000000,FOVMag=0.000000,FOVRate=0.000000,FOVTime=0.000000)
   BaseDamageShake=(OffsetMag=(X=0.000000,Y=0.000000,Z=0.000000),OffsetRate=(X=0.000000,Y=0.000000,Z=0.000000),OffsetTime=0.000000,RotMag=(X=0.000000,Y=0.000000,Z=10.000000),RotRate=(X=0.000000,Y=0.000000,Z=20.000000),RotTime=0.100000,FOVMag=0.000000,FOVRate=0.000000,FOVTime=0.000000)
   ShakeOffset=(X=0.000000,Y=0.000000,Z=0.000000)
@@ -495,7 +495,7 @@ Begin Object Class=WillowPlayerController Name=WillowPlayerController_0
   HoldingDest=(X=0.000000,Y=0.000000,Z=0.000000)
   HoldingRotation=(Pitch=0,Yaw=0,Roll=0)
   HoldingDestActor=None
-  __CanUnpause__Delegate=(null).None
+#  __CanUnpause__Delegate=(null).None
   VfTable_IIResourcePoolProvider=
   Pawn=None
   PlayerReplicationInfo=WillowPlayerReplicationInfo'menumap.TheWorld:PersistentLevel.WillowPlayerReplicationInfo_0'
@@ -1131,11 +1131,11 @@ set WillowPlayerController_0 SparkStatPostInterval 300.000000
 set WillowPlayerController_0 PlayerLocationSparkPulseInterval 5
 set WillowPlayerController_0 bLastUsingGamepad 0
 set WillowPlayerController_0 LastKnownExpPoints 0
-set WillowPlayerController_0 __OnSkillGradeChanged__Delegate (null).None
-set WillowPlayerController_0 __OnSkillPointsChanged__Delegate (null).None
-set WillowPlayerController_0 __OnSkillTreeReset__Delegate (null).None
-set WillowPlayerController_0 __OnElementalSkillEquipped__Delegate (null).None
-set WillowPlayerController_0 __OnSetSkillGrade__Delegate (null).None
+# set WillowPlayerController_0 __OnSkillGradeChanged__Delegate (null).None
+# set WillowPlayerController_0 __OnSkillPointsChanged__Delegate (null).None
+# set WillowPlayerController_0 __OnSkillTreeReset__Delegate (null).None
+# set WillowPlayerController_0 __OnElementalSkillEquipped__Delegate (null).None
+# set WillowPlayerController_0 __OnSetSkillGrade__Delegate (null).None
 set WillowPlayerController_0 CurrentViewShake (OffsetMag=(X=0.000000,Y=0.000000,Z=0.000000),OffsetRate=(X=0.000000,Y=0.000000,Z=0.000000),OffsetTime=0.000000,RotMag=(X=0.000000,Y=0.000000,Z=0.000000),RotRate=(X=0.000000,Y=0.000000,Z=0.000000),RotTime=0.000000,FOVMag=0.000000,FOVRate=0.000000,FOVTime=0.000000)
 set WillowPlayerController_0 BaseDamageShake (OffsetMag=(X=0.000000,Y=0.000000,Z=0.000000),OffsetRate=(X=0.000000,Y=0.000000,Z=0.000000),OffsetTime=0.000000,RotMag=(X=0.000000,Y=0.000000,Z=10.000000),RotRate=(X=0.000000,Y=0.000000,Z=20.000000),RotTime=0.100000,FOVMag=0.000000,FOVRate=0.000000,FOVTime=0.000000)
 set WillowPlayerController_0 ShakeOffset (X=0.000000,Y=0.000000,Z=0.000000)
@@ -1261,7 +1261,7 @@ set WillowPlayerController_0 LastSpectatorStateSynchTime 0.000000
 set WillowPlayerController_0 HoldingDest (X=0.000000,Y=0.000000,Z=0.000000)
 set WillowPlayerController_0 HoldingRotation (Pitch=0,Yaw=0,Roll=0)
 set WillowPlayerController_0 HoldingDestActor None
-set WillowPlayerController_0 __CanUnpause__Delegate (null).None
+# set WillowPlayerController_0 __CanUnpause__Delegate (null).None
 set WillowPlayerController_0 Pawn None
 set WillowPlayerController_0 PlayerReplicationInfo WillowPlayerReplicationInfo'menumap.TheWorld:PersistentLevel.WillowPlayerReplicationInfo_0'
 set WillowPlayerController_0 PlayerNum 0
