@@ -1012,6 +1012,22 @@ TEST_CASE("require & maybe") {
     }
 }
 
+TEST_CASE("copying to internal buffer") {
+    auto test_str = TXT("set Foo.Baz:Bar MyProperty (((A=(),B=1,C=(0.09))))");
+    TextModLexer lexer{test_str};
+    TextModParser parser{&lexer};
+
+    auto rule = SetCommandRule::create(parser);
+    REQUIRE(rule.operator bool());
+    REQUIRE(rule.to_string(parser) == test_str);
+    REQUIRE(rule.to_string() == str_view{});
+
+    REQUIRE(!rule.has_copy_str());
+    rule.copy_str_internal(parser);
+    REQUIRE(rule.has_copy_str());
+    REQUIRE(rule.to_string() == test_str);
+}
+
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
 
 }  // namespace tm_parse_tests

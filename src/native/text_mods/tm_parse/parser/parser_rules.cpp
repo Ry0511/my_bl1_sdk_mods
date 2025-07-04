@@ -11,11 +11,19 @@
 namespace tm_parse::rules {
 
 str_view ParserBaseRule::to_string(TextModParser& parser) const {
-    if (!this->operator bool()) {
+    if (!this->operator bool() || !m_TextRegion.is_valid()) {
         return str_view{};
     }
     return m_TextRegion.view_from(parser.m_Lexer->text());
 }
+
+void ParserBaseRule::copy_str_internal(TextModParser& parser) {
+    if (!this->operator bool() || !m_TextRegion.is_valid()) {
+        throw std::runtime_error{"Cannot copy string internally of invalid rule"};
+    }
+    m_Text = std::make_shared<str>(m_TextRegion.view_from(parser.text()));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // | STATIC FACTORY METHODS |
