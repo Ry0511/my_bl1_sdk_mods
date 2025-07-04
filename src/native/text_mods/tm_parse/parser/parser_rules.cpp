@@ -30,13 +30,20 @@ void ParserBaseRule::copy_str_internal(TextModParser& parser) {
 ////////////////////////////////////////////////////////////////////////////////
 
 IdentifierRule IdentifierRule::create(TextModParser& parser) {
+    parser.push_rule(ParserRuleKind::IdentifierRule);
+
     parser.require<TokenKind::Identifier>();
     IdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
+
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::IdentifierRule);
+    parser.pop_rule();
     return rule;
 }
 
 DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
+    parser.push_rule(ParserRuleKind::DotIdentifierRule);
+
     parser.require<TokenKind::Identifier>();
     DotIdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
@@ -54,10 +61,14 @@ DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::DotIdentifierRule);
+    parser.pop_rule();
     return rule;
 }
 
 ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
+    parser.push_rule(ParserRuleKind::ObjectIdentifierRule);
+
     ObjectIdentifierRule rule{};
     rule.m_PrimaryIdentifier = DotIdentifierRule::create(parser);
     rule.m_TextRegion = rule.m_PrimaryIdentifier.text_region();
@@ -67,10 +78,13 @@ ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(rule.m_ChildIdentifier.text_region());
     }
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ObjectIdentifierRule);
+    parser.pop_rule();
     return rule;
 }
 
 ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
+    parser.push_rule(ParserRuleKind::ArrayAccessRule);
     const Token& token = parser.peek();
 
     TXT_MOD_ASSERT((token.is_any<TokenKind::LeftBracket, TokenKind::LeftParen>()), "logic error");
@@ -94,10 +108,14 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
         throw std::runtime_error(std::format("Expecting ( or [ but got {}", token.as_str()));
     }
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ArrayAccessRule);
+    parser.pop_rule();
     return rule;
 }
 
 PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
+    parser.push_rule(ParserRuleKind::PropertyAccessRule);
+
     PropertyAccessRule rule{};
     rule.m_Identifier = IdentifierRule::create(parser);
     rule.m_TextRegion = rule.m_Identifier.text_region();
@@ -105,7 +123,7 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     using namespace tokens;
 
     // Note ambiguity here:
-    //   > set Obj Property (1)    | ArrayAccess?
+    //   > set Obj Property (1)    | ArrayAccess ?
     //   > set Obj Property(1) (1) | No issues
     //   > set Obj Property ()     | Errors
     //
@@ -125,15 +143,18 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
 
     // No array expression
     if (parser.match_seq<LeftParen, Number, RightParen>() != 0) {
+        parser.pop_rule();
         return rule;
     }
 
     // If something other than
-    if (parser.peek_rule() != ParserRuleKind::SetCommandRule || !parser.peek(3).is_eolf()) {
+    if (parser.peek_rule(1) != ParserRuleKind::SetCommandRule || !parser.peek(3).is_eolf()) {
         rule.m_ArrayAccess = ArrayAccessRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::PropertyAccessRule);
+    parser.pop_rule();
     return rule;
 }
 

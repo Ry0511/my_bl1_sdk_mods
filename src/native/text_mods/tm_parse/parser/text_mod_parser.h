@@ -86,14 +86,21 @@ class TextModParser {
     ////////////////////////////////////////////////////////////////////////////////
 
    public:
-    ParserRuleKind peek_rule() const noexcept {
+    ParserRuleKind peek_rule(size_t offset = 0) const noexcept {
         if (m_RuleStack.empty()) {
             return ParserRuleKind::Unknown;
         }
-        return m_RuleStack.back();
+
+        if (offset >= m_RuleStack.size()) {
+            return ParserRuleKind::Unknown;
+        }
+
+        return m_RuleStack[m_RuleStack.size() - 1 - offset];
     }
 
-    void push_rule(ParserRuleKind rule) noexcept { m_RuleStack.push_back(rule); }
+    void push_rule(ParserRuleKind rule) noexcept {
+        m_RuleStack.push_back(rule);
+    }
 
     ParserRuleKind pop_rule() noexcept {
         if (m_RuleStack.empty()) {
@@ -104,15 +111,22 @@ class TextModParser {
         return top;
     }
 
-    bool has_rule(ParserRuleKind rule) const noexcept {
+    bool has_rule(ParserRuleKind rule, int limit = std::numeric_limits<int>::max()) const noexcept {
         if (m_RuleStack.empty()) {
             return false;
         }
 
-        for (size_t i = m_RuleStack.size() - 1; i > 0; --i) {
-            if (m_RuleStack[i] == rule) {
+        if (m_RuleStack.size() == 1) {
+            return m_RuleStack.back() == rule;
+        }
+
+        auto it = m_RuleStack.end() - 2;
+
+        for (; it != m_RuleStack.begin() && limit > 0; --it) {
+            if (*it == rule) {
                 return true;
             }
+            --limit;
         }
         return false;
     }
@@ -249,6 +263,19 @@ class TextModParser {
             } else {
                 ss << "; Current line is invalid";
             }
+
+            std::stringstream rule_stack{};
+            rule_stack << "\nRule Stack: ";
+            first = true;
+            for (auto rule : m_RuleStack) {
+                if (!first) {
+                    rule_stack << ", ";
+                }
+                rule_stack << (int)rule;
+                first = false;
+            }
+
+            ss << rule_stack.str();
 
             throw std::runtime_error{ss.str()};
         };

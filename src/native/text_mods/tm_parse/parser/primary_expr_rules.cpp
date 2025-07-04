@@ -44,6 +44,7 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(rule.property().text_region());
     }
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::AssignmentExprRule);
     parser.pop_rule();
 
     return rule;
@@ -70,6 +71,7 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
     }
 
     list.m_Assignments.shrink_to_fit();
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::AssignmentExprListRule);
     parser.pop_rule();
     return list;
 }
@@ -100,6 +102,7 @@ const ExpressionRule* ParenExprRule::inner_most() const noexcept {
 }
 
 ParenExprRule ParenExprRule::create(TextModParser& parser) {
+    parser.push_rule(ParserRuleKind::ParenExprRule);
     ParenExprRule rule{};
     parser.require<TokenKind::LeftParen>();
 
@@ -128,6 +131,8 @@ ParenExprRule ParenExprRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(parser.previous().TextRegion);
     }
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ParenExprRule);
+    parser.pop_rule();
     return rule;
 }
 
@@ -138,6 +143,7 @@ str_view ExpressionRule::to_string(const TextModParser& parser) const noexcept {
 ExpressionRule ExpressionRule::create(TextModParser& parser) {
     ExpressionRule rule{};
 
+    parser.push_rule(ParserRuleKind::ExpressionRule);
     auto it = parser.create_iterator();
     const Token& tk = *it;
 
@@ -148,6 +154,9 @@ ExpressionRule ExpressionRule::create(TextModParser& parser) {
     } else {
         rule.m_InnerType = PrimitiveExprRule::create(parser);
     }
+
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ExpressionRule);
+    parser.pop_rule();
 
     return rule;
 }

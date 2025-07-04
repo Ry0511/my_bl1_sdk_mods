@@ -39,51 +39,55 @@ int main() {
 
             TextModLexer lexer{content};
             TextModParser parser{&lexer};
-            ProgramRule program = ProgramRule::create(parser);
 
-            fs::path parse_result_path = fs::current_path() / "00_parse_result.txt";
-            TXT_LOG("Parse result path: {}", std::wstring{parse_result_path.c_str()});
-            std::ofstream ofs{parse_result_path, std::ios::trunc};
+            try {
+                ProgramRule program = ProgramRule::create(parser);
+                fs::path parse_result_path = fs::current_path() / "00_parse_result.txt";
+                TXT_LOG("Parse result path: {}", std::wstring{parse_result_path.c_str()});
+                std::ofstream ofs{parse_result_path, std::ios::trunc};
 
-            ofs << "#\n";
-            ofs << "# Program Rule\n";
-            ofs << std::format("#   > Rule Count: {}\n", program.rules().size());
+                ofs << "#\n";
+                ofs << "# Program Rule\n";
+                ofs << std::format("#   > Rule Count: {}\n", program.rules().size());
 
-            for (const auto& rule : program.rules()) {
-                std::visit(
-                    [&parser, &ofs](auto&& inner) {
-                        using T = std::decay_t<decltype(inner)>;
-                        if constexpr (std::is_same_v<T, SetCommandRule>) {
-                            ofs << std::format("{}\n", str{inner.to_string(parser)});
-                        }
+                for (const auto& rule : program.rules()) {
+                    std::visit(
+                        [&parser, &ofs](auto&& inner) {
+                            using T = std::decay_t<decltype(inner)>;
+                            if constexpr (std::is_same_v<T, SetCommandRule>) {
+                                ofs << std::format("{}\n", str{inner.to_string(parser)});
+                            }
 
-                        // Object definitions
-                        else if (std::is_same_v<T, ObjectDefinitionRule>) {
-                            const ObjectDefinitionRule& r = inner;
+                            // Object definitions
+                            else if (std::is_same_v<T, ObjectDefinitionRule>) {
+                                const ObjectDefinitionRule& r = inner;
 
-                            ofs << std::format(
-                                "Begin Object Class={} Name={}\n",
-                                str{r.clazz().to_string(parser)},
-                                str{r.name().to_string(parser)}
-                            );
-
-                            for (const auto& obj : r.child_objects()) {
                                 ofs << std::format(
-                                    "# Child Object: Class={} Name={}\n",
-                                    str{obj->clazz().to_string(parser)},
-                                    str{obj->name().to_string(parser)}
+                                    "Begin Object Class={} Name={}\n",
+                                    str{r.clazz().to_string(parser)},
+                                    str{r.name().to_string(parser)}
                                 );
-                            }
 
-                            for (const auto& prop : r.assignments()) {
-                                ofs << std::format("  {}\n", str{prop.to_string(parser)});
-                            }
+                                for (const auto& obj : r.child_objects()) {
+                                    ofs << std::format(
+                                        "# Child Object: Class={} Name={}\n",
+                                        str{obj->clazz().to_string(parser)},
+                                        str{obj->name().to_string(parser)}
+                                    );
+                                }
 
-                            ofs << "End Object\n\n";
-                        }
-                    },
-                    rule
-                );
+                                for (const auto& prop : r.assignments()) {
+                                    ofs << std::format("  {}\n", str{prop.to_string(parser)});
+                                }
+
+                                ofs << "End Object\n\n";
+                            }
+                        },
+                        rule
+                    );
+                }
+            } catch (const std::runtime_error& err) {
+                TXT_LOG("Error parsing wpc dump\n {}", err.what());
             }
         }
     }

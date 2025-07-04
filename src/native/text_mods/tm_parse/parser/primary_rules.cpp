@@ -35,6 +35,7 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT(rule.expr().operator bool(), "invalid expression");
     rule.m_TextRegion.extend(rule.expr().text_region());
 
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::SetCommandRule);
     parser.pop_rule();
 
     return rule;
@@ -50,6 +51,8 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
      */
 
     constexpr TextModParser::PeekOptions opt{.Coalesce = true, .SkipOnBlankLine = false};
+
+    parser.push_rule(ParserRuleKind::ObjectDefinitionRule);
 
     ObjectDefinitionRule rule{};
     parser.require<Kw_Begin>();  // Skip blank lines to this
@@ -131,6 +134,8 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     parser.require<Kw_Object>();
 
     rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ObjectDefinitionRule);
+    parser.pop_rule();
 
     return rule;
 }
@@ -138,6 +143,8 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
 ProgramRule ProgramRule::create(TextModParser& parser) {
     ProgramRule rule{};
     bool eof_reached = parser.peek() == EndOfInput;
+
+    parser.push_rule(ParserRuleKind::ProgramRule);
 
     while (!eof_reached) {
         while (parser.peek() == BlankLine) {
@@ -168,6 +175,9 @@ ProgramRule ProgramRule::create(TextModParser& parser) {
             // clang-format on
         }
     }
+
+    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ProgramRule);
+    parser.pop_rule();
 
     return rule;
 }
