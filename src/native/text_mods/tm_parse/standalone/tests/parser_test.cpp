@@ -286,7 +286,7 @@ TEST_CASE("Expressions") {
             TextModLexer lexer{test_case};
             TextModParser parser{&lexer};
 
-            parser.push_rule(ParserRuleKind::PrimitiveExpr);
+            parser.push_rule(ParserRuleKind::PrimitiveExprRule);
             LiteralExprRule rule = LiteralExprRule::create(parser);
             TST_INFO("Result: '{}'", str{rule.to_string(parser)});
 

@@ -23,7 +23,7 @@ AssignmentExprRule AssignmentExprRule::create(TextModParser& parser) {
     // ( A=(), B=(1), C=(X=10,Y=20) )
     //    ^^^   ^^^^    ^^^^^^^^^^^
 
-    parser.push_rule(ParserRuleKind::AssignmentExpr);
+    parser.push_rule(ParserRuleKind::AssignmentExprRule);
     rule.m_Property = PropertyAccessRule::create(parser);
     rule.m_TextRegion = rule.m_Property.text_region();
 
@@ -53,7 +53,7 @@ AssignmentExprListRule AssignmentExprListRule::create(TextModParser& parser) {
     AssignmentExprListRule list{};
     list.m_Assignments.reserve(32);  // NOLINT(*-magic-numbers)
 
-    parser.push_rule(ParserRuleKind::AssignmentExprList);
+    parser.push_rule(ParserRuleKind::AssignmentExprListRule);
 
     // Initial expression
     list.m_Assignments.push_back(AssignmentExprRule::create(parser));

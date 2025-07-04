@@ -85,7 +85,7 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
     LiteralExprRule rule{};
     rule.m_TextRegion = parser.peek().TextRegion;
 
-    const bool has_expr_list = parser.has_rule(ParserRuleKind::AssignmentExprList);
+    const bool has_expr_list = parser.has_rule(ParserRuleKind::AssignmentExprListRule);
 
     if (!has_expr_list) {
         while (!parser.peek(1).is_eolf()) {

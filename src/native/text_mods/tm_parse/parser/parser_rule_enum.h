@@ -12,24 +12,27 @@ namespace tm_parse {
 
 using parser_rule_int = uint8_t;
 
-// TODO: Refactor
 // clang-format off
 enum class ParserRuleKind : parser_rule_int {
-    DotIdentifier     ,
-    ObjectIdentifier  ,
-    ArrayAccess       ,
-    PropertyAccess    ,
-    PropertyAssignment,
-    AssignmentExpr    ,
-    AssignmentExprList,
-    ObjectNameLiteral ,
-    IdentifierChain   ,
-    PrimitiveExpr     ,
-    ParenExpr         ,
-    CompositeExpr     ,
-    SetCommand        , // Primary Node
-    ObjectDefinition  , // Primary Node
-    Unknown           , // Default/entry for parser
+    IdentifierRule        ,
+    DotIdentifierRule     ,
+    ObjectIdentifierRule  ,
+    ArrayAccessRule       ,
+    PropertyAccessRule    ,
+    NumberExprRule        ,
+    StrExprRule           ,
+    NameExprRule          ,
+    KeywordRule           ,
+    LiteralExprRule       ,
+    PrimitiveExprRule     ,
+    AssignmentExprRule    ,
+    AssignmentExprListRule,
+    ParenExprRule         ,
+    ExpressionRule        ,
+    SetCommandRule        ,
+    ObjectDefinitionRule  ,
+    ProgramRule           ,
+    Unknown               ,
 };
 // clang-format on
 
@@ -41,8 +44,6 @@ class TextModLexer;
 class TextModParser;
 
 namespace rules {
-
-// TODO: String wrapper for lazily promoting to internal buffer
 
 class ParserBaseRule {
    protected:

@@ -14,7 +14,7 @@ using namespace tokens;
 SetCommandRule SetCommandRule::create(TextModParser& parser) {
     SetCommandRule rule{};
 
-    parser.push_rule(ParserRuleKind::SetCommand);
+    parser.push_rule(ParserRuleKind::SetCommandRule);
 
     parser.require<TokenKind::Kw_Set>();
     rule.m_TextRegion = parser.peek(-1).TextRegion;
