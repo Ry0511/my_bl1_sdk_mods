@@ -10,6 +10,8 @@
 
 namespace tm_parse::rules {
 
+using namespace rules_enum;
+
 str_view ParserBaseRule::to_string(TextModParser& parser) const {
     if (!this->operator bool() || !m_TextRegion.is_valid()) {
         return str_view{};
@@ -30,19 +32,19 @@ void ParserBaseRule::copy_str_internal(TextModParser& parser) {
 ////////////////////////////////////////////////////////////////////////////////
 
 IdentifierRule IdentifierRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::IdentifierRule);
+    parser.push_rule(RuleIdentifier);
 
     parser.require<TokenKind::Identifier>();
     IdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::IdentifierRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleIdentifier);
     parser.pop_rule();
     return rule;
 }
 
 DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::DotIdentifierRule);
+    parser.push_rule(RuleDotIdentifier);
 
     parser.require<TokenKind::Identifier>();
     DotIdentifierRule rule{};
@@ -61,13 +63,13 @@ DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::DotIdentifierRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleDotIdentifier);
     parser.pop_rule();
     return rule;
 }
 
 ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::ObjectIdentifierRule);
+    parser.push_rule(RuleObjectIdentifier);
 
     ObjectIdentifierRule rule{};
     rule.m_PrimaryIdentifier = DotIdentifierRule::create(parser);
@@ -78,13 +80,13 @@ ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(rule.m_ChildIdentifier.text_region());
     }
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ObjectIdentifierRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleObjectIdentifier);
     parser.pop_rule();
     return rule;
 }
 
 ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::ArrayAccessRule);
+    parser.push_rule(RuleArrayAccess);
     const Token& token = parser.peek();
 
     TXT_MOD_ASSERT((token.is_any<TokenKind::LeftBracket, TokenKind::LeftParen>()), "logic error");
@@ -108,13 +110,13 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
         throw std::runtime_error(std::format("Expecting ( or [ but got {}", token.as_str()));
     }
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ArrayAccessRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleArrayAccess);
     parser.pop_rule();
     return rule;
 }
 
 PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::PropertyAccessRule);
+    parser.push_rule(RulePropertyAccess);
 
     PropertyAccessRule rule{};
     rule.m_Identifier = IdentifierRule::create(parser);
@@ -148,12 +150,12 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     }
 
     // If something other than
-    if (parser.peek_rule(1) != ParserRuleKind::SetCommandRule || !parser.peek(3).is_eolf()) {
+    if (parser.peek_rule(1) != RuleSetCommand || !parser.peek(3).is_eolf()) {
         rule.m_ArrayAccess = ArrayAccessRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::PropertyAccessRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RulePropertyAccess);
     parser.pop_rule();
     return rule;
 }

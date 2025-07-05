@@ -14,27 +14,49 @@ using parser_rule_int = uint8_t;
 
 // clang-format off
 enum class ParserRuleKind : parser_rule_int {
-    IdentifierRule        ,
-    DotIdentifierRule     ,
-    ObjectIdentifierRule  ,
-    ArrayAccessRule       ,
-    PropertyAccessRule    ,
-    NumberExprRule        ,
-    StrExprRule           ,
-    NameExprRule          ,
-    KeywordRule           ,
-    LiteralExprRule       ,
-    PrimitiveExprRule     ,
-    AssignmentExprRule    ,
-    AssignmentExprListRule,
-    ParenExprRule         ,
-    ExpressionRule        ,
-    SetCommandRule        ,
-    ObjectDefinitionRule  ,
-    ProgramRule           ,
-    Unknown               ,
+    RuleIdentifier        ,
+    RuleDotIdentifier     ,
+    RuleObjectIdentifier  ,
+    RuleArrayAccess       ,
+    RulePropertyAccess    ,
+    RuleNumberExpr        ,
+    RuleStrExpr           ,
+    RuleNameExpr          ,
+    RuleKeyword           ,
+    RuleLiteralExpr       ,
+    RulePrimitiveExpr     ,
+    RuleAssignmentExpr    ,
+    RuleAssignmentExprList,
+    RuleParenExpr         ,
+    RuleExpression        ,
+    RuleSetCommand        ,
+    RuleObjectDefinition  ,
+    RuleProgram           ,
+    RuleUnknown           ,
 };
 // clang-format on
+
+namespace rules_enum {
+using ParserRuleKind::RuleArrayAccess;
+using ParserRuleKind::RuleAssignmentExpr;
+using ParserRuleKind::RuleAssignmentExprList;
+using ParserRuleKind::RuleDotIdentifier;
+using ParserRuleKind::RuleExpression;
+using ParserRuleKind::RuleIdentifier;
+using ParserRuleKind::RuleKeyword;
+using ParserRuleKind::RuleLiteralExpr;
+using ParserRuleKind::RuleNameExpr;
+using ParserRuleKind::RuleNumberExpr;
+using ParserRuleKind::RuleObjectDefinition;
+using ParserRuleKind::RuleObjectIdentifier;
+using ParserRuleKind::RuleParenExpr;
+using ParserRuleKind::RulePrimitiveExpr;
+using ParserRuleKind::RuleProgram;
+using ParserRuleKind::RulePropertyAccess;
+using ParserRuleKind::RuleSetCommand;
+using ParserRuleKind::RuleStrExpr;
+using ParserRuleKind::RuleUnknown;
+}  // namespace rules_enum
 
 ////////////////////////////////////////////////////////////////////////////////
 // | GENERIC RULE SETUP |

@@ -11,9 +11,10 @@ namespace tm_parse::rules {
 
 using namespace txt;
 using namespace tokens;
+using namespace rules_enum;
 
 NumberExprRule NumberExprRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::NumberExprRule);
+    parser.push_rule(RuleNumberExpr);
     parser.require<Number>();
     const Token& token = parser.peek(-1);
 
@@ -31,28 +32,28 @@ NumberExprRule NumberExprRule::create(TextModParser& parser) {
         throw std::runtime_error(std::format("Failed to convert '{}' with reason '{}'", text, err.what()));
     }
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::NumberExprRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleNumberExpr);
     parser.pop_rule();
 
     return rule;
 }
 
 StrExprRule StrExprRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::StrExprRule);
+    parser.push_rule(RuleStrExpr);
 
     parser.require<StringLiteral>();
     StrExprRule rule{};
     const Token& token = parser.peek(-1);
     rule.m_TextRegion = token.TextRegion;
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::StrExprRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleStrExpr);
     parser.pop_rule();
 
     return rule;
 }
 
 NameExprRule NameExprRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::NameExprRule);
+    parser.push_rule(RuleNameExpr);
     parser.require<Identifier>();
     const Token& token = parser.peek(-1);
 
@@ -69,14 +70,14 @@ NameExprRule NameExprRule::create(TextModParser& parser) {
     TextModParser temp_parser{&temp_lexer};
     rule.m_Identifier = ObjectIdentifierRule::create(temp_parser);
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::NameExprRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleNameExpr);
     parser.pop_rule();
 
     return rule;
 }
 
 KeywordRule KeywordRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::KeywordRule);
+    parser.push_rule(RuleKeyword);
 
     parser.require<Identifier>();
     const Token& token = parser.peek(-1);
@@ -89,14 +90,14 @@ KeywordRule KeywordRule::create(TextModParser& parser) {
     rule.m_TextRegion = token.TextRegion;
     rule.m_Kind = token.Kind;
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::KeywordRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleKeyword);
     parser.pop_rule();
 
     return rule;
 }
 
 LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
-    parser.push_rule(ParserRuleKind::LiteralExprRule);
+    parser.push_rule(RuleLiteralExpr);
 
     LiteralExprRule rule{};
 
@@ -107,7 +108,7 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
     rule.m_TextRegion = parser.peek().TextRegion;
 
     using T = ParserRuleKind;
-    const bool consume_to_end = parser.has_rule(T::SetCommandRule) || !parser.has_rule(T::ParenExprRule);
+    const bool consume_to_end = parser.has_rule(RuleSetCommand) || !parser.has_rule(RuleParenExpr);
 
     if (consume_to_end) {
         while (!parser.peek(1).is_eolf()) {
@@ -117,7 +118,7 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
     }
     parser.advance();
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::LiteralExprRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleLiteralExpr);
     parser.pop_rule();
 
     return rule;
@@ -126,7 +127,7 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
 PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
     PrimitiveExprRule rule{};
 
-    par.push_rule(ParserRuleKind::PrimitiveExprRule);
+    par.push_rule(RulePrimitiveExpr);
     auto it = par.create_iterator();
 
     switch (it->Kind) {
@@ -156,7 +157,7 @@ PrimitiveExprRule PrimitiveExprRule::create(TextModParser& par) {
         }
     }
 
-    TXT_MOD_ASSERT(par.peek_rule() == ParserRuleKind::PrimitiveExprRule);
+    TXT_MOD_ASSERT(par.peek_rule() == RulePrimitiveExpr);
     par.pop_rule();
     return rule;
 }

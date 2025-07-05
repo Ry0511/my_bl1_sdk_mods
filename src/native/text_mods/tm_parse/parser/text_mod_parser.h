@@ -88,11 +88,11 @@ class TextModParser {
    public:
     ParserRuleKind peek_rule(size_t offset = 0) const noexcept {
         if (m_RuleStack.empty()) {
-            return ParserRuleKind::Unknown;
+            return ParserRuleKind::RuleUnknown;
         }
 
         if (offset >= m_RuleStack.size()) {
-            return ParserRuleKind::Unknown;
+            return ParserRuleKind::RuleUnknown;
         }
 
         return m_RuleStack[m_RuleStack.size() - 1 - offset];
@@ -104,7 +104,7 @@ class TextModParser {
 
     ParserRuleKind pop_rule() noexcept {
         if (m_RuleStack.empty()) {
-            return ParserRuleKind::Unknown;
+            return ParserRuleKind::RuleUnknown;
         }
         auto top = m_RuleStack.back();
         m_RuleStack.pop_back();

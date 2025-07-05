@@ -10,11 +10,12 @@
 namespace tm_parse::rules {
 
 using namespace tokens;
+using namespace rules_enum;
 
 SetCommandRule SetCommandRule::create(TextModParser& parser) {
     SetCommandRule rule{};
 
-    parser.push_rule(ParserRuleKind::SetCommandRule);
+    parser.push_rule(RuleSetCommand);
 
     parser.require<TokenKind::Kw_Set>();
     rule.m_TextRegion = parser.peek(-1).TextRegion;
@@ -35,7 +36,7 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     TXT_MOD_ASSERT(rule.expr().operator bool(), "invalid expression");
     rule.m_TextRegion.extend(rule.expr().text_region());
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::SetCommandRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleSetCommand);
     parser.pop_rule();
 
     return rule;
@@ -52,7 +53,7 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
 
     constexpr TextModParser::PeekOptions opt{.Coalesce = true, .SkipOnBlankLine = false};
 
-    parser.push_rule(ParserRuleKind::ObjectDefinitionRule);
+    parser.push_rule(RuleObjectDefinition);
 
     ObjectDefinitionRule rule{};
     parser.require<Kw_Begin>();  // Skip blank lines to this
@@ -134,7 +135,7 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
     parser.require<Kw_Object>();
 
     rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ObjectDefinitionRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleObjectDefinition);
     parser.pop_rule();
 
     return rule;
@@ -144,7 +145,7 @@ ProgramRule ProgramRule::create(TextModParser& parser) {
     ProgramRule rule{};
     bool eof_reached = parser.peek() == EndOfInput;
 
-    parser.push_rule(ParserRuleKind::ProgramRule);
+    parser.push_rule(RuleProgram);
 
     while (!eof_reached) {
         while (parser.peek() == BlankLine) {
@@ -176,7 +177,7 @@ ProgramRule ProgramRule::create(TextModParser& parser) {
         }
     }
 
-    TXT_MOD_ASSERT(parser.peek_rule() == ParserRuleKind::ProgramRule);
+    TXT_MOD_ASSERT(parser.peek_rule() == RuleProgram);
     parser.pop_rule();
 
     return rule;
