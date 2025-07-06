@@ -8,6 +8,10 @@ add_library(tm_parse_ INTERFACE)
 target_precompile_headers(tm_parse_ INTERFACE ./pch.h)
 target_compile_features(tm_parse_ INTERFACE cxx_std_20)
 
+if (MSVC)
+    target_compile_options(tm_parse_ INTERFACE "/Zc:preprocessor")
+endif ()
+
 # Glob the fat fucking smelly sources
 file(GLOB_RECURSE TM_PARSE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp" "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
 list(FILTER TM_PARSE_SRC EXCLUDE REGEX "${CMAKE_CURRENT_SOURCE_DIR}/standalone/")

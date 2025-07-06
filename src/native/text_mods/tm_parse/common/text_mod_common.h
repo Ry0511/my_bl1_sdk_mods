@@ -17,7 +17,7 @@
 // | DEFINES |
 ////////////////////////////////////////////////////////////////////////////////
 
-#define TXT_LOG(msg, ...) std::cout << std::format("[{}] " msg "\n", __FUNCTION__, __VA_ARGS__)
+#define TXT_LOG(msg, ...) std::cout << std::format("[{}] " msg "\n", __FUNCTION__ __VA_OPT__(, ) __VA_ARGS__)
 
 #ifdef _MSC_VER
 #define TXT_ASSERT_FAIL __debugbreak()
@@ -25,12 +25,12 @@
 TXT_ASSERT_FAIL assert(false)
 #endif
 
-#define TXT_MOD_ASSERT(p, msg, ...)    \
-    do {                               \
-        if (!(p)) {                    \
-            TXT_LOG(msg, __VA_ARGS__); \
-            TXT_ASSERT_FAIL;           \
-        }                              \
+#define TXT_MOD_ASSERT(p, ...)                \
+    do {                                      \
+        if (!(p)) {                           \
+            __VA_OPT__(TXT_LOG(__VA_ARGS__);) \
+            TXT_ASSERT_FAIL;                  \
+        }                                     \
     } while (false)
 
 ////////////////////////////////////////////////////////////////////////////////
