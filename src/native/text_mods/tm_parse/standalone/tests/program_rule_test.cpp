@@ -83,7 +83,6 @@ End Object
         };
 
         for (int i = 0; i < expected.size(); ++i) {
-
             REQUIRE(rule.has<SetCommandRule>(i));
             const SetCommandRule& cmd = rule.get<SetCommandRule>(i);
 
@@ -112,17 +111,14 @@ End Object
             REQUIRE(child->assignments()[0].to_string(parser) == TXT("A=10"));
             REQUIRE(child->assignments()[1].to_string(parser) == TXT("B=Foo'baz.bar'"));
 
-
             REQUIRE(obj.assignments().size() == 2);
             REQUIRE(obj.assignments()[0].to_string(parser) == TXT("A=Foo'baz.bar'"));
             REQUIRE(obj.assignments()[1].to_string(parser) == TXT("B=Unquoted Literal"));
-
         }
     }
 }
 
 TEST_CASE("Real Data") {
-
     // Dumped from WillowPlayerController
     str_view test_str = TXT(R"(
       Begin Object Class=Foo Name=Baz
@@ -160,7 +156,55 @@ TEST_CASE("Real Data") {
         TXT_LOG("Exception parsing program rule: {}", err.what());
         FAIL();
     }
+}
 
+TEST_CASE("Array Access Set Commands") {
+    // clang-format off
+str_view test_case = TXT(R"(
+set WillowPlayerController_0 PresenceStrings(0) (Description="Character, Level, Health",PresenceMode=1,PresenceContext=EPMC_Any,Max=0)
+set WillowPlayerController_0 PresenceStrings(1) (Description="Weapon Mfg Data",PresenceMode=2,PresenceContext=EPMC_OnFoot,Max=0)
+set WillowPlayerController_0 PresenceStrings(2) (Description="Driving",PresenceMode=3,PresenceContext=EPMC_Driving,Max=0)
+set WillowPlayerController_0 PresenceStrings(3) (Description="Kills",PresenceMode=4,PresenceContext=EPMC_Any,Max=9000)
+set WillowPlayerController_0 PresenceStrings(4) (Description="Guns found",PresenceMode=5,PresenceContext=EPMC_Any,Max=999999)
+set WillowPlayerController_0 PresenceStrings(5) (Description="Duels won",PresenceMode=6,PresenceContext=EPMC_Any,Max=999)
+set WillowPlayerController_0 PresenceStrings(6) (Description="Dueling",PresenceMode=7,PresenceContext=EPMC_Dueling,Max=0)
+set WillowPlayerController_0 PresenceStrings(7) (Description="Arenaing",PresenceMode=8,PresenceContext=EPMC_Arenaing,Max=0)
+set WillowPlayerController_0 PresenceStrings(8) (Description="PlaythroughProgress",PresenceMode=9,PresenceContext=EPMC_Any,Max=126)
+set WillowPlayerController_0 PresenceStrings(9) (Description="TotalProgress",PresenceMode=10,PresenceContext=EPMC_Any,Max=252)
+set WillowPlayerController_0 PresenceStrings(10) (Description="JoinMyFight",PresenceMode=11,PresenceContext=EPMC_OpenSlots,Max=4)
+)");
+    // clang-format on
+
+    {
+        std::stringstream ss{};
+        ss << std::format("{}", str{test_case});
+
+        for (std::string line; std::getline(ss, line);) {
+            if (line.empty()) {
+                continue;
+            }
+            str test = utils::to_str(line);
+            TextModLexer lexer{test};
+            TextModParser parser{&lexer};
+
+            SetCommandRule rule = SetCommandRule::create(parser);
+            REQUIRE(rule.operator bool());
+            REQUIRE(rule.to_string(parser) == test);
+            REQUIRE(rule.property().array_access().operator bool());
+            REQUIRE(rule.expr().is<ParenExprRule>());
+        }
+    }
+
+    try {
+        TextModLexer lexer{test_case};
+        TextModParser parser{&lexer};
+        ProgramRule rule = ProgramRule::create(parser);
+        REQUIRE(rule.operator bool());
+        REQUIRE(rule.rules().size() == 11);
+    } catch (const std::exception& err) {
+        TST_INFO("Exception: {}", err.what());
+        FAIL();
+    }
 }
 
 }  // namespace tm_parse_tests

@@ -111,24 +111,42 @@ class TextModParser {
         return top;
     }
 
-    bool has_rule(ParserRuleKind rule, int limit = std::numeric_limits<int>::max()) const noexcept {
-        if (m_RuleStack.empty()) {
+    template<ParserRuleKind... Terminators>
+    bool has_rule(ParserRuleKind kind, int limit = std::numeric_limits<int>::max()) const noexcept {
+
+        // Base case forwarding
+        if constexpr (sizeof...(Terminators) == 0) {
+            return has_rule<ParserRuleKind::RuleUnknown>(kind, limit);
+        }
+        // Actual block
+        else {
+            if (m_RuleStack.empty()) {
+                return false;
+            }
+
+            if (m_RuleStack.size() == 1) {
+                return m_RuleStack.back() == kind;
+            }
+
+            auto it = m_RuleStack.end() - 2;
+
+            for (; limit > 0; --it, --limit) {
+                ParserRuleKind r = *it;
+                const bool is_terminator = (... || (r == Terminators));
+
+                if (*it == kind) {
+                    return true;
+                } else if (is_terminator) {
+                    return false;
+                }
+
+                if (it == m_RuleStack.begin()) {
+                    return false;
+                }
+            }
+
             return false;
         }
-
-        if (m_RuleStack.size() == 1) {
-            return m_RuleStack.back() == rule;
-        }
-
-        auto it = m_RuleStack.end() - 2;
-
-        for (; it != m_RuleStack.begin() && limit > 0; --it) {
-            if (*it == rule) {
-                return true;
-            }
-            --limit;
-        }
-        return false;
     }
 
    public:

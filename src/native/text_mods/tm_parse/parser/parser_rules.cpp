@@ -129,7 +129,11 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     //   > set Obj Property(1) (1) | No issues
     //   > set Obj Property ()     | Errors
     //
-    // Should only apply to set commands
+    // The ambiguity stems from the fact that the (1) part can be either an ArrayAccess or a ParenExpr
+    //  we can't know without doing a lookahead to see if there is more tokens to parse or not. This
+    //  ambiguity only happens in set commands since other expressions i.e., AssignmentExpr have a
+    //  distinct separator token.
+    //
 
     //           set Obj Property(1) (1)
     // peek(0) ->                ^   ^
@@ -143,14 +147,11 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }
 
-    // No array expression
-    if (parser.match_seq<LeftParen, Number, RightParen>() != 0) {
-        parser.pop_rule();
-        return rule;
-    }
+    const bool maybe_array_access = parser.match_seq<LeftParen, Number, RightParen>() == 0;
+    const bool child_of_set_cmd = parser.has_rule(RuleSetCommand);
 
-    // If something other than
-    if (parser.peek_rule(1) != RuleSetCommand || !parser.peek(3).is_eolf()) {
+    // Careful to handle edge cases
+    if (maybe_array_access && (!child_of_set_cmd || !parser.peek(3).is_eolf())) {
         rule.m_ArrayAccess = ArrayAccessRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ArrayAccess.text_region());
     }

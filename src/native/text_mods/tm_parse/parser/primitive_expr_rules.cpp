@@ -105,10 +105,19 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
         throw std::runtime_error{"Invalid literal expression"};
     }
 
+    while (parser.peek() == BlankLine) {
+        parser.advance();
+    }
+
     rule.m_TextRegion = parser.peek().TextRegion;
 
-    using T = ParserRuleKind;
-    const bool consume_to_end = parser.has_rule(RuleSetCommand) || !parser.has_rule(RuleParenExpr);
+    //
+    // NOTE
+    //  If we are inside a ParenExpr then we can only and should only parse a single token from the
+    //  stream that is not a BlankLine.
+    //
+
+    const bool consume_to_end = !parser.has_rule<RuleObjectDefinition, RuleSetCommand>(RuleParenExpr);
 
     if (consume_to_end) {
         while (!parser.peek(1).is_eolf()) {
