@@ -9,7 +9,7 @@
 
 namespace tm_parse::rules {
 
-using namespace tokens;
+using namespace tokens_enum;
 using namespace rules_enum;
 
 ////////////////////////////////////////////////////////////////////////////////

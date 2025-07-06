@@ -51,7 +51,7 @@ enum class TokenKind : token_int {
     TokenKind_Count  , // Keep this last
 };
 
-namespace tokens {
+namespace tokens_enum {
 // NOLINTBEGIN(*-unused-using-decls)
 using TokenKind::Kw_Set;
 using TokenKind::Kw_None;

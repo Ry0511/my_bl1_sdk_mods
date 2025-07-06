@@ -12,7 +12,7 @@
 
 namespace tm_parse_tests {
 using namespace tm_parse;
-using namespace tokens;
+using namespace tokens_enum;
 
 // NOTE
 //  This only validates at a high-level more complex tests might be added in specialised files if

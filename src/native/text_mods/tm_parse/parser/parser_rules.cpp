@@ -11,7 +11,7 @@
 namespace tm_parse::rules {
 
 using namespace rules_enum;
-using namespace tokens;
+using namespace tokens_enum;
 
 str_view ParserBaseRule::to_string(TextModParser& parser) const {
     if (!this->operator bool() || !m_TextRegion.is_valid()) {
@@ -123,7 +123,7 @@ PropertyAccessRule PropertyAccessRule::create(TextModParser& parser) {
     rule.m_Identifier = IdentifierRule::create(parser);
     rule.m_TextRegion = rule.m_Identifier.text_region();
 
-    using namespace tokens;
+    using namespace tokens_enum;
 
     // Note ambiguity here:
     //   > set Obj Property (1)    | ArrayAccess ?

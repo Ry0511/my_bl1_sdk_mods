@@ -16,7 +16,7 @@ using namespace tm_parse;
 // NOLINTBEGIN(*-magic-numbers, *-function-cognitive-complexity)
 
 TEST_CASE("TextModParser") {
-    using namespace tokens;
+    using namespace tokens_enum;
 
     SECTION("Iterator") {
         TextModLexer lexer{TXT("set foo.baz:bar my_cool_property[0]")};

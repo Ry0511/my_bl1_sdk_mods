@@ -543,7 +543,7 @@ TEST_CASE("Lexing parenthesis") {
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("should lex valid sequence") {
-    using namespace tokens;
+    using namespace tokens_enum;
     str_view test_case = TXT(
         R"(PresenceStrings(0)=(Description="Character, Level, Health",PresenceMode=1,PresenceContext=EPMC_Any,Max=0))"
     );

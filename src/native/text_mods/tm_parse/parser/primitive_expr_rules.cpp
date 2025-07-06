@@ -10,7 +10,7 @@
 namespace tm_parse::rules {
 
 using namespace txt;
-using namespace tokens;
+using namespace tokens_enum;
 using namespace rules_enum;
 
 NumberExprRule NumberExprRule::create(TextModParser& parser) {
