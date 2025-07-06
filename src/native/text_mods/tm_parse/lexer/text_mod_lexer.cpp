@@ -259,16 +259,12 @@ bool TextModLexer::read_token(Token* token) {
             default: {
                 if (read_number()) {
                     return true;
-                }
-
-                if (read_identifier()) {
+                } else if (read_identifier()) {
                     return true;
+                } else {
+                    // TODO: Collect all unknown tokens into a single token i.e., UnknownToken
+                    throw_error_with_context(std::format("Unknown token '{}'", str{m_Text[m_Position]}).c_str());
                 }
-
-                // TODO: Collect all unknown tokens into a single token i.e., UnknownToken
-                // Anything unknown should be an assertion error but I can't guarantee this
-                //  currently since there is a knowledge gap.
-                throw_error_with_context(std::format("Unknown token '{}'", str{m_Text[m_Position]}).c_str());
             }
         }
     }
