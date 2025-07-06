@@ -11,6 +11,7 @@
 namespace tm_parse::rules {
 
 using namespace rules_enum;
+using namespace tokens;
 
 str_view ParserBaseRule::to_string(TextModParser& parser) const {
     if (!this->operator bool() || !m_TextRegion.is_valid()) {
@@ -34,7 +35,7 @@ void ParserBaseRule::copy_str_internal(TextModParser& parser) {
 IdentifierRule IdentifierRule::create(TextModParser& parser) {
     parser.push_rule(RuleIdentifier);
 
-    parser.require<TokenKind::Identifier>();
+    parser.require<Identifier>();
     IdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
@@ -46,15 +47,15 @@ IdentifierRule IdentifierRule::create(TextModParser& parser) {
 DotIdentifierRule DotIdentifierRule::create(TextModParser& parser) {
     parser.push_rule(RuleDotIdentifier);
 
-    parser.require<TokenKind::Identifier>();
+    parser.require<Identifier>();
     DotIdentifierRule rule{};
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
     constexpr TextModParser::PeekOptions opt{.SkipOnBlankLine = false};
 
     bool extend_view = false;
-    while (parser.maybe<TokenKind::Dot>(0, opt)) {
-        parser.require<TokenKind::Identifier>(0, opt);
+    while (parser.maybe<Dot>(0, opt)) {
+        parser.require<Identifier>(0, opt);
         extend_view = true;
     }
 
@@ -75,7 +76,7 @@ ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
     rule.m_PrimaryIdentifier = DotIdentifierRule::create(parser);
     rule.m_TextRegion = rule.m_PrimaryIdentifier.text_region();
 
-    if (parser.maybe<TokenKind::Colon>()) {
+    if (parser.maybe<Colon>()) {
         rule.m_ChildIdentifier = DotIdentifierRule::create(parser);
         rule.m_TextRegion.extend(rule.m_ChildIdentifier.text_region());
     }
@@ -89,22 +90,22 @@ ArrayAccessRule ArrayAccessRule::create(TextModParser& parser) {
     parser.push_rule(RuleArrayAccess);
     const Token& token = parser.peek();
 
-    TXT_MOD_ASSERT((token.is_any<TokenKind::LeftBracket, TokenKind::LeftParen>()), "logic error");
+    TXT_MOD_ASSERT((token.is_any<LeftBracket, LeftParen>()), "logic error");
 
     ArrayAccessRule rule{};
 
     rule.m_TextRegion = parser.peek().TextRegion;
 
     // ( Number )
-    if (parser.maybe<TokenKind::LeftParen>()) {
+    if (parser.maybe<LeftParen>()) {
         rule.m_Index = NumberExprRule::create(parser);
-        parser.require<TokenKind::RightParen>();
+        parser.require<RightParen>();
         rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     }
     // [ Number ]
-    else if (parser.maybe<TokenKind::LeftBracket>()) {
+    else if (parser.maybe<LeftBracket>()) {
         rule.m_Index = NumberExprRule::create(parser);
-        parser.require<TokenKind::RightBracket>();
+        parser.require<RightBracket>();
         rule.m_TextRegion.extend(parser.peek(-1).TextRegion);
     } else {
         throw std::runtime_error(std::format("Expecting ( or [ but got {}", token.as_str()));
