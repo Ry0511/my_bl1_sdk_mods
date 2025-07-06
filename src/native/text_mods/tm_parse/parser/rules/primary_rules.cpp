@@ -20,16 +20,7 @@ SetCommandRule SetCommandRule::create(TextModParser& parser) {
     parser.require<TokenKind::Kw_Set>();
     rule.m_TextRegion = parser.peek(-1).TextRegion;
 
-    // TODO: Revise this at some point
-    // Class'foo.baz:bar'
-    if (parser.match_seq<Identifier, NameLiteral>() == 0) {
-        rule.m_Object = NameExprRule::create(parser);
-    }
-    // foo.baz:bar
-    else {
-        rule.m_Object = ObjectIdentifierRule::create(parser);
-    }
-
+    rule.m_Object = ObjectAccessRule::create(parser);
     rule.m_Property = PropertyAccessRule::create(parser);
     rule.m_Expression = ExpressionRule::create(parser);
 

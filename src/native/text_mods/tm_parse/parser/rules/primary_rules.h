@@ -14,22 +14,12 @@ namespace tm_parse::rules {
 // set Foo'Baz.Bar' Property (1)
 class SetCommandRule : public ParserBaseRule {
    private:
-    std::variant<ObjectIdentifierRule, NameExprRule> m_Object;
+    ObjectAccessRule m_Object;
     PropertyAccessRule m_Property;
     ExpressionRule m_Expression;
 
    public:
-    template <class T>
-        requires(std::is_same_v<T, ObjectIdentifierRule> || std::is_same_v<T, NameExprRule>)
-    bool has_object() const noexcept {
-        return std::holds_alternative<T>(m_Object);
-    }
-
-    template <class T>
-        requires(std::is_same_v<T, ObjectIdentifierRule> || std::is_same_v<T, NameExprRule>)
-    const T& object() const noexcept {
-        return std::get<T>(m_Object);
-    };
+    const ObjectAccessRule& object() const noexcept { return m_Object; };
     const PropertyAccessRule& property() const noexcept { return m_Property; };
     const ExpressionRule& expr() const noexcept { return m_Expression; };
 

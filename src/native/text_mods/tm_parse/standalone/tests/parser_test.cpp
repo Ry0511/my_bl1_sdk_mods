@@ -585,7 +585,7 @@ TEST_CASE("Set Command") {
             TST_INFO("Test: '{}'", str{test_case});
             auto rule = SetCommandRule::create(parser);
 
-            REQUIRE(rule.object<ObjectIdentifierRule>().to_string(parser) == TXT("Foo.Baz:Bar"));
+            REQUIRE(rule.object().to_string(parser) == TXT("Foo.Baz:Bar"));
             REQUIRE(rule.property().to_string(parser) == TXT("MyProperty (1)"));
             REQUIRE(rule.expr().to_string(parser) == TXT("(1)"));
         }
@@ -602,9 +602,7 @@ TEST_CASE("Set Command") {
             REQUIRE(rule.operator bool());
             TST_INFO("Result: '{}'", str{rule.to_string(parser)});
 
-            REQUIRE(rule.has_object<NameExprRule>());
-            REQUIRE(!rule.has_object<ObjectIdentifierRule>());
-            REQUIRE(rule.object<NameExprRule>().to_string(parser) == object);
+            REQUIRE(rule.object().to_string(parser) == object);
             REQUIRE(rule.property().to_string(parser) == property);
             REQUIRE(rule.expr().to_string(parser) == expr);
         };

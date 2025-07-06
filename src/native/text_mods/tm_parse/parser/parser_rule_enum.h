@@ -17,6 +17,7 @@ enum class ParserRuleKind : parser_rule_int {
     RuleIdentifier        ,
     RuleDotIdentifier     ,
     RuleObjectIdentifier  ,
+    RuleObjectAccess      ,
     RuleArrayAccess       ,
     RulePropertyAccess    ,
     RuleNumberExpr        ,
@@ -47,6 +48,7 @@ using ParserRuleKind::RuleKeyword;
 using ParserRuleKind::RuleLiteralExpr;
 using ParserRuleKind::RuleNameExpr;
 using ParserRuleKind::RuleNumberExpr;
+using ParserRuleKind::RuleObjectAccess;
 using ParserRuleKind::RuleObjectDefinition;
 using ParserRuleKind::RuleObjectIdentifier;
 using ParserRuleKind::RuleParenExpr;

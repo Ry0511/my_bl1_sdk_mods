@@ -4,9 +4,9 @@
 // Author     : -Ry
 //
 
-#include "parser/text_mod_parser.h"
 #include "parser/rules/parser_rules.h"
 #include "lexer/text_mod_lexer.h"
+#include "parser/text_mod_parser.h"
 
 namespace tm_parse::rules {
 
@@ -81,6 +81,34 @@ ObjectIdentifierRule ObjectIdentifierRule::create(TextModParser& parser) {
     }
 
     TXT_MOD_ASSERT(parser.peek_rule() == RuleObjectIdentifier);
+    parser.pop_rule();
+    return rule;
+}
+
+ObjectAccessRule ObjectAccessRule::create(TextModParser& parser) {
+    ObjectAccessRule rule{};
+    parser.push_rule(RuleObjectAccess);
+
+    if (parser.match_seq<Identifier, NameLiteral>() == 0) {
+        rule.m_ClassType = IdentifierRule::create(parser);
+        parser.require<NameLiteral>(0, {.SkipOnBlankLine = false});
+
+        rule.m_TextRegion = rule.m_ClassType.text_region();
+        TokenTextView region = parser.peek(-1).TextRegion;
+        rule.m_TextRegion.extend(region);
+
+        region.Start += 1;   // Skip entry quote
+        region.Length -= 2;  // 1 for the enclosing quote and one for the entry quote
+        str_view vw = region.view_from(parser.text());
+        TextModLexer lexer{vw};
+        TextModParser temp_parser{&lexer};
+
+        rule.m_ObjectPath = ObjectIdentifierRule::create(temp_parser);
+    } else {
+        rule.m_ObjectPath = ObjectIdentifierRule::create(parser);
+        rule.m_TextRegion = rule.m_ObjectPath.text_region();
+    }
+
     parser.pop_rule();
     return rule;
 }

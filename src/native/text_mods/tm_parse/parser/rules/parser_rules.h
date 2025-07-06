@@ -33,7 +33,7 @@ class DotIdentifierRule : public ParserBaseRule {
 class ObjectIdentifierRule : public ParserBaseRule {
     // Originally assumed this was at most one child identifier but now that I think of it there
     //  can be any number of children here. i.e., A:B:C:D:E which does complicate things slightly.
-    private:
+   private:
     DotIdentifierRule m_PrimaryIdentifier;  // The primary identifier (guaranteed)
     DotIdentifierRule m_ChildIdentifier;    // The child identifier (optional)
 
@@ -42,6 +42,18 @@ class ObjectIdentifierRule : public ParserBaseRule {
     [[nodiscard]] const DotIdentifierRule& child_identifier() const { return m_ChildIdentifier; }
 
     RULE_PUBLIC_API(ObjectIdentifierRule);
+};
+
+class ObjectAccessRule : public ParserBaseRule {
+   private:
+    IdentifierRule m_ClassType;  // Optional
+    ObjectIdentifierRule m_ObjectPath;
+
+   public:
+    const IdentifierRule& class_type() const { return m_ClassType; }
+    const ObjectIdentifierRule& object_path() const { return m_ObjectPath; }
+
+    RULE_PUBLIC_API(ObjectAccessRule);
 };
 
 // [[ParserDoc_ArrayAccess]]
