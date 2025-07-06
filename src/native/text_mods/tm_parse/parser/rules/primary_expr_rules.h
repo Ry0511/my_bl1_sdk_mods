@@ -7,7 +7,7 @@
 #pragma once
 
 #include "parser/copy_ptr.h"
-#include "parser/parser_rules.h"
+#include "parser/rules/parser_rules.h"
 
 namespace tm_parse::rules {
 

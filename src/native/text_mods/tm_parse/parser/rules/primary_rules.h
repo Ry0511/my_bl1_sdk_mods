@@ -6,8 +6,8 @@
 
 #pragma once
 
-#include "parser/parser_rules.h"
-#include "parser/primary_expr_rules.h"
+#include "parser/rules/parser_rules.h"
+#include "parser/rules/primary_expr_rules.h"
 
 namespace tm_parse::rules {
 

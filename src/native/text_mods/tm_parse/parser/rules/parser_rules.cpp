@@ -4,9 +4,9 @@
 // Author     : -Ry
 //
 
-#include "parser/parser_rules.h"
-#include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
+#include "parser/rules/parser_rules.h"
+#include "lexer/text_mod_lexer.h"
 
 namespace tm_parse::rules {
 
@@ -26,7 +26,6 @@ void ParserBaseRule::copy_str_internal(TextModParser& parser) {
     }
     m_Text = std::make_shared<str>(m_TextRegion.view_from(parser.text()));
 }
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // | STATIC FACTORY METHODS |

@@ -4,8 +4,8 @@
 // Author     : -Ry
 //
 
-#include "primitive_expr_rules.h"
-#include "text_mod_parser.h"
+#include "parser/rules/primitive_expr_rules.h"
+#include "parser/text_mod_parser.h"
 
 namespace tm_parse::rules {
 

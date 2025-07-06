@@ -9,7 +9,7 @@
 #include "pch.h"
 
 #include "parser/parser_rule_enum.h"
-#include "parser/primitive_expr_rules.h"
+#include "parser/rules/primitive_expr_rules.h"
 
 namespace tm_parse {
 class TextModLexer;

@@ -10,8 +10,8 @@
 #include "lexer/text_mod_lexer.h"
 
 #include "parser/parser_iterator.h"
-#include "parser/parser_rules.h"
-#include "parser/primary_rules.h"
+#include "parser/rules/parser_rules.h"
+#include "parser/rules/primary_rules.h"
 
 namespace tm_parse {
 
