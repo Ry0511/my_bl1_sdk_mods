@@ -20,13 +20,13 @@ namespace tm_parse::rules {
 
 class IdentifierRule : public ParserBaseRule {
    public:
-    RULE_PUBLIC_API(IdentifierRule);
+    RULE_PUBLIC_API(IdentifierRule, rules_enum::RuleIdentifier);
 };
 
 // [[ParserDoc_DotIdentifier]]
 class DotIdentifierRule : public ParserBaseRule {
    public:
-    RULE_PUBLIC_API(DotIdentifierRule);
+    RULE_PUBLIC_API(DotIdentifierRule, rules_enum::RuleDotIdentifier);
 };
 
 // [[ParserDoc_ObjectIdentifier]]
@@ -41,7 +41,7 @@ class ObjectIdentifierRule : public ParserBaseRule {
     [[nodiscard]] const DotIdentifierRule& primary_identifier() const { return m_PrimaryIdentifier; }
     [[nodiscard]] const DotIdentifierRule& child_identifier() const { return m_ChildIdentifier; }
 
-    RULE_PUBLIC_API(ObjectIdentifierRule);
+    RULE_PUBLIC_API(ObjectIdentifierRule, rules_enum::RuleObjectIdentifier);
 };
 
 class ObjectAccessRule : public ParserBaseRule {
@@ -53,7 +53,7 @@ class ObjectAccessRule : public ParserBaseRule {
     const IdentifierRule& class_type() const { return m_ClassType; }
     const ObjectIdentifierRule& object_path() const { return m_ObjectPath; }
 
-    RULE_PUBLIC_API(ObjectAccessRule);
+    RULE_PUBLIC_API(ObjectAccessRule, rules_enum::RuleObjectAccess);
 };
 
 // [[ParserDoc_ArrayAccess]]
@@ -62,7 +62,10 @@ class ArrayAccessRule : public ParserBaseRule {
     NumberExprRule m_Index;
 
    public:
-    RULE_PUBLIC_API(ArrayAccessRule);
+    [[nodiscard]] const NumberExprRule& index() const { return m_Index; }
+
+   public:
+    RULE_PUBLIC_API(ArrayAccessRule, rules_enum::RuleArrayAccess);
 };
 
 // [[ParserDoc_PropertyAccess]]
@@ -76,7 +79,7 @@ class PropertyAccessRule : public ParserBaseRule {
     [[nodiscard]] const ArrayAccessRule& array_access() const { return m_ArrayAccess; }
 
    public:
-    RULE_PUBLIC_API(PropertyAccessRule);
+    RULE_PUBLIC_API(PropertyAccessRule, rules_enum::RulePropertyAccess);
 };
 
 }  // namespace tm_parse::rules

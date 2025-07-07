@@ -63,6 +63,8 @@ using txt_char = char;
 
 #endif
 
+using strstream = std::basic_stringstream<str::value_type>;
+
 // clang-format on
 
 ////////////////////////////////////////////////////////////////////////////////

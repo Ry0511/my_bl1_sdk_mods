@@ -29,7 +29,7 @@ class AssignmentExprRule : public ParserBaseRule {
     const ExpressionRule& expr() const noexcept { return *m_Expr; };
 
    public:
-    RULE_PUBLIC_API(AssignmentExprRule);
+    RULE_PUBLIC_API(AssignmentExprRule, rules_enum::RuleAssignmentExpr);
 };
 
 // AssignmentExpr (Comma AssignmentExpr )*
@@ -55,7 +55,7 @@ class AssignmentExprListRule : public ParserBaseRule {
     // clang-format on
 
    public:
-    RULE_PUBLIC_API(AssignmentExprListRule);
+    RULE_PUBLIC_API(AssignmentExprListRule, rules_enum::RuleAssignmentExprList);
     static bool can_parse(TextModParser& parser);
 };
 
@@ -74,7 +74,7 @@ class ParenExprRule : public ParserBaseRule {
     const ExpressionRule* inner_most() const noexcept;
 
    public:
-    RULE_PUBLIC_API(ParenExprRule);
+    RULE_PUBLIC_API(ParenExprRule, rules_enum::RuleParenExpr);
 };
 
 // Any Expression
@@ -137,7 +137,7 @@ class ExpressionRule {
     }
 
    public:
-    RULE_PUBLIC_API(ExpressionRule);
+    RULE_PUBLIC_API(ExpressionRule, rules_enum::RuleExpression);
 };
 
 }  // namespace tm_parse::rules

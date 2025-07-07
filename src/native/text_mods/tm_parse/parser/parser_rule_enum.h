@@ -37,6 +37,38 @@ enum class ParserRuleKind : parser_rule_int {
 };
 // clang-format on
 
+constexpr static size_t start_rule_index = static_cast<size_t>(ParserRuleKind::RuleIdentifier);
+constexpr static size_t end_rule_index = static_cast<size_t>(ParserRuleKind::RuleUnknown);
+
+// clang-format off
+constexpr std::array<str_view, end_rule_index+1> rule_names {
+    TXT("Identifier")        ,
+    TXT("DotIdentifier")     ,
+    TXT("ObjectIdentifier")  ,
+    TXT("ObjectAccess")      ,
+    TXT("ArrayAccess")       ,
+    TXT("PropertyAccess")    ,
+    TXT("NumberExpr")        ,
+    TXT("StrExpr")           ,
+    TXT("NameExpr")          ,
+    TXT("Keyword")           ,
+    TXT("LiteralExpr")       ,
+    TXT("PrimitiveExpr")     ,
+    TXT("AssignmentExpr")    ,
+    TXT("AssignmentExprList"),
+    TXT("ParenExpr")         ,
+    TXT("Expression")        ,
+    TXT("SetCommand")        ,
+    TXT("ObjectDefinition")  ,
+    TXT("Program")           ,
+    TXT("Unknown")           ,
+};
+// clang-format on
+
+constexpr static str_view rule_name(ParserRuleKind kind) {
+    return rule_names[static_cast<size_t>(kind)];
+}
+
 namespace rules_enum {
 using ParserRuleKind::RuleArrayAccess;
 using ParserRuleKind::RuleAssignmentExpr;
@@ -98,11 +130,15 @@ class ParserPrimaryRule : public ParserBaseRule {
     TextModParser* m_Parser{nullptr};
 };
 
-#define RULE_PUBLIC_API(type)                   \
-   public:                                      \
-    constexpr type() noexcept(true) = default;  \
-    constexpr ~type() noexcept(true) = default; \
-    static type create(TextModParser&)
+#define RULE_PUBLIC_API(type, kind)                        \
+   public:                                                 \
+    void append_tree(strstream& ss, int& indent) const;    \
+                                                           \
+   public:                                                 \
+    constexpr type() noexcept(true) = default;             \
+    constexpr ~type() noexcept(true) = default;            \
+    static type create(TextModParser&);                    \
+    constexpr static ParserRuleKind ENUM_TYPE = kind
 
 }  // namespace rules
 }  // namespace tm_parse

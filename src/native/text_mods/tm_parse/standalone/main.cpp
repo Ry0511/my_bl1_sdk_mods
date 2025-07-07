@@ -12,6 +12,7 @@
 #include "common/text_mod_common.h"
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
+#include "parser/utils/tree_visualiser.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // | MAIN |
@@ -86,6 +87,11 @@ int main() {
                         rule
                     );
                 }
+
+                TXT_LOG("{:-<80}", "");
+                tree_visualiser(program);
+                TXT_LOG("{:-<80}", "");
+
             } catch (const std::runtime_error& err) {
                 TXT_LOG("Error parsing wpc dump\n {}", err.what());
             }

@@ -24,7 +24,7 @@ class SetCommandRule : public ParserBaseRule {
     const ExpressionRule& expr() const noexcept { return m_Expression; };
 
    public:
-    RULE_PUBLIC_API(SetCommandRule);
+    RULE_PUBLIC_API(SetCommandRule, rules_enum::RuleSetCommand);
 };
 
 // Begin Object Class=Foo.Baz Name=Foo.Baz:Bar
@@ -46,7 +46,7 @@ class ObjectDefinitionRule : public ParserBaseRule {
             // clang-format on
 
    public:
-    RULE_PUBLIC_API(ObjectDefinitionRule);
+    RULE_PUBLIC_API(ObjectDefinitionRule, rules_enum::RuleObjectDefinition);
 };
 
 // ( SetCommandRule | ObjectDefinitionRule | EOF )*
@@ -87,7 +87,7 @@ class ProgramRule {
     }
 
    public:
-    RULE_PUBLIC_API(ProgramRule);
+    RULE_PUBLIC_API(ProgramRule, rules_enum::RuleProgram);
 };
 
 }  // namespace tm_parse::rules

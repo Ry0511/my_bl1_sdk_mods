@@ -59,12 +59,12 @@ class NumberExprRule : public ParserBaseRule {
     operator bool() const noexcept(true) { return !std::holds_alternative<std::monostate>(m_Value); }
 
    public:
-    RULE_PUBLIC_API(NumberExprRule);
+    RULE_PUBLIC_API(NumberExprRule, rules_enum::RuleNumberExpr);
 };
 
 class StrExprRule : public ParserBaseRule {
    public:
-    RULE_PUBLIC_API(StrExprRule);
+    RULE_PUBLIC_API(StrExprRule, rules_enum::RuleStrExpr);
 };
 
 class NameExprRule : public ParserBaseRule {
@@ -77,7 +77,7 @@ class NameExprRule : public ParserBaseRule {
     const CopyPtr<ObjectIdentifierRule>& object_ref() const noexcept { return m_Identifier; }
 
    public:
-    RULE_PUBLIC_API(NameExprRule);
+    RULE_PUBLIC_API(NameExprRule, rules_enum::RuleNameExpr);
 };
 
 class KeywordRule : public ParserBaseRule {
@@ -91,7 +91,7 @@ class KeywordRule : public ParserBaseRule {
     }
 
    public:
-    RULE_PUBLIC_API(KeywordRule);
+    RULE_PUBLIC_API(KeywordRule, rules_enum::RuleKeyword);
 };
 
 /**
@@ -120,7 +120,7 @@ class KeywordRule : public ParserBaseRule {
  */
 class LiteralExprRule : public ParserBaseRule {
    public:
-    RULE_PUBLIC_API(LiteralExprRule);
+    RULE_PUBLIC_API(LiteralExprRule, rules_enum::RuleLiteralExpr);
 };
 
 // [[ParserDoc_PrimitiveExpr]]
@@ -174,7 +174,7 @@ class PrimitiveExprRule {
     }
 
    public:
-    RULE_PUBLIC_API(PrimitiveExprRule);
+    RULE_PUBLIC_API(PrimitiveExprRule, rules_enum::RulePrimitiveExpr);
 };
 
 }  // namespace tm_parse::rules
