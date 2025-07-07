@@ -123,15 +123,14 @@ void ParenExprRule::append_tree(strstream& ss, int& indent) const {
     append_rule(ss, *this, indent);
     indent += indent_size;
 
-    if (m_Expr == nullptr) {
+    if (m_Expr != nullptr) {
         m_Expr->append_tree(ss, indent);
     }
     indent -= indent_size;
 }
 
 void ExpressionRule::append_tree(strstream& ss, int& indent) const {
-    append_rule(ss, *this, indent);
-    indent += indent_size;
+    // Only print the child
     std::visit(
         [&ss, &indent](const auto& rule) {
             using T = std::decay_t<decltype(rule)>;
@@ -141,7 +140,6 @@ void ExpressionRule::append_tree(strstream& ss, int& indent) const {
         },
         m_InnerType
     );
-    indent -= indent_size;
 }
 
 // Primary Rules
