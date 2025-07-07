@@ -238,7 +238,7 @@ TEST_CASE("Expressions") {
         }
 
         {
-            str_view test_cases[] {
+            str_view test_cases[]{
                 TXT("Class''"),
                 TXT("Class'foo.'"),
                 TXT("Class'foo:bar.'"),
@@ -648,7 +648,6 @@ TEST_CASE("Set Command") {
 }
 
 TEST_CASE("Object Definition") {
-
     SECTION("Simple Object") {
         str_view test_str = TXT(R"(
         Begin Object Class=Foo.Baz Name=Foo.Baz:Bar
@@ -777,7 +776,7 @@ TEST_CASE("Object Definition") {
             REQUIRE(child.assignments()[0].to_string(parser) == TXT("C=3"));
         }
 
-        { // Strings should be the same
+        {  // Strings should be the same
             str the_str = str{rule.to_string(parser)};
             auto pos = test_case.find(TXT("Begin"));
             str trimmed = str{test_case.substr(pos)};
@@ -787,7 +786,6 @@ TEST_CASE("Object Definition") {
     }
 
     SECTION("Malformed Object") {
-
         str test_case = TXT(R"(
           Begin Object Class=Foo Name=Baz
             Property=
@@ -809,7 +807,6 @@ TEST_CASE("Object Definition") {
             std::string msg = error.what();
             REQUIRE(msg.find("at line 7"));
         }
-
     }
 }
 
@@ -1024,6 +1021,141 @@ TEST_CASE("copying to internal buffer") {
     rule.copy_str_internal(parser);
     REQUIRE(rule.has_copy_str());
     REQUIRE(rule.to_string() == test_str);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// | TREE PRINTING |
+////////////////////////////////////////////////////////////////////////////////
+
+TEST_CASE("Tree Printing") {
+    // clang-format off
+str_view my_program_str = TXT(R"(
+
+set foo.baz:bar my_property (((1)))
+set Class'foo.baz:bar' my_property (((1)))
+
+Begin Object Class=Foo Name=baz.bar
+  A = 10
+  B = ()
+  C =
+  D = (((X=1, Z=2)))
+  D(0) = (((X=1, Z=2)))
+  D[0] = (((X=1, Z=2)))
+End Object
+
+)");
+    // clang-format on
+
+    TextModLexer lexer{my_program_str};
+    TextModParser parser{&lexer};
+
+    ProgramRule rule = ProgramRule::create(parser);
+    REQUIRE(rule.operator bool());
+
+    strstream ss{};
+    int indent = 0;
+    rule.append_tree(ss, indent);
+
+    // clang-format off
+    // Totally didn't just copy and paste this from the output
+str_view expected_output = TXT(R"(Program
+  SetCommand
+    ObjectAccess
+      ObjectIdentifier
+        DotIdentifier
+        DotIdentifier
+    PropertyAccess
+      Identifier
+    ParenExpr
+      ParenExpr
+        ParenExpr
+          PrimitiveExpr
+            NumberExpr
+  SetCommand
+    ObjectAccess
+      Identifier
+      ObjectIdentifier
+        DotIdentifier
+        DotIdentifier
+    PropertyAccess
+      Identifier
+    ParenExpr
+      ParenExpr
+        ParenExpr
+          PrimitiveExpr
+            NumberExpr
+  ObjectDefinition
+    DotIdentifier
+    ObjectIdentifier
+      DotIdentifier
+    AssignmentExpr
+      PropertyAccess
+        Identifier
+      PrimitiveExpr
+        NumberExpr
+    AssignmentExpr
+      PropertyAccess
+        Identifier
+      ParenExpr
+    AssignmentExpr
+      PropertyAccess
+        Identifier
+      ParenExpr
+        ParenExpr
+          ParenExpr
+            AssignmentExprList
+              AssignmentExpr
+                PropertyAccess
+                  Identifier
+                PrimitiveExpr
+                  NumberExpr
+              AssignmentExpr
+                PropertyAccess
+                  Identifier
+                PrimitiveExpr
+                  NumberExpr
+    AssignmentExpr
+      PropertyAccess
+        Identifier
+        ArrayAccess
+          NumberExpr
+      ParenExpr
+        ParenExpr
+          ParenExpr
+            AssignmentExprList
+              AssignmentExpr
+                PropertyAccess
+                  Identifier
+                PrimitiveExpr
+                  NumberExpr
+              AssignmentExpr
+                PropertyAccess
+                  Identifier
+                PrimitiveExpr
+                  NumberExpr
+    AssignmentExpr
+      PropertyAccess
+        Identifier
+        ArrayAccess
+          NumberExpr
+      ParenExpr
+        ParenExpr
+          ParenExpr
+            AssignmentExprList
+              AssignmentExpr
+                PropertyAccess
+                  Identifier
+                PrimitiveExpr
+                  NumberExpr
+              AssignmentExpr
+                PropertyAccess
+                  Identifier
+                PrimitiveExpr
+                  NumberExpr
+)");
+    // clang-format on
+
+    REQUIRE(ss.str() == expected_output);
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)
