@@ -11,7 +11,7 @@ namespace tm_parse {
 
 using namespace txt;
 
-void print_tree(const auto& rule) {
+void print_tree_internal(const auto& rule) {
     strstream ss{};
     int indent = 0;
     rule.append_tree(ss, indent);
@@ -22,16 +22,16 @@ void print_tree(const auto& rule) {
     }
 }
 
-void tree_visualiser(const rules::ProgramRule& rule) {
-    print_tree(rule);
+void print_tree(const rules::ProgramRule& rule) {
+    print_tree_internal(rule);
 }
 
-void tree_visualiser(const rules::SetCommandRule& rule) {
-    print_tree(rule);
+void print_tree(const rules::SetCommandRule& rule) {
+    print_tree_internal(rule);
 }
 
-void tree_visualiser(const rules::ObjectDefinitionRule& rule) {
-    print_tree(rule);
+void print_tree(const rules::ObjectDefinitionRule& rule) {
+    print_tree_internal(rule);
 }
 
 }  // namespace tm_parse

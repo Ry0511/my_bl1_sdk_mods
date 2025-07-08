@@ -9,8 +9,8 @@
 
 namespace tm_parse {
 
-void tree_visualiser(const rules::ProgramRule& rule);
-void tree_visualiser(const rules::SetCommandRule& rule);
-void tree_visualiser(const rules::ObjectDefinitionRule& rule);
+void print_tree(const rules::ProgramRule& rule);
+void print_tree(const rules::SetCommandRule& rule);
+void print_tree(const rules::ObjectDefinitionRule& rule);
 
 }

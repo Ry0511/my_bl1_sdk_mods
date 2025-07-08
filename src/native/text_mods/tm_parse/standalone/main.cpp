@@ -89,7 +89,7 @@ int main() {
                 }
 
                 TXT_LOG("{:-<80}", "");
-                tree_visualiser(program);
+                print_tree(program);
                 TXT_LOG("{:-<80}", "");
 
             } catch (const std::runtime_error& err) {

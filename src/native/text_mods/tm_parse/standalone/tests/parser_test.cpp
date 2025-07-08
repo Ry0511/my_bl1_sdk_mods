@@ -1058,100 +1058,90 @@ End Object
 
     // clang-format off
     // Totally didn't just copy and paste this from the output
-str_view expected_output = TXT(R"(Program
+    str_view expected_output = TXT(R"(Program
   SetCommand
     ObjectAccess
       ObjectIdentifier
-        DotIdentifier
-        DotIdentifier
+        DotIdentifier(6, 7)
+        DotIdentifier(14, 3)
     PropertyAccess
-      Identifier
+      Identifier(18, 11)
     ParenExpr
-      ParenExpr
-        ParenExpr
-          PrimitiveExpr
-            NumberExpr
-  SetCommand
-    ObjectAccess
-      Identifier
-      ObjectIdentifier
-        DotIdentifier
-        DotIdentifier
-    PropertyAccess
-      Identifier
-    ParenExpr
-      ParenExpr
-        ParenExpr
-          PrimitiveExpr
-            NumberExpr
-  ObjectDefinition
-    DotIdentifier
-    ObjectIdentifier
-      DotIdentifier
-    AssignmentExpr
-      PropertyAccess
-        Identifier
       PrimitiveExpr
-        NumberExpr
+        NumberExpr(1)
+  SetCommand
+    ObjectAccess
+      Identifier(42, 5)
+      ObjectIdentifier
+        DotIdentifier(0, 7)
+        DotIdentifier(8, 3)
+    PropertyAccess
+      Identifier(61, 11)
+    ParenExpr
+      PrimitiveExpr
+        NumberExpr(1)
+  ObjectDefinition
+    DotIdentifier(101, 3)
+    ObjectIdentifier
+      DotIdentifier(110, 7)
     AssignmentExpr
       PropertyAccess
-        Identifier
+        Identifier(120, 1)
+      PrimitiveExpr
+        NumberExpr(10)
+    AssignmentExpr
+      PropertyAccess
+        Identifier(129, 1)
       ParenExpr
     AssignmentExpr
       PropertyAccess
-        Identifier
+        Identifier(144, 1)
       ParenExpr
-        ParenExpr
-          ParenExpr
-            AssignmentExprList
-              AssignmentExpr
-                PropertyAccess
-                  Identifier
-                PrimitiveExpr
-                  NumberExpr
-              AssignmentExpr
-                PropertyAccess
-                  Identifier
-                PrimitiveExpr
-                  NumberExpr
+        AssignmentExprList
+          AssignmentExpr
+            PropertyAccess
+              Identifier(151, 1)
+            PrimitiveExpr
+              NumberExpr(1)
+          AssignmentExpr
+            PropertyAccess
+              Identifier(156, 1)
+            PrimitiveExpr
+              NumberExpr(2)
     AssignmentExpr
       PropertyAccess
-        Identifier
+        Identifier(165, 1)
         ArrayAccess
-          NumberExpr
+          NumberExpr(0)
       ParenExpr
-        ParenExpr
-          ParenExpr
-            AssignmentExprList
-              AssignmentExpr
-                PropertyAccess
-                  Identifier
-                PrimitiveExpr
-                  NumberExpr
-              AssignmentExpr
-                PropertyAccess
-                  Identifier
-                PrimitiveExpr
-                  NumberExpr
+        AssignmentExprList
+          AssignmentExpr
+            PropertyAccess
+              Identifier(175, 1)
+            PrimitiveExpr
+              NumberExpr(1)
+          AssignmentExpr
+            PropertyAccess
+              Identifier(180, 1)
+            PrimitiveExpr
+              NumberExpr(2)
     AssignmentExpr
       PropertyAccess
-        Identifier
+        Identifier(189, 1)
         ArrayAccess
-          NumberExpr
+          NumberExpr(0)
       ParenExpr
-        ParenExpr
-          ParenExpr
-            AssignmentExprList
-              AssignmentExpr
-                PropertyAccess
-                  Identifier
-                PrimitiveExpr
-                  NumberExpr
-              AssignmentExpr
-                PropertyAccess
-                  Identifier
-                PrimitiveExpr
-                  NumberExpr
+        AssignmentExprList
+          AssignmentExpr
+            PropertyAccess
+              Identifier(199, 1)
+            PrimitiveExpr
+              NumberExpr(1)
+          AssignmentExpr
+            PropertyAccess
+              Identifier(204, 1)
+            PrimitiveExpr
+              NumberExpr(2)
 )");
     // clang-format on
 

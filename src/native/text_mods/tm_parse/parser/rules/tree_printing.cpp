@@ -12,11 +12,17 @@
 
 namespace tm_parse::rules {
 
+using namespace txt;
 constexpr int indent_size = 2;
 
 auto append_rule(strstream& ss, const auto& rule, int indent) {
     using T = std::decay_t<decltype(rule)>;
     ss << str(indent, txt::lit::space) << str{rule_name(T::ENUM_TYPE)} << txt::lit::lf;
+}
+
+auto append_rule_nolf(strstream& ss, const auto& rule, int indent) {
+    using T = std::decay_t<decltype(rule)>;
+    ss << str(indent, txt::lit::space) << str{rule_name(T::ENUM_TYPE)};
 }
 
 #define LEAF_NODE_IMPL(clazz)                                   \
@@ -25,14 +31,43 @@ auto append_rule(strstream& ss, const auto& rule, int indent) {
     }
 
 // Base Rules
-LEAF_NODE_IMPL(IdentifierRule);
-LEAF_NODE_IMPL(DotIdentifierRule);
+void IdentifierRule::append_tree(strstream& ss, int& indent) const {
+    append_rule_nolf(ss, *this, indent);
+    ss << std::format(TXT("({}, {})\n"), m_TextRegion.Start, m_TextRegion.Length);
+}
+
+void DotIdentifierRule::append_tree(strstream& ss, int& indent) const {
+    append_rule_nolf(ss, *this, indent);
+    ss << std::format(TXT("({}, {})\n"), m_TextRegion.Start, m_TextRegion.Length);
+}
 
 // Primitive Expressions
-LEAF_NODE_IMPL(NumberExprRule);
+void NumberExprRule::append_tree(strstream& ss, int& indent) const {
+    append_rule_nolf(ss, *this, indent);
+
+    str value_str = std::visit(
+        [](const auto& val) -> str {
+            using T = std::decay_t<decltype(val)>;
+            if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+                return std::format(TXT("{}"), val);
+            } else {
+                return str{TXT("None")};
+            }
+        },
+        m_Value
+    );
+
+    ss << std::format(TXT("({})\n"), value_str);
+}
+
+void KeywordRule::append_tree(strstream& ss, int& indent) const {
+    append_rule_nolf(ss, *this, indent);
+    TokenProxy proxy{m_Kind};
+    ss << std::format(TXT("({})\n"), proxy.as_str());
+}
+
 LEAF_NODE_IMPL(StrExprRule);
 LEAF_NODE_IMPL(NameExprRule);
-LEAF_NODE_IMPL(KeywordRule);
 LEAF_NODE_IMPL(LiteralExprRule);
 
 void ObjectIdentifierRule::append_tree(strstream& ss, int& indent) const {
@@ -123,8 +158,8 @@ void ParenExprRule::append_tree(strstream& ss, int& indent) const {
     append_rule(ss, *this, indent);
     indent += indent_size;
 
-    if (m_Expr != nullptr) {
-        m_Expr->append_tree(ss, indent);
+    if (auto* inner = inner_most()) {
+        inner->append_tree(ss, indent);
     }
     indent -= indent_size;
 }
