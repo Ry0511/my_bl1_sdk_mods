@@ -117,8 +117,6 @@ void PropertyAccessRule::append_tree(strstream& ss, int& indent) const {
 }
 
 void PrimitiveExprRule::append_tree(strstream& ss, int& indent) const {
-    append_rule(ss, *this, indent);
-    indent += indent_size;
     std::visit(
         [&ss, &indent](const auto& rule) {
             using T = std::decay_t<decltype(rule)>;
@@ -128,7 +126,6 @@ void PrimitiveExprRule::append_tree(strstream& ss, int& indent) const {
         },
         m_InnerRule
     );
-    indent -= indent_size;
 }
 
 // Primary Expressions
