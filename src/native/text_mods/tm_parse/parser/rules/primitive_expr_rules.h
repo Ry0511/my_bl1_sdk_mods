@@ -69,11 +69,11 @@ class StrExprRule : public ParserBaseRule {
 
 class NameExprRule : public ParserBaseRule {
    private:
-    str_view m_Class{};
-    CopyPtr<ObjectIdentifierRule> m_Identifier{};
+    CopyPtr<class DotIdentifierRule> m_Class;
+    CopyPtr<ObjectIdentifierRule> m_Identifier;
 
    public:
-    str_view class_ref() const noexcept { return m_Class; }
+    const CopyPtr<class DotIdentifierRule>& class_ref() const noexcept { return m_Class; }
     const CopyPtr<ObjectIdentifierRule>& object_ref() const noexcept { return m_Identifier; }
 
    public:

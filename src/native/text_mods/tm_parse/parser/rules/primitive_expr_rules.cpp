@@ -5,6 +5,7 @@
 //
 
 #include "parser/rules/primitive_expr_rules.h"
+#include "parser/rules/parser_rules.h"
 #include "parser/text_mod_parser.h"
 
 namespace tm_parse::rules {
@@ -54,11 +55,11 @@ StrExprRule StrExprRule::create(TextModParser& parser) {
 
 NameExprRule NameExprRule::create(TextModParser& parser) {
     parser.push_rule(RuleNameExpr);
-    parser.require<Identifier>();
-    const Token& token = parser.peek(-1);
 
     NameExprRule rule{};
-    rule.m_TextRegion = token.TextRegion;
+
+    rule.m_Class = DotIdentifierRule::create(parser);
+    rule.m_TextRegion = rule.m_Class->text_region();
 
     parser.require<TokenKind::NameLiteral>();
     auto literal_region = parser.peek(-1).TextRegion;
