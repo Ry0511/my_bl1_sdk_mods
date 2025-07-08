@@ -80,7 +80,7 @@ NameExprRule NameExprRule::create(TextModParser& parser) {
 KeywordRule KeywordRule::create(TextModParser& parser) {
     parser.push_rule(RuleKeyword);
 
-    parser.require<Identifier>();
+    parser.require<Identifier>(0, {.Coalesce = true, .SkipOnBlankLine = false});
     const Token& token = parser.peek(-1);
 
     if (!token.is_keyword()) {
@@ -112,12 +112,7 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
 
     rule.m_TextRegion = parser.peek().TextRegion;
 
-    //
-    // NOTE
-    //  If we are inside a ParenExpr then we can only and should only parse a single token from the
-    //  stream that is not a BlankLine.
-    //
-
+    // Only want to consume the entire line if the current tree does not include a ParenExpr
     const bool consume_to_end = !parser.has_rule<RuleObjectDefinition, RuleSetCommand>(RuleParenExpr);
 
     if (consume_to_end) {
