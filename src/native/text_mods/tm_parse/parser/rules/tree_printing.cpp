@@ -67,8 +67,19 @@ void KeywordRule::append_tree(strstream& ss, int& indent) const {
 }
 
 LEAF_NODE_IMPL(StrExprRule);
-LEAF_NODE_IMPL(NameExprRule);
 LEAF_NODE_IMPL(LiteralExprRule);
+
+void NameExprRule::append_tree(strstream& ss, int& indent) const {
+    append_rule(ss, *this, indent);
+    indent += indent_size;
+
+    if (m_Class != nullptr) {
+        m_Class->append_tree(ss, indent);
+    }
+    m_Identifier->append_tree(ss, indent);
+
+    indent -= indent_size;
+}
 
 void ObjectIdentifierRule::append_tree(strstream& ss, int& indent) const {
     append_rule(ss, *this, indent);
