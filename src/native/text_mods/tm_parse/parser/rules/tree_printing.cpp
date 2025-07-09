@@ -118,10 +118,12 @@ void PropertyAccessRule::append_tree(strstream& ss, int& indent) const {
 
 void PrimitiveExprRule::append_tree(strstream& ss, int& indent) const {
     std::visit(
-        [&ss, &indent](const auto& rule) {
+        [this, &ss, &indent](const auto& rule) {
             using T = std::decay_t<decltype(rule)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
                 rule.append_tree(ss, indent);
+            } else {
+                append_rule(ss, *this, indent);
             }
         },
         m_InnerRule
@@ -136,6 +138,8 @@ void AssignmentExprRule::append_tree(strstream& ss, int& indent) const {
 
     if (has_expr()) {
         m_Expr->append_tree(ss, indent);
+    } else {
+        append_rule(ss, *m_Expr, indent);
     }
     indent -= indent_size;
 }
@@ -157,6 +161,8 @@ void ParenExprRule::append_tree(strstream& ss, int& indent) const {
 
     if (auto* inner = inner_most()) {
         inner->append_tree(ss, indent);
+    } else {
+        append_rule(ss, *m_Expr, indent);
     }
     indent -= indent_size;
 }
@@ -164,11 +170,13 @@ void ParenExprRule::append_tree(strstream& ss, int& indent) const {
 void ExpressionRule::append_tree(strstream& ss, int& indent) const {
     // Only print the child
     std::visit(
-        [&ss, &indent](const auto& rule) {
+        [this, &ss, &indent](const auto& rule) {
             using T = std::decay_t<decltype(rule)>;
             if constexpr (!std::is_same_v<T, std::monostate>) {
                 rule.append_tree(ss, indent);
-            };
+            } else {
+                append_rule(ss, *this, indent);
+            }
         },
         m_InnerType
     );
