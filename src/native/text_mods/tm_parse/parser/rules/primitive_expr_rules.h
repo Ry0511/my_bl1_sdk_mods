@@ -147,6 +147,8 @@ class PrimitiveExprRule {
     }
 
    public:
+    const PrimitiveRuleVariant& inner() const noexcept { return m_InnerRule; }
+    PrimitiveRuleVariant& inner() noexcept { return m_InnerRule; }
     TokenTextView text_region() const noexcept {
         return std::visit(
             [](auto&& val) -> TokenTextView {

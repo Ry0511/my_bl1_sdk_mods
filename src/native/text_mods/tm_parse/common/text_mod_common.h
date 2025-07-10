@@ -65,6 +65,21 @@ using txt_char = char;
 
 using strstream = std::basic_stringstream<str::value_type>;
 
+auto&& to_str(auto&& in_str) noexcept(false) {
+    using T = std::decay_t<decltype(in_str)>;
+    using CharType = T::value_type;
+
+    if constexpr (std::is_same_v<CharType, str::value_type>) {
+        return in_str;
+    } else if constexpr (std::is_same_v<CharType, char> && std::is_same_v<str::value_type, wchar_t>) {
+        return utils::widen(std::forward<T>(in_str));
+    } else if constexpr (std::is_same_v<CharType, wchar_t> && std::is_same_v<str::value_type, char>) {
+        return utils::narrow(std::forward<T>(in_str));
+    } else {
+        throw std::runtime_error{"unknown string type"};
+    }
+}
+
 // clang-format on
 
 ////////////////////////////////////////////////////////////////////////////////

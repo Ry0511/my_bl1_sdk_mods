@@ -1,0 +1,20 @@
+Begin Object Class=foo.baz Name=foo.baz:bar
+  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+
+  Begin Object Class=foo.baz Name=foo.baz:bar
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+  End Object
+
+End Object

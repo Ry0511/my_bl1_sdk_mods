@@ -75,13 +75,13 @@ class ErrorWithContext : public std::runtime_error {
         // Dump the context line if it exists
         if (has_context()) {
             for (const str& line : context_lines()) {
-                out << "  > " << utils::narrow(line) << "\n";
+                out << "  > " << to_str(line) << "\n";
             }
         }
 
         // Dump the error line if it exists
         if (has_error_line()) {
-            out << "  > " << utils::narrow(error_line()) << "\n";
+            out << "  > " << to_str(error_line()) << "\n";
             out << "  > " << error_caret() << "\n";
         }
 

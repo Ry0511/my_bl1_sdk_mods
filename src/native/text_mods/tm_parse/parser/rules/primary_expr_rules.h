@@ -48,8 +48,8 @@ class AssignmentExprListRule : public ParserBaseRule {
 
     // clang-format off
    public:
-    decltype(auto) cbegin() const noexcept { return m_Assignments.cbegin(); }
-    decltype(auto) cend()   const noexcept { return m_Assignments.cend();   }
+    decltype(auto) begin()  const noexcept { return m_Assignments.begin();  }
+    decltype(auto) end()    const noexcept { return m_Assignments.end();    }
     decltype(auto) begin()  noexcept       { return m_Assignments.begin();  }
     decltype(auto) end()    noexcept       { return m_Assignments.end();    }
     // clang-format on
@@ -87,6 +87,7 @@ class ExpressionRule {
 
    public:
     operator bool() const noexcept { return !std::holds_alternative<std::monostate>(m_InnerType); }
+    const InnerType& inner() const noexcept { return m_InnerType; }
 
     TokenTextView text_region() const noexcept {
         return std::visit(
