@@ -124,6 +124,10 @@ static void _text_editor() {
         set_selection(g_CurrentTextSelection.Start, g_CurrentTextSelection.end());
     }
 
+    if (ImGui::IsItemClicked()) {
+        g_CurrentTextSelection= {};
+    }
+
     if (ImGui::IsWindowFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
         try {
             TextModLexer lexer{g_TextEditorBuffer};
@@ -153,13 +157,18 @@ static void _build_tree(const T& rule) = delete;
     template <>            \
     static void _build_tree(const type& rule);
 
+// primary_rules.h
 TREE_BUILDER(ProgramRule);
 TREE_BUILDER(ObjectDefinitionRule);
 TREE_BUILDER(SetCommandRule);
 
-TREE_BUILDER(ExpressionRule);
+// primary_expr_rules.h
+TREE_BUILDER(AssignmentExprRule);
+TREE_BUILDER(AssignmentExprListRule);
 TREE_BUILDER(ParenExprRule);
+TREE_BUILDER(ExpressionRule);
 
+// primitive_expr_rules.h
 TREE_BUILDER(PrimitiveExprRule);
 TREE_BUILDER(NumberExprRule);
 TREE_BUILDER(StrExprRule);
@@ -167,10 +176,12 @@ TREE_BUILDER(NameExprRule);
 TREE_BUILDER(KeywordRule);
 TREE_BUILDER(LiteralExprRule);
 
-TREE_BUILDER(AssignmentExprListRule);
-TREE_BUILDER(AssignmentExprRule);
-
+// parser_rules.h
+TREE_BUILDER(IdentifierRule);
+TREE_BUILDER(DotIdentifierRule);
+TREE_BUILDER(ObjectIdentifierRule);
 TREE_BUILDER(ObjectAccessRule);
+TREE_BUILDER(ArrayAccessRule);
 TREE_BUILDER(PropertyAccessRule);
 
 template <>
@@ -218,6 +229,7 @@ static void _tree_text_view() {
             ImGui::GetContentRegionAvail(),
             ImGuiInputTextFlags_ReadOnly
         );
+
     } else {
         ImGui::Text("Program rule is invalid, Ctrl+S in the Text Editor creates a tree");
     }
@@ -297,7 +309,7 @@ static int initialise() {
 // | TREE BUILDERS |
 ////////////////////////////////////////////////////////////////////////////////
 
-constexpr auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnDoubleClick;
+constexpr auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanAvailWidth;
 
 static void update_selection(const auto& rule) {
     if (ImGui::IsItemToggledOpen()) {
@@ -331,6 +343,9 @@ static void _build_tree(const SetCommandRule& rule) {
     }
 
     update_selection(rule);
+    _build_tree(rule.object());
+    _build_tree(rule.property());
+    _build_tree(rule.expr());
 
     ImGui::TreePop();
     ImGui::PopID();
@@ -418,6 +433,11 @@ static void _build_tree(const PropertyAccessRule& rule) {
     }
 
     update_selection(rule);
+    _build_tree(rule.identifier());
+
+    if (rule.array_access()) {
+        _build_tree(rule.array_access());
+    }
 
     ImGui::TreePop();
     ImGui::PopID();
@@ -426,7 +446,6 @@ static void _build_tree(const PropertyAccessRule& rule) {
 template <>
 static void _build_tree(const ExpressionRule& rule) {
     if (rule.operator bool()) {
-        update_selection(rule);
         std::visit([](const auto& inner) { _build_tree(inner); }, rule.inner());
     } else {
         ImGui::PushID(&rule);
@@ -469,7 +488,7 @@ static void _build_tree_leaf(const auto& rule) {
     str kind = str{rule_name(T::ENUM_TYPE)};
 
     ImGui::PushID(&rule);
-    if (!ImGui::TreeNodeEx(kind.c_str(), TREE_FLAGS | ImGuiTreeNodeFlags_Leaf)) {
+    if (!ImGui::TreeNodeEx(kind.c_str(), TREE_FLAGS)) {
         ImGui::PopID();
         return;
     }
@@ -490,6 +509,10 @@ LEAF_NODE_IMPL(StrExprRule);
 LEAF_NODE_IMPL(NameExprRule);
 LEAF_NODE_IMPL(KeywordRule);
 LEAF_NODE_IMPL(LiteralExprRule);
+
+LEAF_NODE_IMPL(IdentifierRule);
+LEAF_NODE_IMPL(DotIdentifierRule);
+LEAF_NODE_IMPL(ArrayAccessRule);
 
 }  // namespace
 
