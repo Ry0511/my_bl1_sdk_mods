@@ -306,7 +306,7 @@ static int initialise() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// | TREE BUILDERS |
+// | TREE BUILDERS IMPL |
 ////////////////////////////////////////////////////////////////////////////////
 
 constexpr auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanAvailWidth;
@@ -419,6 +419,11 @@ static void _build_tree(const ObjectAccessRule& rule) {
     }
 
     update_selection(rule);
+    if (const auto& cls_type = rule.class_type()) {
+        _build_tree(cls_type);
+    }
+
+    _build_tree(rule.object_path());
 
     ImGui::TreePop();
     ImGui::PopID();
@@ -435,8 +440,8 @@ static void _build_tree(const PropertyAccessRule& rule) {
     update_selection(rule);
     _build_tree(rule.identifier());
 
-    if (rule.array_access()) {
-        _build_tree(rule.array_access());
+    if (const auto& array_access = rule.array_access()) {
+        _build_tree(array_access);
     }
 
     ImGui::TreePop();
@@ -481,6 +486,25 @@ static void _build_tree(const PrimitiveExprRule& rule) {
         ImGui::TreePop();
         ImGui::PopID();
     }
+}
+
+template<>
+static void _build_tree(const ObjectIdentifierRule& rule) {
+    ImGui::PushID(&rule);
+    if (!ImGui::TreeNodeEx("ObjectIdentifier", TREE_FLAGS)) {
+        ImGui::PopID();
+        return;
+    }
+
+    update_selection(rule);
+    _build_tree(rule.primary_identifier());
+
+    if (const auto& child = rule.child_identifier()) {
+        _build_tree(child);
+    }
+
+    ImGui::TreePop();
+    ImGui::PopID();
 }
 
 static void _build_tree_leaf(const auto& rule) {
