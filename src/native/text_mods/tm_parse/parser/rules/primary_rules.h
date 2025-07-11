@@ -64,6 +64,9 @@ class ProgramRule {
     const std::vector<Inner>& rules() const noexcept { return m_Rules; }
 
    public:
+    void visit(const auto& visitor_func) const noexcept;
+
+   public:
     template <class T>
     const T& get(size_t index) const {
         if (index >= m_Rules.size()) {

@@ -212,6 +212,7 @@ constexpr size_t max_token_len = largest_token_len();
 // | TOKEN STRUCTURE |
 ////////////////////////////////////////////////////////////////////////////////
 
+// TODO: Rename this to TextRegion or similar
 struct TokenTextView {
     size_t Start;
     size_t Length;

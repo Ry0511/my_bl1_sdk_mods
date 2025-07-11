@@ -112,7 +112,6 @@ class ParserBaseRule {
 
    public:
     str_view to_string(TextModParser& parser) const;
-
     str_view to_string() const noexcept {
         if (m_Text == nullptr) {
             return str_view{};
@@ -130,14 +129,20 @@ class ParserPrimaryRule : public ParserBaseRule {
     TextModParser* m_Parser{nullptr};
 };
 
-#define RULE_PUBLIC_API(type, kind)                        \
-   public:                                                 \
-    void append_tree(strstream& ss, int& indent) const;    \
-                                                           \
-   public:                                                 \
-    constexpr type() noexcept(true) = default;             \
-    constexpr ~type() noexcept(true) = default;            \
-    static type create(TextModParser&);                    \
+namespace utils {
+struct TreeWalker;
+}
+
+#define RULE_PUBLIC_API(type, kind)                     \
+                                                        \
+   public:                                              \
+    friend utils::TreeWalker;                           \
+    void append_tree(strstream& ss, int& indent) const; \
+                                                        \
+   public:                                              \
+    constexpr type() noexcept(true) = default;          \
+    constexpr ~type() noexcept(true) = default;         \
+    static type create(TextModParser&);                 \
     constexpr static ParserRuleKind ENUM_TYPE = kind
 
 }  // namespace rules
