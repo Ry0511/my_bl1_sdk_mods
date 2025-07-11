@@ -310,12 +310,6 @@ static int initialise() {
 ////////////////////////////////////////////////////////////////////////////////
 
 constexpr auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanFullWidth;
-static ImVec2 g_CursorPos{};
-
-template <class T>
-concept supports_enum_type = requires(const T& rule) {
-    { rule.ENUM_TYPE };
-};
 
 static void update_selection(const auto& rule) {
     if (ImGui::IsItemToggledOpen() || ImGui::IsItemHovered()) {
@@ -326,7 +320,7 @@ static void update_selection(const auto& rule) {
 template <>
 static void _build_tree(const ProgramRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("ProgramRule", TREE_FLAGS)) {
         ImGui::PopID();
         return;
@@ -343,7 +337,7 @@ static void _build_tree(const ProgramRule& rule) {
 template <>
 static void _build_tree(const SetCommandRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("SetCommand", ImGuiTreeNodeFlags_SpanAvailWidth)) {
         update_selection(rule);
         ImGui::PopID();
@@ -362,7 +356,7 @@ static void _build_tree(const SetCommandRule& rule) {
 template <>
 static void _build_tree(const ObjectDefinitionRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("ObjectDefinition", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -385,7 +379,7 @@ static void _build_tree(const ObjectDefinitionRule& rule) {
 template <>
 static void _build_tree(const AssignmentExprListRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("AssignmentExprList", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -405,7 +399,7 @@ static void _build_tree(const AssignmentExprListRule& rule) {
 template <>
 static void _build_tree(const AssignmentExprRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("AssignmentExpr", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -426,7 +420,7 @@ static void _build_tree(const AssignmentExprRule& rule) {
 template <>
 static void _build_tree(const ObjectAccessRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("ObjectAccess", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -439,7 +433,6 @@ static void _build_tree(const ObjectAccessRule& rule) {
     }
 
     _build_tree(rule.object_path());
-
     ImGui::TreePop();
     ImGui::PopID();
 }
@@ -447,7 +440,7 @@ static void _build_tree(const ObjectAccessRule& rule) {
 template <>
 static void _build_tree(const PropertyAccessRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("PropertyAccess", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -471,7 +464,6 @@ static void _build_tree(const ExpressionRule& rule) {
         std::visit([](const auto& inner) { _build_tree(inner); }, rule.inner());
     } else {
         ImGui::PushID(&rule);
-        g_CursorPos = ImGui::GetCursorPos();
         ImGui::TreeNodeEx("Expression", TREE_FLAGS | ImGuiTreeNodeFlags_Leaf);
         ImGui::TreePop();
         ImGui::PopID();
@@ -481,7 +473,7 @@ static void _build_tree(const ExpressionRule& rule) {
 template <>
 static void _build_tree(const ParenExprRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("ParenExpr", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -502,7 +494,6 @@ static void _build_tree(const PrimitiveExprRule& rule) {
         std::visit([](const auto& inner) { _build_tree(inner); }, rule.inner());
     } else {
         ImGui::PushID(&rule);
-        g_CursorPos = ImGui::GetCursorPos();
         ImGui::TreeNodeEx("PrimitiveExpr", TREE_FLAGS | ImGuiTreeNodeFlags_Leaf);
         ImGui::TreePop();
         ImGui::PopID();
@@ -512,7 +503,7 @@ static void _build_tree(const PrimitiveExprRule& rule) {
 template <>
 static void _build_tree(const ObjectIdentifierRule& rule) {
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
+
     if (!ImGui::TreeNodeEx("ObjectIdentifier", TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
@@ -535,7 +526,6 @@ static void _build_tree_leaf(const auto& rule) {
     str kind = str{rule_name(T::ENUM_TYPE)};
 
     ImGui::PushID(&rule);
-    g_CursorPos = ImGui::GetCursorPos();
     if (!ImGui::TreeNodeEx(kind.c_str(), TREE_FLAGS)) {
         update_selection(rule);
         ImGui::PopID();
