@@ -38,6 +38,7 @@ class AssignmentExprListRule : public ParserBaseRule {
     std::vector<AssignmentExprRule> m_Assignments;
 
    public:
+    const std::vector<AssignmentExprRule>& assignments() const noexcept { return m_Assignments; }
     size_t size() const noexcept { return m_Assignments.size(); };
     const AssignmentExprRule& at(size_t index) const { return m_Assignments.at(index); };
     AssignmentExprRule& at(size_t index) { return m_Assignments.at(index); };
