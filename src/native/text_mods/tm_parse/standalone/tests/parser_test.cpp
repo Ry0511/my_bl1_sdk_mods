@@ -180,15 +180,14 @@ TEST_CASE("Expressions") {
         {
             constexpr float min = std::numeric_limits<float>::min();
             constexpr float max = std::numeric_limits<float>::max();
-            auto min_str = std::to_wstring(min);
-            auto max_str = std::to_wstring(max);
-            std::tuple<str_view, float> test_cases[]{
-                {     TXT("123"),    123.0F},
-                { TXT("123.456"),  123.456F},
-                {    TXT("-123"),   -123.0F},
-                {TXT("-123.456"), -123.456F},
-                {        min_str,       min},
-                {        max_str,       max},
+
+            std::tuple<str, float> test_cases[]{
+                {                      TXT("123"),    123.0F},
+                {                  TXT("123.456"),  123.456F},
+                {                     TXT("-123"),   -123.0F},
+                {                 TXT("-123.456"), -123.456F},
+                {to_str<str>(std::to_string(min)),       min},
+                {to_str<str>(std::to_string(max)),       max},
             };
 
             for (const auto& [test_case, val] : test_cases) {

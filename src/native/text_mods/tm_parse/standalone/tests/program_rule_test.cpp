@@ -183,7 +183,7 @@ set WillowPlayerController_0 PresenceStrings(10) (Description="JoinMyFight",Pres
             if (line.empty()) {
                 continue;
             }
-            str test = utils::to_str(line);
+            str test = to_str<str>(line);
             TextModLexer lexer{test};
             TextModParser parser{&lexer};
 

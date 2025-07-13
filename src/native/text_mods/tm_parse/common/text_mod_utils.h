@@ -34,18 +34,6 @@ using namespace unrealsdk::utils;
 
 #endif
 
-decltype(auto) to_str(auto&& vw) noexcept(false) {
-    using T = std::decay_t<decltype(vw)>;
-
-    if constexpr (std::is_same_v<T, std::wstring> || std::is_same_v<T, std::wstring_view>) {
-        return narrow(std::wstring_view{vw});
-    } else if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>) {
-        return widen(std::string_view{vw});
-    } else {
-        throw std::runtime_error("unsupported");
-    }
-}
-
 }  // namespace tm_parse::utils
 
 #if defined(TEXT_MODS_STANDALONE)

@@ -36,7 +36,7 @@ int main() {
         if (fs::is_regular_file(wpc_dump)) {
             std::wifstream stream{wpc_dump};
             using It = std::istreambuf_iterator<wchar_t>;
-            str content = std::wstring{It{stream}, It{}};
+            const str& content = to_str<str>(std::wstring{It{stream}, It{}});
 
             TextModLexer lexer{content};
             TextModParser parser{&lexer};

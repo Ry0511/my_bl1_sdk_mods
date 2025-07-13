@@ -50,18 +50,18 @@ class ErrorWithContext : public std::runtime_error {
     [[nodiscard]] const LineContext::value_type& context_lines() const noexcept { return *m_ContextLines; }
     [[nodiscard]] const str& error_line() const noexcept { return *m_ErrorLine; }
 
-    [[nodiscard]] std::string error_caret() const noexcept {
+    [[nodiscard]] str error_caret() const noexcept {
         if (!has_error_line() || m_ErrorLine->empty()) {
-            return "Has no error line";
+            return TXT("Has no error line");
         }
 
         if (m_PosInLine == 0) {
-            return "^";
+            return TXT("^");
         }
 
         // We assume the error is at the end of the error line
-        std::string line(m_ErrorLine->length(), ' ');
-        line[line.length() - 1] = '^';
+        str line(m_ErrorLine->length(), TXT(' '));
+        line[line.length() - 1] = TXT('^');
         return line;
     }
 
@@ -75,14 +75,14 @@ class ErrorWithContext : public std::runtime_error {
         // Dump the context line if it exists
         if (has_context()) {
             for (const str& line : context_lines()) {
-                out << "  > " << to_str(line) << "\n";
+                out << "  > " << to_str<std::string>(line) << "\n";
             }
         }
 
         // Dump the error line if it exists
         if (has_error_line()) {
-            out << "  > " << to_str(error_line()) << "\n";
-            out << "  > " << error_caret() << "\n";
+            out << "  > " << to_str<std::string>(error_line()) << "\n";
+            out << "  > " << to_str<std::string>(error_caret()) << "\n";
         }
 
         return out.str();

@@ -45,6 +45,12 @@ constexpr size_t invalid_index_v = std::numeric_limits<size_t>::max();
 
 // clang-format off
 
+// TODO
+//   Need to revisit this as it has caused a few issues which really could've been avoided if we
+//   stuck to a single string type. The original intention is still something I want to support but
+//   I don't know how useful it will actually be.
+//
+
 #ifdef TEXT_MODS_USE_WCHAR
 
 using str      = std::wstring;
@@ -65,18 +71,28 @@ using txt_char = char;
 
 using strstream = std::basic_stringstream<str::value_type>;
 
-auto&& to_str(auto&& in_str) noexcept(false) {
-    using T = std::decay_t<decltype(in_str)>;
-    using CharType = T::value_type;
+template<class R>
+decltype(auto) to_str(auto&& in) {
+    using Exact = decltype(in);
+    using I = typename std::remove_cvref_t<std::decay_t<decltype(in)>>;
+    using CharType = typename I::value_type;
+    static_assert(std::disjunction_v<std::is_same<CharType, char>, std::is_same<CharType, wchar_t>>, "expecting wchar_t or char string");
 
-    if constexpr (std::is_same_v<CharType, str::value_type>) {
-        return in_str;
-    } else if constexpr (std::is_same_v<CharType, char> && std::is_same_v<str::value_type, wchar_t>) {
-        return utils::widen(std::forward<T>(in_str));
-    } else if constexpr (std::is_same_v<CharType, wchar_t> && std::is_same_v<str::value_type, char>) {
-        return utils::narrow(std::forward<T>(in_str));
-    } else {
-        throw std::runtime_error{"unknown string type"};
+    // str -> str
+    if constexpr (std::is_same_v<I, R>) {
+        return std::forward<Exact>(in);
+    }
+    // string -> wstring
+    else if constexpr (std::is_same_v<I, std::string> && std::is_same_v<R, std::wstring>) {
+        return utils::widen(std::forward<Exact>(in));
+    }
+    // wstring -> string
+    else if constexpr (std::is_same_v<I, std::wstring> && std::is_same_v<R, std::string>) {
+        return utils::narrow(std::forward<Exact>(in));
+    }
+    // Shouldn't ever happen
+    else {
+        throw std::runtime_error{"unknown conversion"};
     }
 }
 

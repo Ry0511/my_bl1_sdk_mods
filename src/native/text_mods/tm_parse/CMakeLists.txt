@@ -48,5 +48,6 @@ target_sources(bl1_text_mods_exe PRIVATE ${TM_PARSE_STANDALONE_SRC} standalone/m
 target_compile_features(bl1_text_mods_exe PRIVATE cxx_std_20)
 target_link_libraries(bl1_text_mods_exe PRIVATE tm_parse_solo)
 target_include_directories(bl1_text_mods_exe PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/standalone")
+target_compile_definitions(bl1_text_mods_exe PRIVATE -DTEXT_MODS_USE_WCHAR)
 
 add_subdirectory(standalone/treevis)
