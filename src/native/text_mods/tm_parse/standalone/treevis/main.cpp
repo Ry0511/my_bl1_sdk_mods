@@ -185,7 +185,17 @@ static void _tree_view() {
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
         utils::TreeWalker walker{};
         Visitor visitor{};
-        walker.walk(g_ProgramRule, visitor);
+
+        // Not required but just for validating the template actually works
+        auto fn = [&visitor](const auto& rule, utils::TreeWalkerVisitType type) -> void {
+            if (type == utils::OnEnter) {
+                visitor.on_enter(rule);
+            } else if (type == utils::OnExit) {
+                visitor.on_exit(rule);
+            }
+        };
+
+        walker.walk(g_ProgramRule, fn);
         ImGui::PopStyleVar();
     }
 

@@ -11,18 +11,42 @@
 
 namespace tm_parse::utils {
 
-#define WALKER(type)         \
-    template <class Visitor> \
-    void walk(const rules::type& rule, Visitor&& visitor) noexcept
+#define WALKER(type)                  \
+    template <visitor_struct Visitor> \
+    void walk(const rules::type& rule, Visitor&& visitor)
+
+// TODO Implement some form of short-circuiting
+
+enum TreeWalkerVisitType : uint8_t {
+    OnEnter,
+    OnExit,
+};
+
+template <class T>
+concept visitor_struct = std::is_class_v<T>;
 
 class TreeWalker {
+   private:
+    template <class Function>
+    struct VisitorFunctionWrapper {
+        Function&& func;
+        void on_enter(auto&& rule) { func(rule, OnEnter); }
+        void on_exit(auto&& rule) { func(rule, OnExit); }
+    };
+
    public:
     constexpr TreeWalker() noexcept = default;
     ~TreeWalker() noexcept = default;
 
    public:
-    template <class T, class Visitor>
-    void walk(const T& rule, Visitor&& visitor) noexcept;
+    template <class T, visitor_struct Visitor>
+    void walk(const T& rule, Visitor&& visitor);
+
+    template <class T, class Visitor, typename = std::enable_if_t<!visitor_struct<Visitor>>>
+    void walk(const T& rule, Visitor&& visitor) {
+        using Wrapper = VisitorFunctionWrapper<Visitor>;
+        this->walk(rule, Wrapper{std::forward<Visitor>(visitor)});
+    }
 
    public:
     WALKER(ProgramRule);
@@ -55,14 +79,14 @@ class TreeWalker {
 // | IMPLEMENTATIONS |
 ////////////////////////////////////////////////////////////////////////////////
 
-template <class T, class Visitor>
-void TreeWalker::walk(const T& rule, Visitor&& visitor) noexcept {
+template <class T, visitor_struct Visitor>
+void TreeWalker::walk(const T& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ProgramRule& root, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ProgramRule& root, Visitor&& visitor) {
     visitor.on_enter(root);
 
     for (const auto& inner : root.rules()) {
@@ -75,8 +99,8 @@ void TreeWalker::walk(const rules::ProgramRule& root, Visitor&& visitor) noexcep
     visitor.on_exit(root);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ObjectDefinitionRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ObjectDefinitionRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
     this->walk(rule.clazz(), std::forward<Visitor>(visitor));
     this->walk(rule.name(), std::forward<Visitor>(visitor));
@@ -92,8 +116,8 @@ void TreeWalker::walk(const rules::ObjectDefinitionRule& rule, Visitor&& visitor
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::SetCommandRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::SetCommandRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
     this->walk(rule.object(), std::forward<Visitor>(visitor));
     this->walk(rule.property(), std::forward<Visitor>(visitor));
@@ -101,8 +125,8 @@ void TreeWalker::walk(const rules::SetCommandRule& rule, Visitor&& visitor) noex
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::AssignmentExprRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::AssignmentExprRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
     this->walk(rule.property(), std::forward<Visitor>(visitor));
     // Forget if this is nullable, but expr() derefs regardless...
@@ -110,8 +134,8 @@ void TreeWalker::walk(const rules::AssignmentExprRule& rule, Visitor&& visitor) 
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::AssignmentExprListRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::AssignmentExprListRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     for (const auto& assign : rule.assignments()) {
@@ -121,8 +145,8 @@ void TreeWalker::walk(const rules::AssignmentExprListRule& rule, Visitor&& visit
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ParenExprRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ParenExprRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     // Collapses (((1))) to ParenExpr( NumberExpr(1) )
@@ -133,8 +157,8 @@ void TreeWalker::walk(const rules::ParenExprRule& rule, Visitor&& visitor) noexc
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ExpressionRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ExpressionRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     std::visit(
@@ -150,8 +174,8 @@ void TreeWalker::walk(const rules::ExpressionRule& rule, Visitor&& visitor) noex
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::NameExprRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::NameExprRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     if (rule.class_ref() != nullptr) {
@@ -162,8 +186,8 @@ void TreeWalker::walk(const rules::NameExprRule& rule, Visitor&& visitor) noexce
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ObjectAccessRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ObjectAccessRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     if (const auto& cls = rule.class_type()) {
@@ -175,8 +199,8 @@ void TreeWalker::walk(const rules::ObjectAccessRule& rule, Visitor&& visitor) no
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::PropertyAccessRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::PropertyAccessRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     this->walk(rule.identifier(), std::forward<Visitor>(visitor));
@@ -188,8 +212,8 @@ void TreeWalker::walk(const rules::PropertyAccessRule& rule, Visitor&& visitor) 
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ObjectIdentifierRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ObjectIdentifierRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     this->walk(rule.primary_identifier(), std::forward<Visitor>(visitor));
@@ -201,15 +225,15 @@ void TreeWalker::walk(const rules::ObjectIdentifierRule& rule, Visitor&& visitor
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::ArrayAccessRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::ArrayAccessRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
     this->walk(rule.index(), std::forward<Visitor>(visitor));
     visitor.on_exit(rule);
 }
 
-template <class Visitor>
-void TreeWalker::walk(const rules::PrimitiveExprRule& rule, Visitor&& visitor) noexcept {
+template <visitor_struct Visitor>
+void TreeWalker::walk(const rules::PrimitiveExprRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
 
     std::visit(
