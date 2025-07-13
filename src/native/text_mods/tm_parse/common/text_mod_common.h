@@ -73,22 +73,21 @@ using strstream = std::basic_stringstream<str::value_type>;
 
 template<class R>
 decltype(auto) to_str(auto&& in) {
-    using Exact = decltype(in);
-    using I = typename std::remove_cvref_t<std::decay_t<decltype(in)>>;
-    using CharType = typename I::value_type;
+    using InType = typename std::remove_cvref_t<std::decay_t<decltype(in)>>;
+    using CharType = typename InType::value_type;
     static_assert(std::disjunction_v<std::is_same<CharType, char>, std::is_same<CharType, wchar_t>>, "expecting wchar_t or char string");
 
     // str -> str
-    if constexpr (std::is_same_v<I, R>) {
-        return std::forward<Exact>(in);
+    if constexpr (std::is_same_v<InType, R>) {
+        return std::forward<decltype(in)>(in);
     }
     // string -> wstring
-    else if constexpr (std::is_same_v<I, std::string> && std::is_same_v<R, std::wstring>) {
-        return utils::widen(std::forward<Exact>(in));
+    else if constexpr (std::is_same_v<InType, std::string> && std::is_same_v<R, std::wstring>) {
+        return utils::widen(std::string_view{in});
     }
     // wstring -> string
-    else if constexpr (std::is_same_v<I, std::wstring> && std::is_same_v<R, std::string>) {
-        return utils::narrow(std::forward<Exact>(in));
+    else if constexpr (std::is_same_v<InType, std::wstring> && std::is_same_v<R, std::string>) {
+        return utils::narrow(std::wstring_view{in});
     }
     // Shouldn't ever happen
     else {
