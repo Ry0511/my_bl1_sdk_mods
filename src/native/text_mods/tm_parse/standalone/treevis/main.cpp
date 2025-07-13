@@ -318,7 +318,7 @@ static int initialise() {
 // | TREE BUILDERS IMPL |
 ////////////////////////////////////////////////////////////////////////////////
 
-constexpr auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanFullWidth;
+constinit auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanFullWidth;
 
 static void update_selection(const auto& rule) {
     if (ImGui::IsItemToggledOpen() || ImGui::IsItemHovered()) {
