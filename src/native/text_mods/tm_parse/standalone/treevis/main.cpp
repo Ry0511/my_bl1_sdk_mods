@@ -14,6 +14,7 @@
 #include "tm_parse/common/text_mod_common.h"
 #include "tm_parse/lexer/text_mod_lexer.h"
 #include "tm_parse/parser/text_mod_parser.h"
+#include "tm_parse/parser/utils/tree_walker.h"
 
 #define LOG_THAT_SHIT(...) __VA_OPT__(std::cout << std::format(__VA_ARGS__) << std::endl)
 
@@ -38,7 +39,7 @@ fs::path g_TextEditorFile = fs::current_path() / L"text_editor_content.txt";
 std::string g_TextEditorBuffer{};
 
 TokenTextView g_CurrentTextSelection{};
-TokenTextView g_PreviousTextSelection{};
+bool g_SelectionChanged = false;
 
 #define UID(base) std::format("{}##{}", base, __COUNTER__).c_str()
 
@@ -63,6 +64,11 @@ static void set_selection(size_t start, size_t end) {
     };
 
     auto* s = ImGui::GetInputTextState(ImGui::GetItemID());
+
+    if (s == nullptr) {
+        return;
+    }
+
     s->CursorFollow = true;
     auto* ptr = reinterpret_cast<STB_TexteditState_Clone*>(s->Stb);
     ptr->select_start = start;
@@ -106,11 +112,15 @@ static void _text_editor() {
         if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
             g_TextEditorBuffer.resize(data->BufTextLen);
             data->Buf = g_TextEditorBuffer.data();
+            LOG_THAT_SHIT("Resized buffer to {}", data->BufTextLen);
         }
         return 0;
     };
 
-    ImGui::SetKeyboardFocusHere();
+    if (g_SelectionChanged && g_CurrentTextSelection.is_valid()) {
+        ImGui::SetKeyboardFocusHere(1);
+    }
+
     ImGui::InputTextMultiline(
         UID("Text Editor"),
         g_TextEditorBuffer.data(),
@@ -120,12 +130,9 @@ static void _text_editor() {
         callback
     );
 
-    if (g_CurrentTextSelection.is_valid()) {
+    if (g_SelectionChanged && g_CurrentTextSelection.is_valid()) {
         set_selection(g_CurrentTextSelection.Start, g_CurrentTextSelection.end());
-    }
-
-    if (ImGui::IsItemClicked()) {
-        g_CurrentTextSelection = {};
+        g_SelectionChanged = false;
     }
 
     if (ImGui::IsWindowFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
@@ -150,44 +157,21 @@ static void _text_editor() {
     ImGui::End();
 }
 
-template <class T>
-static void _build_tree(const T& rule) = delete;
+////////////////////////////////////////////////////////////////////////////////
+// | TREE VIEW |
+////////////////////////////////////////////////////////////////////////////////
 
-#define TREE_BUILDER(type) \
-    template <>            \
-    static void _build_tree(const type& rule);
+struct Visitor {
+    struct PushInfo {
+        const void* Identifier;
+        bool IsTreeOpen;
+    };
 
-// primary_rules.h
-TREE_BUILDER(ProgramRule);
-TREE_BUILDER(ObjectDefinitionRule);
-TREE_BUILDER(SetCommandRule);
+    std::deque<PushInfo> stack{};
 
-// primary_expr_rules.h
-TREE_BUILDER(AssignmentExprRule);
-TREE_BUILDER(AssignmentExprListRule);
-TREE_BUILDER(ParenExprRule);
-TREE_BUILDER(ExpressionRule);
-
-// primitive_expr_rules.h
-TREE_BUILDER(PrimitiveExprRule);
-TREE_BUILDER(NumberExprRule);
-TREE_BUILDER(StrExprRule);
-TREE_BUILDER(NameExprRule);
-TREE_BUILDER(KeywordRule);
-TREE_BUILDER(LiteralExprRule);
-
-// parser_rules.h
-TREE_BUILDER(IdentifierRule);
-TREE_BUILDER(DotIdentifierRule);
-TREE_BUILDER(ObjectIdentifierRule);
-TREE_BUILDER(ObjectAccessRule);
-TREE_BUILDER(ArrayAccessRule);
-TREE_BUILDER(PropertyAccessRule);
-
-template <>
-static void _build_tree(const std::monostate&) {}
-
-#undef TREE_BUILDER
+    void on_enter(const auto& rule);
+    void on_exit(const auto& rule);
+};
 
 static void _tree_view() {
     if (!ImGui::Begin(UID("Tree View"))) {
@@ -199,7 +183,9 @@ static void _tree_view() {
         ImGui::Text("Program rule is invalid");
     } else {
         ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
-        _build_tree(g_ProgramRule);
+        utils::TreeWalker walker{};
+        Visitor visitor{};
+        walker.walk(g_ProgramRule, visitor);
         ImGui::PopStyleVar();
     }
 
@@ -314,244 +300,41 @@ constexpr auto TREE_FLAGS = ImGuiTreeNodeFlags_SpanFullWidth;
 static void update_selection(const auto& rule) {
     if (ImGui::IsItemToggledOpen() || ImGui::IsItemHovered()) {
         g_CurrentTextSelection = rule.text_region();
+        g_SelectionChanged = true;
     }
 }
 
-template <>
-static void _build_tree(const ProgramRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("ProgramRule", TREE_FLAGS)) {
-        ImGui::PopID();
+void Visitor::on_enter(const auto& rule) {
+    // Tree not open
+    if (!stack.empty() && !stack.back().IsTreeOpen) {
         return;
     }
 
-    for (const auto& inner : rule.rules()) {
-        std::visit([](const auto& inner) -> void { _build_tree(inner); }, inner);
-    }
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const SetCommandRule& rule) {
     ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("SetCommand", ImGuiTreeNodeFlags_SpanAvailWidth)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    _build_tree(rule.object());
-    _build_tree(rule.property());
-    _build_tree(rule.expr());
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const ObjectDefinitionRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("ObjectDefinition", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    for (const auto& inner : rule.child_objects()) {
-        _build_tree(*inner);
-    }
-
-    for (const auto& inner : rule.assignments()) {
-        _build_tree(inner);
-    }
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const AssignmentExprListRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("AssignmentExprList", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-
-    for (const AssignmentExprRule& inner : rule) {
-        _build_tree(inner);
-    }
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const AssignmentExprRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("AssignmentExpr", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    _build_tree(rule.property());
-
-    if (rule.has_expr()) {
-        _build_tree(rule.expr());
-    }
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const ObjectAccessRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("ObjectAccess", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    if (const auto& cls_type = rule.class_type()) {
-        _build_tree(cls_type);
-    }
-
-    _build_tree(rule.object_path());
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const PropertyAccessRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("PropertyAccess", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    _build_tree(rule.identifier());
-
-    if (const auto& array_access = rule.array_access()) {
-        _build_tree(array_access);
-    }
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const ExpressionRule& rule) {
-    if (rule.operator bool()) {
-        std::visit([](const auto& inner) { _build_tree(inner); }, rule.inner());
+    if (ImGui::TreeNodeEx(rule_name(rule.ENUM_TYPE).data(), TREE_FLAGS)) {
+        stack.emplace_back(&rule, true);
     } else {
-        ImGui::PushID(&rule);
-        ImGui::TreeNodeEx("Expression", TREE_FLAGS | ImGuiTreeNodeFlags_Leaf);
+        stack.emplace_back(&rule, false);
+    }
+
+    if (ImGui::IsItemHovered()) {
+        update_selection(rule);
+    }
+
+    ImGui::PopID();
+};
+
+void Visitor::on_exit(const auto& rule) {
+    if (stack.back().Identifier != &rule) {
+        return;
+    }
+
+    if (stack.back().IsTreeOpen) {
         ImGui::TreePop();
-        ImGui::PopID();
     }
+
+    stack.pop_back();
 }
-
-template <>
-static void _build_tree(const ParenExprRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("ParenExpr", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    if (auto* inner = rule.inner_most()) {
-        _build_tree(*inner);
-    }
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-template <>
-static void _build_tree(const PrimitiveExprRule& rule) {
-    if (rule.operator bool()) {
-        std::visit([](const auto& inner) { _build_tree(inner); }, rule.inner());
-    } else {
-        ImGui::PushID(&rule);
-        ImGui::TreeNodeEx("PrimitiveExpr", TREE_FLAGS | ImGuiTreeNodeFlags_Leaf);
-        ImGui::TreePop();
-        ImGui::PopID();
-    }
-}
-
-template <>
-static void _build_tree(const ObjectIdentifierRule& rule) {
-    ImGui::PushID(&rule);
-
-    if (!ImGui::TreeNodeEx("ObjectIdentifier", TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    _build_tree(rule.primary_identifier());
-
-    if (const auto& child = rule.child_identifier()) {
-        _build_tree(child);
-    }
-
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-static void _build_tree_leaf(const auto& rule) {
-    using T = std::decay_t<decltype(rule)>;
-    str kind = str{rule_name(T::ENUM_TYPE)};
-
-    ImGui::PushID(&rule);
-    if (!ImGui::TreeNodeEx(kind.c_str(), TREE_FLAGS)) {
-        update_selection(rule);
-        ImGui::PopID();
-        return;
-    }
-
-    update_selection(rule);
-    ImGui::TreePop();
-    ImGui::PopID();
-}
-
-#define LEAF_NODE_IMPL(type)                    \
-    template <>                                 \
-    static void _build_tree(const type& rule) { \
-        _build_tree_leaf(rule);                 \
-    }
-
-LEAF_NODE_IMPL(NumberExprRule);
-LEAF_NODE_IMPL(StrExprRule);
-LEAF_NODE_IMPL(NameExprRule);
-LEAF_NODE_IMPL(KeywordRule);
-LEAF_NODE_IMPL(LiteralExprRule);
-
-LEAF_NODE_IMPL(IdentifierRule);
-LEAF_NODE_IMPL(DotIdentifierRule);
-LEAF_NODE_IMPL(ArrayAccessRule);
 
 }  // namespace
 

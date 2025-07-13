@@ -5,7 +5,7 @@ set foo.baz:bar my_property My Literal
 set foo.baz:bar my_property "My String"
 set foo.baz:bar my_property Class'foo.baz:bar'
 
-Begin Object Class=foo.baz Name=foo.baz:bar
+BEGIN OBJECT Class=foo.baz Name=foo.baz:bar
   A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
   A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
   A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
@@ -13,7 +13,7 @@ Begin Object Class=foo.baz Name=foo.baz:bar
   A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
   A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
 
-  Begin Object Class=foo.baz Name=foo.baz:bar
+  BEGIN OBJECT Class=foo.baz Name=foo.baz:bar
     A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
     A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
     A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
@@ -22,6 +22,6 @@ Begin Object Class=foo.baz Name=foo.baz:bar
     A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
     A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
     A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  End Object
+  END OBJECT
 
-End Object
+END OBJECT
