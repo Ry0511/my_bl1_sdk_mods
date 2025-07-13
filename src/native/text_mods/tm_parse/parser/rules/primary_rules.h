@@ -56,15 +56,15 @@ class ProgramRule {
 
    private:
     std::vector<Inner> m_Rules;
+    size_t m_MaxLength;
 
    public:
     operator bool() const noexcept { return true; }
 
-   public:
-    const std::vector<Inner>& rules() const noexcept { return m_Rules; }
+    TokenTextView text_region() const noexcept { return TokenTextView{0, m_MaxLength}; }
 
    public:
-    void visit(const auto& visitor_func) const noexcept;
+    const std::vector<Inner>& rules() const noexcept { return m_Rules; }
 
    public:
     template <class T>

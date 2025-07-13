@@ -168,6 +168,15 @@ ProgramRule ProgramRule::create(TextModParser& parser) {
         }
     }
 
+    // Update max length text region value
+    auto& rules = rule.rules();
+    if (!rules.empty()) {
+        std::visit(
+            [&rule](const auto& inner) -> void { rule.m_MaxLength = inner.text_region().end(); },
+            rules[rules.size() - 1]
+        );
+    }
+
     TXT_MOD_ASSERT(parser.peek_rule() == RuleProgram);
     parser.pop_rule();
 
