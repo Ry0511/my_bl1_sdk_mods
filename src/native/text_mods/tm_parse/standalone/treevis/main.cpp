@@ -334,8 +334,10 @@ void Visitor::on_enter(const auto& rule) {
     }
 
     constexpr auto type = rule.ENUM_TYPE;
-    if (g_IgnoreProxyRules
-        && ((!g_KeepProgramRule && type == RuleProgram) || type == RuleExpression || type == RulePrimitiveExpr)) {
+    constexpr std::array<ParserRuleKind, 3> proxy_rules{RuleExpression, RulePrimitiveExpr, RuleAssignmentExprList};
+    constexpr bool is_proxy_rule = std::find(proxy_rules.begin(), proxy_rules.end(), type) != proxy_rules.end();
+
+    if (g_IgnoreProxyRules && (is_proxy_rule || (!g_KeepProgramRule && type == RuleProgram))) {
         return;
     }
 
