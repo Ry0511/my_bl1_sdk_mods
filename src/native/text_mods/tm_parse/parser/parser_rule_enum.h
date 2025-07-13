@@ -129,14 +129,9 @@ class ParserPrimaryRule : public ParserBaseRule {
     TextModParser* m_Parser{nullptr};
 };
 
-namespace utils {
-struct TreeWalker;
-}
-
 #define RULE_PUBLIC_API(type, kind)                     \
                                                         \
    public:                                              \
-    friend utils::TreeWalker;                           \
     void append_tree(strstream& ss, int& indent) const; \
                                                         \
    public:                                              \
