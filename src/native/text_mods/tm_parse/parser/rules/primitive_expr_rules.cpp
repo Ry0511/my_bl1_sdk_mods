@@ -66,6 +66,7 @@ NameExprRule NameExprRule::create(TextModParser& parser) {
     rule.m_TextRegion.extend(literal_region);
 
     // Hack because I am lazy and don't want to mess with the lexer; -2 for both single quotes
+    // TODO: Fixme this needs to offset Start
     auto text = parser.text().substr(literal_region.Start + 1, literal_region.Length - 2);
     TextModLexer temp_lexer{text};
     TextModParser temp_parser{&temp_lexer};
