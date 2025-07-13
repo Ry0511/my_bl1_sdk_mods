@@ -17,15 +17,16 @@ namespace tm_parse::utils {
 
 // TODO Implement some form of short-circuiting
 
-enum TreeWalkerVisitType : uint8_t {
-    OnEnter,
-    OnExit,
-};
-
 template <class T>
 concept visitor_struct = std::is_class_v<T>;
 
 class TreeWalker {
+   public:
+    enum VisitType : uint8_t {
+        OnEnter,
+        OnExit,
+    };
+
    private:
     template <class Function>
     struct VisitorFunctionWrapper {

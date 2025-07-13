@@ -25,6 +25,8 @@
 namespace {
 
 using namespace tm_parse;
+using namespace tm_parse::utils;
+using namespace tm_parse::rules_enum;
 
 ImGuiContext* g_Context = nullptr;
 ImFont* g_CascadiaCodeFont = nullptr;
@@ -40,6 +42,10 @@ std::string g_TextEditorBuffer{};
 
 TokenTextView g_CurrentTextSelection{};
 bool g_SelectionChanged = false;
+
+// In the tree view avoid pushing for redundant nodes i.e., ExpressionRule and PrimitiveExprRule
+bool g_IgnoreProxyRules = false;
+bool g_KeepProgramRule = true;
 
 #define UID(base) std::format("{}##{}", base, __COUNTER__).c_str()
 
@@ -182,21 +188,28 @@ static void _tree_view() {
     if (!g_ProgramRule.operator bool()) {
         ImGui::Text("Program rule is invalid");
     } else {
-        ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
-        utils::TreeWalker walker{};
+        TreeWalker walker{};
         Visitor visitor{};
 
+        ImGui::Checkbox("Hide Proxy Rules", &g_IgnoreProxyRules);
+        ImGui::SameLine();
+        ImGui::Checkbox("Keep Program Rule", &g_KeepProgramRule);
+
         // Not required but just for validating the template actually works
-        auto fn = [&visitor](const auto& rule, utils::TreeWalkerVisitType type) -> void {
-            if (type == utils::OnEnter) {
+        auto fn = [&visitor](const auto& rule, TreeWalker::VisitType type) -> void {
+            if (type == TreeWalker::OnEnter) {
                 visitor.on_enter(rule);
-            } else if (type == utils::OnExit) {
+            } else if (type == TreeWalker::OnExit) {
                 visitor.on_exit(rule);
             }
         };
 
-        walker.walk(g_ProgramRule, fn);
-        ImGui::PopStyleVar();
+        if (ImGui::BeginChild("##tree_view", ImGui::GetContentRegionAvail())) {
+            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
+            walker.walk(g_ProgramRule, fn);
+            ImGui::PopStyleVar();
+        }
+        ImGui::EndChild();
     }
 
     ImGui::End();
@@ -320,8 +333,14 @@ void Visitor::on_enter(const auto& rule) {
         return;
     }
 
+    constexpr auto type = rule.ENUM_TYPE;
+    if (g_IgnoreProxyRules
+        && ((!g_KeepProgramRule && type == RuleProgram) || type == RuleExpression || type == RulePrimitiveExpr)) {
+        return;
+    }
+
     ImGui::PushID(&rule);
-    if (ImGui::TreeNodeEx(rule_name(rule.ENUM_TYPE).data(), TREE_FLAGS)) {
+    if (ImGui::TreeNodeEx(rule_name(type).data(), TREE_FLAGS)) {
         stack.emplace_back(&rule, true);
     } else {
         stack.emplace_back(&rule, false);
@@ -335,7 +354,7 @@ void Visitor::on_enter(const auto& rule) {
 };
 
 void Visitor::on_exit(const auto& rule) {
-    if (stack.back().Identifier != &rule) {
+    if (stack.empty() || stack.back().Identifier != &rule) {
         return;
     }
 
