@@ -6,11 +6,43 @@
 
 #pragma once
 
-#include <utility>
+#include "pch.h"
 
 #include "common/text_mod_common.h"
+#include "common/text_mod_tokens.h"
 
 namespace tm_parse {
+
+class TextModLexer;
+class TextModParser;
+
+class ParsingError : public std::runtime_error {
+   private:
+    TokenTextView m_ErrorRegion;
+    std::deque<TokenTextView> m_ContextLines;
+    size_t m_LineNumber;
+    std::optional<std::string> m_ExtraInfo;
+
+   public:
+    ParsingError(
+        const std::string& msg,
+        const TokenTextView& error_region,
+        std::deque<TokenTextView>&& context_lines,
+        size_t line_number,
+        decltype(m_ExtraInfo)&& extra_info = std::nullopt
+    );
+    ~ParsingError() = default;
+
+   public:
+    const TokenTextView& error_region() const { return m_ErrorRegion; }
+    const std::deque<TokenTextView>& context_lines() const { return m_ContextLines; }
+    size_t line_number() const { return m_LineNumber; }
+    const std::optional<std::string>& extra_info() const { return m_ExtraInfo; }
+
+    std::string build_error_message(str_view src_text) const;
+    std::string build_error_message(const TextModLexer& lexer) const;
+    std::string build_error_message(const TextModParser& parser) const;
+};
 
 // Bad name but fuck it, good enough
 class ErrorWithContext : public std::runtime_error {
