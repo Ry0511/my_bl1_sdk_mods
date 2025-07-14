@@ -1,34 +1,22 @@
-set foo.baz:bar my_property (A=10, B=20, C=30)
-set foo.baz:bar my_property True
-set foo.baz:bar my_property None
-set foo.baz:bar my_property My Literal
-set foo.baz:bar my_property(54321) "My String"
-set foo.baz:bar my_property[12345] Class'foo.baz:bar'
 
-set AttributeDefinition'path.to.object' BaseValueAttribute (1)
-set AttributeDefinition'path.to.object' BaseValueAttribute (2)
-set AttributeDefinition'path.to.object' BaseValueAttribute (3)
-set AttributeDefinition'path.to.object' BaseValueAttribute (4)
-set AttributeDefinition'path.to.object' BaseValueAttribute (5)
-set AttributeDefinition'path.to.object' BaseValueAttribute (6)
+Begin Object Class=AttributeDefinition Name=Multiplier_CrimsonChest_Legendary
+   
+Begin Object Class=NoContextNeededAttributeContextResolver Name=NoContextNeededAttributeContextResolver_20
+  Name="NoContextNeededAttributeContextResolver_20"
+  ObjectArchetype=NoContextNeededAttributeContextResolver'WillowGame.Default__NoContextNeededAttributeContextResolver'
+End Object
+   
+Begin Object Class=ConstantAttributeValueResolver Name=ConstantAttributeValueResolver_0
+  ConstantValue=150.000000
+  Name="ConstantAttributeValueResolver_0"
+  ObjectArchetype=ConstantAttributeValueResolver'WillowGame.Default__ConstantAttributeValueResolver'
+End Object
 
-BEGIN oBjEcT Class=foo.baz Name=foo.baz:bar
-  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
+ ContextResolverChain(0)=NoContextNeededAttributeContextResolver'UltimateLoot_Attributes_TEST.Attributes.Shared.Multiplier.Multiplier_CrimsonChest_Legendary:NoContextNeededAttributeContextResolver_20'
+ bIsSimpleAttribute=True
+ ValueResolverChain(0)=ConstantAttributeValueResolver'UltimateLoot_Attributes_TEST.Attributes.Shared.Multiplier.Multiplier_CrimsonChest_Legendary:ConstantAttributeValueResolver_0'
+ AttributeDataType=ADT_Int
+ Name="Multiplier_CrimsonChest_Legendary"
+ ObjectArchetype=AttributeDefinition'Engine.Default__AttributeDefinition'
 
-  BEGIN OBJECT Class=foo.baz Name=foo.baz:bar
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-    A=(B=10,C=20,D=(E=30, F=(X=A,Y=B)))
-  END OBJECT
-
-END OBJECT
+End Object

@@ -10,6 +10,7 @@
 
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 #include "tm_parse/common/text_mod_common.h"
 #include "tm_parse/lexer/text_mod_lexer.h"
@@ -39,6 +40,7 @@ std::unique_ptr<std::string> g_ProgramTextTree{};
 
 fs::path g_TextEditorFile = fs::current_path() / L"text_editor_content.txt";
 std::string g_TextEditorBuffer{};
+str g_CurrentTextBuffer{};
 
 TokenTextView g_CurrentTextSelection{};
 bool g_SelectionChanged = false;
@@ -46,6 +48,8 @@ bool g_SelectionChanged = false;
 // In the tree view avoid pushing for redundant nodes i.e., ExpressionRule and PrimitiveExprRule
 bool g_IgnoreProxyRules = false;
 bool g_KeepProgramRule = true;
+
+std::string g_LatestErrorMessage{};
 
 #define UID(base) std::format("{}##{}", base, __COUNTER__).c_str()
 
@@ -101,11 +105,13 @@ static void update();
 static void _text_editor();
 static void _tree_view();
 static void _tree_text_view();
+static void _error_view();
 
 void update() {
     _tree_view();
     _tree_text_view();
     _text_editor();
+    _error_view();
 }
 
 static void _text_editor() {
@@ -114,26 +120,15 @@ static void _text_editor() {
         return;
     }
 
-    auto callback = [](ImGuiInputTextCallbackData* data) -> int {
-        if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
-            g_TextEditorBuffer.resize(data->BufTextLen);
-            data->Buf = g_TextEditorBuffer.data();
-            LOG_THAT_SHIT("Resized buffer to {}", data->BufTextLen);
-        }
-        return 0;
-    };
-
     if (g_SelectionChanged && g_CurrentTextSelection.is_valid()) {
         ImGui::SetKeyboardFocusHere(1);
     }
 
     ImGui::InputTextMultiline(
         UID("Text Editor"),
-        g_TextEditorBuffer.data(),
-        g_TextEditorBuffer.size(),
+        &g_TextEditorBuffer,
         ImGui::GetContentRegionAvail(),
-        ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AutoSelectAll,
-        callback
+        ImGuiInputTextFlags_AutoSelectAll
     );
 
     if (g_SelectionChanged && g_CurrentTextSelection.is_valid()) {
@@ -143,22 +138,46 @@ static void _text_editor() {
 
     if (ImGui::IsWindowFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false)) {
         try {
-            TextModLexer lexer{g_TextEditorBuffer};
+            g_CurrentTextBuffer = to_str<str>(g_TextEditorBuffer);
+            TextModLexer lexer{g_CurrentTextBuffer};
             TextModParser parser{&lexer};
             g_ProgramRule = ProgramRule::create(parser);
             g_ProgramTextTree = nullptr;
 
+        } catch (const ErrorWithContext& err) {
+            g_LatestErrorMessage = err.build_error_message();
         } catch (const std::exception& err) {
-            LOG_THAT_SHIT("{}", err.what());
+            g_LatestErrorMessage = err.what();
         }
 
         try {
             std::ofstream file{g_TextEditorFile};
-            file << g_TextEditorBuffer;
+            std::string content = g_TextEditorBuffer;
+            file << content;
         } catch (const std::exception& err) {
             LOG_THAT_SHIT("Failed to save file: {}", err.what());
         }
     }
+
+    ImGui::End();
+}
+
+static void _error_view() {
+    if (!ImGui::Begin(UID("Error View"))) {
+        ImGui::End();
+        return;
+    }
+
+    if (g_LatestErrorMessage.empty()) {
+        g_LatestErrorMessage = "The error if any had no message!";
+    }
+
+    ImGui::InputTextMultiline(
+        UID("Error Text View"),
+        &g_LatestErrorMessage,
+        ImGui::GetContentRegionAvail(),
+        ImGuiInputTextFlags_ReadOnly
+    );
 
     ImGui::End();
 }
@@ -205,7 +224,7 @@ static void _tree_view() {
         };
 
         if (ImGui::BeginChild("##tree_view", ImGui::GetContentRegionAvail())) {
-            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 8.0F);
+            ImGui::PushStyleVar(ImGuiStyleVar_IndentSpacing, 4.0F);
             walker.walk(g_ProgramRule, fn);
             ImGui::PopStyleVar();
         }
@@ -298,16 +317,19 @@ static int initialise() {
     if (fs::exists(g_TextEditorFile)) {
         std::ifstream file{g_TextEditorFile};
         using It = std::istreambuf_iterator<char>;
-        g_TextEditorBuffer.assign(It{file}, It{});
+        std::string file_content{It{file}, It{}};
+        g_TextEditorBuffer.assign(file_content);
 
         try {
-            TextModLexer lexer{g_TextEditorBuffer};
+            g_CurrentTextBuffer = to_str<str>(g_TextEditorBuffer);
+            TextModLexer lexer{g_CurrentTextBuffer};
             TextModParser parser{&lexer};
             g_ProgramRule = ProgramRule::create(parser);
             g_ProgramTextTree = nullptr;
-
+        } catch (const ErrorWithContext& err) {
+            g_LatestErrorMessage = err.build_error_message();
         } catch (const std::exception& err) {
-            LOG_THAT_SHIT("{}", err.what());
+            g_LatestErrorMessage = err.what();
         }
     }
 
