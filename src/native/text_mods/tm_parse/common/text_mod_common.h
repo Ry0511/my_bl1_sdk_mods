@@ -77,16 +77,19 @@ decltype(auto) to_str(auto&& in) {
     using CharType = typename InType::value_type;
     static_assert(std::disjunction_v<std::is_same<CharType, char>, std::is_same<CharType, wchar_t>>, "expecting wchar_t or char string");
 
+    constexpr bool is_string = std::is_same_v<InType, std::string> || std::is_same_v<InType, std::string_view>;
+    constexpr bool is_wstring = std::is_same_v<InType, std::wstring> || std::is_same_v<InType, std::wstring_view>;
+
     // str -> str
     if constexpr (std::is_same_v<InType, R>) {
         return std::forward<decltype(in)>(in);
     }
     // string -> wstring
-    else if constexpr (std::is_same_v<InType, std::string> && std::is_same_v<R, std::wstring>) {
+    else if constexpr (is_string && std::is_same_v<R, std::wstring>) {
         return utils::widen(std::string_view{in});
     }
     // wstring -> string
-    else if constexpr (std::is_same_v<InType, std::wstring> && std::is_same_v<R, std::string>) {
+    else if constexpr (is_wstring && std::is_same_v<R, std::string>) {
         return utils::narrow(std::wstring_view{in});
     }
     // Shouldn't ever happen
