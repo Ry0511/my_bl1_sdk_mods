@@ -113,7 +113,7 @@ class TextModLexer {
     }
 
     [[nodiscard]] size_t get_line_number(size_t pos) const noexcept {
-        size_t line_count = 0;
+        size_t line_count = 1;
 
         for (size_t i = 0; i < pos; i++) {
             if (m_Text[i] == TXT('\n')) {

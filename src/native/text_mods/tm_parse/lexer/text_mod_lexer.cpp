@@ -263,14 +263,8 @@ bool TextModLexer::read_token(Token* token) {
                     return true;
                 } else {
                     // TODO: Collect all unknown tokens into a single token i.e., UnknownToken
-                    size_t line_number = get_line_number(m_Position);
-                    str error_char;
-                    if (m_Text[m_Position] == TXT('\0')) {
-                        error_char = TXT("\\0");
-                    } else {
-                        error_char = m_Text[m_Position];
-                    }
-                    std::string msg = std::format("Unknown token '{}' at line {}", error_char, line_number);
+                    str error_char = (peek() == TXT('\0')) ? TXT("\\0") : str{peek()};
+                    std::string msg = std::format("Unknown token '{}'", error_char);
                     throw_error_with_context(msg.c_str());
                 }
             }
