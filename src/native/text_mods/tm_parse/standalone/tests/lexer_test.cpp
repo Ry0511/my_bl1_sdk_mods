@@ -581,33 +581,33 @@ TEST_CASE("Lexer Helpers") {
         };
 
         REQUIRE(lexer.get_line_start(0) == 0);
-        REQUIRE(lexer.get_line_number(0) == 0);
+        REQUIRE(lexer.get_line_number(0) == 1);
 
         next_token(token);
         REQUIRE(token.as_str_view() == TXT("1"));
         REQUIRE(token.TextRegion.Start == 1);
-        REQUIRE(lexer.get_line_start(token.TextRegion) == 1);
-        REQUIRE(lexer.get_line_number(token.TextRegion) == 1);
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 0);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 2);
 
         next_token(token);
         REQUIRE(token.as_str_view() == TXT("12"));
         REQUIRE(lexer.get_line_start(token.TextRegion) == 3);
-        REQUIRE(lexer.get_line_number(token.TextRegion) == 2);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 3);
 
         next_token(token);
         REQUIRE(token.as_str_view() == TXT("123"));
         REQUIRE(lexer.get_line_start(token.TextRegion) == 6);
-        REQUIRE(lexer.get_line_number(token.TextRegion) == 3);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 4);
 
         next_token(token);
         REQUIRE(token.as_str_view() == TXT("1234"));
         REQUIRE(lexer.get_line_start(token.TextRegion) == 10);
-        REQUIRE(lexer.get_line_number(token.TextRegion) == 4);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 5);
 
         next_token(token);
         REQUIRE(token.as_str_view() == TXT("12345"));
         REQUIRE(lexer.get_line_start(token.TextRegion) == 17);
-        REQUIRE(lexer.get_line_number(token.TextRegion) == 7);
+        REQUIRE(lexer.get_line_number(token.TextRegion) == 8);
     }
 }
 

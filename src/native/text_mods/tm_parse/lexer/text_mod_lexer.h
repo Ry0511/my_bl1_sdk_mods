@@ -60,7 +60,7 @@ class TextModLexer {
      */
     [[nodiscard]] size_t position() const noexcept { return m_Position; }
 
-    size_t get_line_start(size_t pos) const noexcept {
+    size_t get_line_start(size_t pos) const {
         if (size() < pos) {
             return invalid_index_v;
         }
@@ -69,8 +69,14 @@ class TextModLexer {
             return 0;
         }
 
+        pos = std::min(pos, size()-1);
+
         size_t ls = pos;
         str_view tx = text();
+
+        if (ls > 0 && tx.at(ls) == txt::lit::lf) {
+            --ls;
+        }
 
         while (ls > 0 && tx.at(ls) != txt::lit::lf) {
             --ls;
@@ -83,41 +89,51 @@ class TextModLexer {
         }
     }
 
-    size_t get_line_end(size_t pos) const noexcept {
+    size_t get_line_end(size_t pos) const {
         if (size() < pos) {
             return invalid_index_v;
         }
 
+        using txt::lit::lf;
+
         size_t le = pos;
         str_view tx = text();
-        while (le < tx.size() && tx.at(le) != txt::lit::lf) {
+
+        if (le < tx.size() && tx.at(le) == lf) {
             ++le;
         }
 
-        if (le >= tx.size()) {
-            return le;
+        while (le < tx.size() && tx.at(le) != lf) {
+            ++le;
         }
 
-        if (tx.at(le) != txt::lit::lf) {
-            return le;
-        } else {
+        // Reached EOF
+        if (le >= tx.size()) {
             return le - 1;
         }
+        // TODO: Need to revisit this at some point. Current issue here is that we want the line
+        // without the new lines. However, sequences like \n\n should return the new line
+        else if (le > 1 && tx[le] == lf && tx[le - 1] != lf) {
+            return le - 1;  // Trim away the lf
+        }
+
+        return le;  // Keep the lf, if any
     }
 
-    size_t get_line_start(const TokenTextView& vw) const noexcept { return get_line_start(vw.Start); }
+    size_t get_line_start(const TokenTextView& vw) const { return get_line_start(vw.Start); }
 
-    TokenTextView get_line(size_t pos) const noexcept {
+    TokenTextView get_line(size_t pos, bool trim = true) const {
         size_t line_start = get_line_start(pos);
         size_t line_end = get_line_end(pos);
-        return TokenTextView{line_start, line_end - line_start + 1};
+        return TokenTextView{line_start, line_end - line_start};
     }
 
     [[nodiscard]] size_t get_line_number(size_t pos) const noexcept {
         size_t line_count = 1;
 
+        pos = std::min(pos, size());
         for (size_t i = 0; i < pos; i++) {
-            if (m_Text[i] == TXT('\n')) {
+            if (m_Text[i] == txt::lit::lf) {
                 line_count++;
             }
         }
@@ -193,38 +209,14 @@ class TextModLexer {
      *                      capture.
      */
     [[noreturn]] void throw_error_with_context(const char* msg, int context_size = 3) {
-        // Removes starting and ending new lines
-        const auto trim_line = [this](const TokenTextView& line) -> str_view {
-            if (!line.is_valid() || line.Length == 0) {
-                return str_view{};
-            }
-
-            size_t start = line.Start;
-            size_t end = line.end();
-            str_view tx = this->text();
-
-            using namespace txt;
-            while (start < tx.size() && txt::any(tx[start], lit::space, lit::lf, lit::cr, lit::tab)) {
-                ++start;
-            }
-
-            while (end > 0 && end < tx.size() && txt::any(tx[end], lit::space, lit::lf, lit::cr, lit::tab)) {
-                --end;
-            }
-
-            return TokenTextView{start, end - start}.view_from(tx);
-        };
+        size_t pos = std::min(m_Position, size() - 1);
 
         // NOTE: ErrorWithContext assumes the end of the line is the start of the error. It's only
         //        for providing basic error info to help debug the lexer.
-        size_t error_start = get_line_start(m_Position);
-        size_t error_end = get_line_end(error_start);
-        TokenTextView line{error_start, error_end - error_start};
-        const str_view error_snippet = trim_line(line);
+        const str_view error_snippet = get_line(pos).view_from(text());
 
         // Didn't ask for more context
         if (context_size < 1) {
-            size_t pos = m_Position;
             throw ErrorWithContext(msg, get_line_number(pos), pos, str{error_snippet});
         }
 
@@ -242,9 +234,7 @@ class TextModLexer {
             int remaining = context_size;
             do {
                 // Grab line & push front
-                size_t line_end = get_line_end(line_start);
-                TokenTextView line{line_start, line_end - line_start};
-                context.value().push_front(str{line.view_from(text())});
+                context.value().push_front(str{get_line(line_start).view_from(text())});
 
                 // -1 is the \n and get_line_start will terminate on \n so we need to get before that
                 if (line_start > 1) {
@@ -255,7 +245,6 @@ class TextModLexer {
             } while (line_start > 0 && remaining > 0);
         }
 
-        size_t pos = m_Position;
         throw ErrorWithContext(msg, get_line_number(pos), pos, str{error_snippet}, context);
     }
 
