@@ -41,6 +41,9 @@ class ObjectIdentifierRule : public ParserBaseRule {
     [[nodiscard]] const DotIdentifierRule& primary_identifier() const { return m_PrimaryIdentifier; }
     [[nodiscard]] const DotIdentifierRule& child_identifier() const { return m_ChildIdentifier; }
 
+    DotIdentifierRule& primary_identifier() { return m_PrimaryIdentifier; }
+    DotIdentifierRule& child_identifier() { return m_ChildIdentifier; }
+
     RULE_PUBLIC_API(ObjectIdentifierRule, rules_enum::RuleObjectIdentifier);
 };
 

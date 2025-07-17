@@ -218,7 +218,7 @@ TEST_CASE("Expressions") {
     }
 
     SECTION("Name Literals") {
-        {
+        {  // Should not fail
             str_view test_cases[]{
                 TXT("Class'Foo'"),
                 TXT("Class'foo._baz:_bar'"),
@@ -236,7 +236,7 @@ TEST_CASE("Expressions") {
             }
         }
 
-        {
+        {  // Should fail/throw
             str_view test_cases[]{
                 TXT("Class''"),
                 TXT("Class'foo.'"),
@@ -251,6 +251,43 @@ TEST_CASE("Expressions") {
                 TextModLexer lexer{test_case};
                 TextModParser parser{&lexer};
                 REQUIRE_THROWS_AS(NameExprRule::create(parser), std::runtime_error);
+            }
+        }
+
+        {
+            struct TestData {
+                str TestStr;
+                TokenTextView ExpectedClassRange;
+                TokenTextView ExpectedIdentifierRange;
+            };
+
+            const std::array<TestData, 3> test_cases{
+                TestData{TXT("A'B'"), {0, 1}, {2, 1}},
+                TestData{TXT("A'B.C'"), {0, 1}, {2, 3}},
+                TestData{TXT("A'B.C:D'"), {0, 1}, {2, 5}},
+            };
+
+            for (const auto& test : test_cases) {
+                TextModLexer lexer{test.TestStr};
+                TextModParser parser{&lexer};
+
+                auto name = NameExprRule::create(parser);
+                REQUIRE(name.operator bool());
+                REQUIRE(name.to_string(parser) == test.TestStr);
+
+                {
+                    auto reg = name.class_ref()->text_region();
+                    TST_INFO(" > Actual   ( {}, {} )", reg.Start, reg.Length);
+                    TST_INFO(" > Expected ( {}, {} )", test.ExpectedClassRange.Start, test.ExpectedClassRange.Length);
+                    REQUIRE(reg == test.ExpectedClassRange);
+                }
+
+                {
+                    auto reg = name.object_ref()->text_region();
+                    TST_INFO(" > Actual   ( {}, {} )", reg.Start, reg.Length);
+                    TST_INFO(" > Expected ( {}, {} )", test.ExpectedIdentifierRange.Start, test.ExpectedIdentifierRange.Length);
+                    REQUIRE(reg == test.ExpectedIdentifierRange);
+                }
             }
         }
     }

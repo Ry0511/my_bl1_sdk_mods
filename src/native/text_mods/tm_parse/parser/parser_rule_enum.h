@@ -121,6 +121,11 @@ class ParserBaseRule {
 
     void copy_str_internal(TextModParser& parser);
     bool has_copy_str() const noexcept { return m_Text != nullptr; }
+
+   public:
+    void set_text_region(const TokenTextView& text_region) {
+        m_TextRegion = text_region;
+    }
 };
 
 // Not sure if this is actually a good idea or even useful

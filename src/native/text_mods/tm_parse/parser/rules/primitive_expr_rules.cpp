@@ -66,11 +66,32 @@ NameExprRule NameExprRule::create(TextModParser& parser) {
     rule.m_TextRegion.extend(literal_region);
 
     // Hack because I am lazy and don't want to mess with the lexer; -2 for both single quotes
-    // TODO: Fixme this needs to offset Start
     auto text = parser.text().substr(literal_region.Start + 1, literal_region.Length - 2);
     TextModLexer temp_lexer{text};
     TextModParser temp_parser{&temp_lexer};
     rule.m_Identifier = ObjectIdentifierRule::create(temp_parser);
+
+    // Offset text regions so that they are relative to the main string
+    size_t offset = literal_region.Start + 1;
+    ObjectIdentifierRule& id = *rule.m_Identifier;
+
+    { // Update Primary Identifier
+        auto& primary = id.primary_identifier();
+        const auto& r = primary.text_region();
+        primary.set_text_region({offset, r.Length});
+    }
+
+    TokenTextView full_region = id.primary_identifier().text_region();
+
+    // Update Child Identifier ( if exists )
+    if (auto& child_id = id.child_identifier()) {
+        const auto& r = child_id.text_region();
+        child_id.set_text_region({r.Start + offset, r.Length});
+        full_region.extend(child_id.text_region());
+    }
+
+    // Update the full region
+    id.set_text_region(full_region);
 
     TXT_MOD_ASSERT(parser.peek_rule() == RuleNameExpr);
     parser.pop_rule();
