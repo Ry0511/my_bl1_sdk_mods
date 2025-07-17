@@ -8,6 +8,7 @@
 
 #include "lexer/text_mod_lexer.h"
 #include "parser/text_mod_parser.h"
+#include "parser/utils/tree_visualiser.h"
 #include "utils.h"
 
 namespace tm_parse_tests {
@@ -1089,8 +1090,7 @@ End Object
     REQUIRE(rule.operator bool());
 
     strstream ss{};
-    int indent = 0;
-    rule.append_tree(ss, indent);
+    print_tree(rule, ss);
     REQUIRE(!ss.str().empty());
 }
 

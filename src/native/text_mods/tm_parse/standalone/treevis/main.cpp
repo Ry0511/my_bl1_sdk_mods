@@ -16,6 +16,7 @@
 #include "tm_parse/lexer/text_mod_lexer.h"
 #include "tm_parse/parser/text_mod_parser.h"
 #include "tm_parse/parser/utils/tree_walker.h"
+#include "tm_parse/parser/utils/tree_visualiser.h"
 
 #define LOG_THAT_SHIT(...) __VA_OPT__(std::cout << std::format(__VA_ARGS__) << std::endl)
 
@@ -245,8 +246,7 @@ static void _tree_text_view() {
             g_ProgramTextTree = std::make_unique<std::string>();
 
             strstream content{};
-            int indent = 0;
-            g_ProgramRule.append_tree(content, indent);
+            print_tree(g_ProgramRule, content);
             g_ProgramTextTree->assign(content.str());
         }
 

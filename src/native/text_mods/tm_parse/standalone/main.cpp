@@ -90,7 +90,11 @@ int main() {
                 }
 
                 TXT_LOG("{:-<80}", "");
-                print_tree(program);
+                strstream ss{};
+                print_tree(program, ss);
+                for (str line; std::getline(ss, line);) {
+                    TXT_LOG("{}", line);
+                }
                 TXT_LOG("{:-<80}", "");
 
             } catch (const std::runtime_error& err) {

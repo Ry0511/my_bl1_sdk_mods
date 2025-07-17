@@ -123,9 +123,7 @@ class ParserBaseRule {
     bool has_copy_str() const noexcept { return m_Text != nullptr; }
 
    public:
-    void set_text_region(const TokenTextView& text_region) {
-        m_TextRegion = text_region;
-    }
+    void set_text_region(const TokenTextView& text_region) { m_TextRegion = text_region; }
 };
 
 // Not sure if this is actually a good idea or even useful
@@ -134,15 +132,16 @@ class ParserPrimaryRule : public ParserBaseRule {
     TextModParser* m_Parser{nullptr};
 };
 
-#define RULE_PUBLIC_API(type, kind)                     \
-                                                        \
-   public:                                              \
-    void append_tree(strstream& ss, int& indent) const; \
-                                                        \
-   public:                                              \
-    constexpr type() noexcept(true) = default;          \
-    constexpr ~type() noexcept(true) = default;         \
-    static type create(TextModParser&);                 \
+#define RULE_PUBLIC_API(type, kind)             \
+   public:                                      \
+    str_view enum_name() const noexcept {       \
+        return rule_name(ENUM_TYPE);            \
+    }                                           \
+                                                \
+   public:                                      \
+    constexpr type() noexcept(true) = default;  \
+    constexpr ~type() noexcept(true) = default; \
+    static type create(TextModParser&);         \
     constexpr static ParserRuleKind ENUM_TYPE = kind
 
 }  // namespace rules

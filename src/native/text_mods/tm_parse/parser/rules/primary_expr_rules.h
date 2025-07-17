@@ -84,7 +84,7 @@ class ExpressionRule {
     using InnerType = std::variant<std::monostate, PrimitiveExprRule, AssignmentExprListRule, ParenExprRule>;
 
    private:
-    InnerType m_InnerType;
+    InnerType m_InnerType{};
 
    public:
     operator bool() const noexcept { return !std::holds_alternative<std::monostate>(m_InnerType); }

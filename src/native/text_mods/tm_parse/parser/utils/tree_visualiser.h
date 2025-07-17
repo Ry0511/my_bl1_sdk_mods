@@ -9,8 +9,8 @@
 
 namespace tm_parse {
 
-void print_tree(const rules::ProgramRule& rule);
-void print_tree(const rules::SetCommandRule& rule);
-void print_tree(const rules::ObjectDefinitionRule& rule);
+void print_tree(const rules::ProgramRule& rule, strstream& ss);
+void print_tree(const rules::SetCommandRule& rule, strstream& ss);
+void print_tree(const rules::ObjectDefinitionRule& rule, strstream& ss);
 
 }
