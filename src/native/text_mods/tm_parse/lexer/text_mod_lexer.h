@@ -26,7 +26,6 @@ class TextModLexer {
     Token* m_Token{nullptr};
     LexerState m_State{};
 
-   private:
    public:
     explicit TextModLexer(str_view text) : m_Text(text) {}
     ~TextModLexer() = default;
@@ -61,79 +60,59 @@ class TextModLexer {
     [[nodiscard]] size_t position() const noexcept { return m_Position; }
 
     size_t get_line_start(size_t pos) const {
-        if (size() < pos) {
-            return invalid_index_v;
-        }
-
-        if (pos == 0) {
+        const str_view tx = text();
+        if (tx.empty()) {
             return 0;
         }
+        using namespace txt;
 
-        pos = std::min(pos, size()-1);
+        pos = std::min(pos, size() - 1);
 
-        size_t ls = pos;
-        str_view tx = text();
-
-        if (ls > 0 && tx.at(ls) == txt::lit::lf) {
-            --ls;
+        while (pos > 0 && pos < tx.size() && tx[pos] != lit::lf) {
+            --pos;
         }
 
-        while (ls > 0 && tx.at(ls) != txt::lit::lf) {
-            --ls;
+        // Reached start of stream before any new lines
+        if (pos == 0 && tx[pos] != lit::lf) {
+            return pos;
         }
 
-        if (ls == 0 || tx.at(ls) != txt::lit::lf) {
-            return ls;
-        } else {
-            return ls + 1;
-        }
+        // TODO: Verify what happens if the first character in the stream is a new line
+        return pos + 1;
     }
 
     size_t get_line_end(size_t pos) const {
-        if (size() < pos) {
-            return invalid_index_v;
+        const str_view tx = text();
+        using namespace txt;
+        if (tx.empty()) {
+            return 0;
+        }
+        pos = std::min(pos, size() - 1);
+
+        while (pos > 0 && pos < tx.size() && tx[pos] != txt::lit::lf) {
+            ++pos;
         }
 
-        using txt::lit::lf;
-
-        size_t le = pos;
-        str_view tx = text();
-
-        if (le < tx.size() && tx.at(le) == lf) {
-            ++le;
-        }
-
-        while (le < tx.size() && tx.at(le) != lf) {
-            ++le;
-        }
-
-        // Reached EOF
-        if (le >= tx.size()) {
-            return le - 1;
-        }
-        // TODO: Need to revisit this at some point. Current issue here is that we want the line
-        // without the new lines. However, sequences like \n\n should return the new line
-        else if (le > 1 && tx[le] == lf && tx[le - 1] != lf) {
-            return le - 1;  // Trim away the lf
-        }
-
-        return le;  // Keep the lf, if any
+        return pos;
     }
 
     size_t get_line_start(const TokenTextView& vw) const { return get_line_start(vw.Start); }
 
-    TokenTextView get_line(size_t pos, bool trim = true) const {
+    TokenTextView get_line(size_t pos) const {
         size_t line_start = get_line_start(pos);
         size_t line_end = get_line_end(pos);
+
         return TokenTextView{line_start, line_end - line_start};
     }
 
     [[nodiscard]] size_t get_line_number(size_t pos) const noexcept {
-        size_t line_count = 1;
+        size_t line_count = 1;  // 1 based
 
+        const str_view tx = text();
         pos = std::min(pos, size());
+
         for (size_t i = 0; i < pos; i++) {
-            if (m_Text[i] == txt::lit::lf) {
+            if (tx[i] == txt::lit::lf) {
                 line_count++;
             }
         }
@@ -184,21 +163,6 @@ class TextModLexer {
     [[nodiscard]] txt_char peek(int offset = 0) const noexcept {
         TXT_MOD_ASSERT((m_Position + offset) < m_Text.size(), "peek out of bounds");
         return m_Text[m_Position + offset];
-    }
-
-    /**
-     * Gets the position of the first found line break.
-     * @param search_forward Search direction.
-     * @return The index of the first found line break. If no line break is found then the start or
-     * end of the string is returned.
-     */
-    [[nodiscard]] size_t get_line_break_pos(bool search_forward) const noexcept {
-        // TODO: this is effectively get_line_start, get_line_end
-        size_t pos = m_Position;
-        while (pos > 0 && pos < m_Text.size() && m_Text[pos] != TXT('\n')) {
-            search_forward ? pos++ : pos--;
-        }
-        return pos;
     }
 
     /**

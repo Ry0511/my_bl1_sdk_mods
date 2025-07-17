@@ -295,7 +295,7 @@ class TextModParser {
 
             ss << rule_stack.str();
 
-            throw std::runtime_error{ss.str()};
+            throw ParsingError::create(ss.str(), *this);
         };
 
         constexpr bool has_lf = (... || (T::BlankLine == Kinds));

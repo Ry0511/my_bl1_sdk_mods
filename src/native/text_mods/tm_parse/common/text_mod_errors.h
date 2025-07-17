@@ -34,6 +34,10 @@ class ParsingError : public std::runtime_error {
     ~ParsingError() = default;
 
    public:
+    static ParsingError create(std::string&& msg, const TextModLexer& lexer);
+    static ParsingError create(std::string&& msg, const TextModParser& parser);
+
+   public:
     const TokenTextView& error_region() const { return m_ErrorRegion; }
     const std::deque<TokenTextView>& context_lines() const { return m_ContextLines; }
     size_t line_number() const { return m_LineNumber; }

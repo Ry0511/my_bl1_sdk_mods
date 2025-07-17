@@ -144,8 +144,8 @@ static void _text_editor() {
             g_ProgramRule = ProgramRule::create(parser);
             g_ProgramTextTree = nullptr;
 
-        } catch (const ErrorWithContext& err) {
-            g_LatestErrorMessage = err.build_error_message();
+        } catch (const ParsingError& err) {
+            g_LatestErrorMessage = err.build_error_message(g_CurrentTextBuffer);
         } catch (const std::exception& err) {
             g_LatestErrorMessage = err.what();
         }
@@ -326,8 +326,8 @@ static int initialise() {
             TextModParser parser{&lexer};
             g_ProgramRule = ProgramRule::create(parser);
             g_ProgramTextTree = nullptr;
-        } catch (const ErrorWithContext& err) {
-            g_LatestErrorMessage = err.build_error_message();
+        } catch (const ParsingError& err) {
+            g_LatestErrorMessage = err.build_error_message(g_CurrentTextBuffer);
         } catch (const std::exception& err) {
             g_LatestErrorMessage = err.what();
         }

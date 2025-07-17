@@ -100,25 +100,38 @@ ObjectDefinitionRule ObjectDefinitionRule::create(TextModParser& parser) {
         // Don't know what this is but whatever it is it can go fuck itself
         else {
             std::stringstream ss{};
-            Token current_token = parser.peek();
+            Token current_token = parser.peek(0);
             auto it = parser.create_iterator(index_snapshot, {.SkipBlankLines = false});
 
             ss << "Error parsing Object Definition got sequence:\n  ";
-            while (it->TextRegion != current_token.TextRegion) {
-                ss << std::format("{} ", it->kind_as_str());
-                ++it;
+
+            {
+                auto it = parser.create_iterator();
+                it.set_skip_blank_lines(false);
+                it.set_coalesce(false);
+                int count = 5;
+                std::deque<Token> tokens{};
+                while (count > 0) {
+                    if (it == EndOfInput) {
+                        --count;
+                        continue;
+                    }
+                    tokens.push_front(*it);
+                    --it;
+                    --count;
+                }
+
+                for (const auto& tk : tokens) {
+                    ss << std::format("{}", tk.kind_as_str());
+                    if (tk != tokens.back()) {
+                        ss << ", ";
+                    } else {
+                        ss << "\n\n";
+                    }
+                }
             }
 
-            TokenTextView vw = current_token.TextRegion;
-            if (vw.is_valid()) {
-                vw.Start = parser.lexer()->get_line_start(vw);
-                size_t line_number = parser.lexer()->get_line_number(vw.Start);
-
-                ss << "\n";
-                ss << std::format("at line {} with text '{}'", line_number, str{vw.view_from(parser.text())});
-            }
-
-            throw std::runtime_error{ss.str()};
+            throw ParsingError::create(ss.str(), parser);
         }
     }
 

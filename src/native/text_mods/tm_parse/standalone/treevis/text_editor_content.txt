@@ -1,16 +1,16 @@
 
 Begin Object Class=AttributeDefinition Name=Multiplier_CrimsonChest_Legendary
    
-Begin Object Class=NoContextNeededAttributeContextResolver Name=NoContextNeededAttributeContextResolver_20
-  Name="NoContextNeededAttributeContextResolver_20"
-  ObjectArchetype=NoContextNeededAttributeContextResolver'WillowGame.Default__NoContextNeededAttributeContextResolver'
-End Object
+  Begin Object Class=NoContextNeededAttributeContextResolver Name=NoContextNeededAttributeContextResolver_20
+    Name="NoContextNeededAttributeContextResolver_20"
+    ObjectArchetype=NoContextNeededAttributeContextResolver'WillowGame.Default__NoContextNeededAttributeContextResolver'
+  End Object
    
-Begin Object Class=ConstantAttributeValueResolver Name=ConstantAttributeValueResolver_0
-  ConstantValue=150.000000
-  Name="ConstantAttributeValueResolver_0"
-  ObjectArchetype=ConstantAttributeValueResolver'WillowGame.Default__ConstantAttributeValueResolver'
-End Object
+  Begin Object Class=ConstantAttributeValueResolver Name=ConstantAttributeValueResolver_0
+    ConstantValue=150.000000
+    Name="ConstantAttributeValueResolver_0"
+    ObjectArchetype=ConstantAttributeValueResolver'WillowGame.Default__ConstantAttributeValueResolver'
+  End Object
 
  ContextResolverChain(0)=NoContextNeededAttributeContextResolver'UltimateLoot_Attributes_TEST.Attributes.Shared.Multiplier.Multiplier_CrimsonChest_Legendary:NoContextNeededAttributeContextResolver_20'
  bIsSimpleAttribute=True

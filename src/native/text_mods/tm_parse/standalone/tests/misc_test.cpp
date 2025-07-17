@@ -8,6 +8,10 @@
 
 #include "tests/catch.hpp"
 
+#include "common/text_mod_errors.h"
+#include "lexer/text_mod_lexer.h"
+#include "parser/text_mod_parser.h"
+
 namespace tm_parse_tests {
 using namespace tm_parse;
 
@@ -166,6 +170,21 @@ TEST_CASE("validate to_str functions correctly") {
         REQUIRE(to_str<std::wstring>(std::wstring(L"Hello World")) == L"Hello World");
         REQUIRE(to_str<std::wstring>(std::wstring(L"Hello World")) == L"Hello World");
     }
+}
+
+TEST_CASE("parsing error") {
+    str test_case = TXT("\n\nset foo:baz bar ((1))\n\nset foo:baz bar ((2))\n\nset foo:baz bar ((3))\n\n");
+    TextModLexer lexer{test_case};
+    TextModParser parser{&lexer};
+
+    Token tk{};
+    lexer.skip(26);
+
+    ParsingError err0 = ParsingError::create("Some Error Message", lexer);
+    ParsingError err1 = ParsingError::create("Some Error Message", parser);
+
+    TXT_LOG("{}", err0.build_error_message(lexer));
+    TXT_LOG("{}", err1.build_error_message(lexer));
 }
 
 // NOLINTEND(*-magic-numbers, *-function-cognitive-complexity)

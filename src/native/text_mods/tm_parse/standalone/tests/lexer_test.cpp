@@ -580,13 +580,13 @@ TEST_CASE("Lexer Helpers") {
             } while (token.is_eolf());
         };
 
-        REQUIRE(lexer.get_line_start(0) == 0);
+        REQUIRE(lexer.get_line_start(0) == 1);
         REQUIRE(lexer.get_line_number(0) == 1);
 
         next_token(token);
         REQUIRE(token.as_str_view() == TXT("1"));
         REQUIRE(token.TextRegion.Start == 1);
-        REQUIRE(lexer.get_line_start(token.TextRegion) == 0);
+        REQUIRE(lexer.get_line_start(token.TextRegion) == 1);
         REQUIRE(lexer.get_line_number(token.TextRegion) == 2);
 
         next_token(token);
