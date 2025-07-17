@@ -130,8 +130,9 @@ template <visitor_struct Visitor>
 void TreeWalker::walk(const rules::AssignmentExprRule& rule, Visitor&& visitor) {
     visitor.on_enter(rule);
     this->walk(rule.property(), std::forward<Visitor>(visitor));
-    // Forget if this is nullable, but expr() derefs regardless...
-    this->walk(rule.expr(), std::forward<Visitor>(visitor));
+    if (rule.has_expr()) {
+        this->walk(rule.expr(), std::forward<Visitor>(visitor));
+    }
     visitor.on_exit(rule);
 }
 
