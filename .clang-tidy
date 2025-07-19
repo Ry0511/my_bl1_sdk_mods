@@ -32,6 +32,9 @@ Checks: >
     -readability-redundant-access-specifiers,
     -readability-qualified-auto,
     -readability-identifier-length,
+    -readability-magic-numbers,
+    -readability-implicit-bool-conversion,
+    -readability-static-definition-in-anonymous-namespace,
   
   -bugprone-narrowing-conversions,
   -cppcoreguidelines-avoid-c-arrays,
@@ -52,8 +55,8 @@ CheckOptions:
   readability-identifier-naming.ClassCase          : PascalCase
   readability-identifier-naming.MemberCase         : m_PascalCase
   readability-identifier-naming.NamespaceCase      : lower_case
-  readability-identifier-naming.VariableCase       : lower_case
-  readability-identifier-naming.FunctionCase       : lower_case
+  readability-identifier-naming.VariableCase       : lower_case g_PascalCase
+  readability-identifier-naming.FunctionCase       : lower_case _lower_case
   readability-identifier-naming.ParameterCase      : lower_case
 
   readability-identifier-length.IgnoredVariableNames: _
