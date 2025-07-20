@@ -44,6 +44,7 @@ class ObjectIdentifierRule : public ParserBaseRule {
     DotIdentifierRule& primary_identifier() { return m_PrimaryIdentifier; }
     DotIdentifierRule& child_identifier() { return m_ChildIdentifier; }
 
+   public:
     RULE_PUBLIC_API(ObjectIdentifierRule, rules_enum::RuleObjectIdentifier);
 };
 
