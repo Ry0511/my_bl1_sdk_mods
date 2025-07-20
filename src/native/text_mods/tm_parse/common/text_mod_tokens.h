@@ -46,7 +46,7 @@ enum class TokenKind : token_int {
     NameLiteral      , // '.*?'
     LineComment      , // # ...
     MultiLineComment , // /* ... */
-    BlankLine        , // \n[\n\r\t ]+
+    BlankLine        , // [\n\r\t ]+
     EndOfInput       , // EOF
     TokenKind_Count  , // Keep this last
 };
