@@ -14,21 +14,16 @@ using namespace txt;
 void print_tree_internal(const auto& rule, strstream& ss) {
     using namespace utils;
     TreeWalker walker{};
-
     int indent = -2;
+    walker.walk(rule, [&indent, &ss](const auto& rule, TreeWalker::VisitType vt) -> void {
 
-    auto fn = [&indent, &ss](const auto& rule, TreeWalker::VisitType visit_type) -> void {
-
-        if (visit_type == TreeWalker::OnEnter) {
+        if (vt == TreeWalker::OnExit) {
+            indent -= 2;
+        } else if (vt == TreeWalker::OnEnter) {
             indent += 2;
             ss << str(indent, ' ') << str{rule.enum_name()} << txt::lit::lf;
-
-        } else if (visit_type == TreeWalker::OnExit) {
-            indent -= 2;
         }
-    };
-
-    walker.walk(rule, fn);
+    });
 }
 
 void print_tree(const rules::ProgramRule& rule, strstream& ss) {
