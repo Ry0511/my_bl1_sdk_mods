@@ -59,8 +59,7 @@ class ProgramRule {
     size_t m_MaxLength;
 
    public:
-    operator bool() const noexcept { return true; }
-
+    operator bool() const noexcept { return m_MaxLength > 0 && !m_Rules.empty(); }
     TokenTextView text_region() const noexcept { return TokenTextView{0, m_MaxLength}; }
 
    public:
