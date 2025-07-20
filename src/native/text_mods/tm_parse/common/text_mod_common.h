@@ -71,6 +71,13 @@ using txt_char = char;
 
 using strstream = std::basic_stringstream<str::value_type>;
 
+using str_istreambuf_it = std::istreambuf_iterator<str::value_type>;
+using str_ostreambuf_it = std::ostreambuf_iterator<str::value_type>;
+
+using str_ifstream = std::basic_ifstream<str::value_type>;
+using str_fstream = std::basic_fstream<str::value_type>;
+using str_istream = std::basic_istream<str::value_type>;
+
 template<class R>
 decltype(auto) to_str(auto&& in) {
     using InType = typename std::remove_cvref_t<std::decay_t<decltype(in)>>;
