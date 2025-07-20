@@ -37,7 +37,7 @@ using PrimitiveRuleVariant =
 
 class NumberExprRule : public ParserBaseRule {
    private:
-    std::variant<std::monostate, int32_t, float> m_Value;
+    std::variant<std::monostate, int64_t, double> m_Value;
 
    public:
     template <class T>
@@ -56,6 +56,8 @@ class NumberExprRule : public ParserBaseRule {
         );
     }
 
+    bool is_floating_point() const noexcept { return std::holds_alternative<double>(m_Value); }
+
     operator bool() const noexcept(true) { return !std::holds_alternative<std::monostate>(m_Value); }
 
    public:
@@ -63,6 +65,9 @@ class NumberExprRule : public ParserBaseRule {
 };
 
 class StrExprRule : public ParserBaseRule {
+   public:
+    std::shared_ptr<str> value() const noexcept { return this->m_Text; }
+
    public:
     RULE_PUBLIC_API(StrExprRule, rules_enum::RuleStrExpr);
 };
@@ -89,6 +94,8 @@ class KeywordRule : public ParserBaseRule {
     bool is() const noexcept {
         return (... || (m_Kind == Kinds));
     }
+
+    TokenKind value() const noexcept { return m_Kind; }
 
    public:
     RULE_PUBLIC_API(KeywordRule, rules_enum::RuleKeyword);
@@ -119,6 +126,9 @@ class KeywordRule : public ParserBaseRule {
  *
  */
 class LiteralExprRule : public ParserBaseRule {
+   public:
+    std::shared_ptr<str> value() const noexcept { return this->m_Text; }
+
    public:
     RULE_PUBLIC_API(LiteralExprRule, rules_enum::RuleLiteralExpr);
 };

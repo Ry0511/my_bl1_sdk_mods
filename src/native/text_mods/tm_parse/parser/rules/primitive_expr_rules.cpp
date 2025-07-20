@@ -25,9 +25,9 @@ NumberExprRule NumberExprRule::create(TextModParser& parser) {
     str text = str{rule.to_string(parser)};
     try {
         if (text.find_first_of(lit::dot) != str_view::npos) {
-            rule.m_Value = std::stof(text);
+            rule.m_Value = std::stod(text);
         } else {
-            rule.m_Value = std::stoi(text);
+            rule.m_Value = std::stoll(text);
         }
     } catch (const std::exception& err) {
         throw std::runtime_error(std::format("Failed to convert '{}' with reason '{}'", text, err.what()));
@@ -49,6 +49,12 @@ StrExprRule StrExprRule::create(TextModParser& parser) {
 
     TXT_MOD_ASSERT(parser.peek_rule() == RuleStrExpr);
     parser.pop_rule();
+
+    // Copy inner string content locally
+    TokenTextView vw = rule.text_region();
+    vw.Start += 1;
+    vw.Length -= 2;
+    rule.m_Text = std::make_shared<str>(vw.view_from(parser.text()));
 
     return rule;
 }
@@ -92,6 +98,12 @@ NameExprRule NameExprRule::create(TextModParser& parser) {
 
     // Update the full region
     id.set_text_region(full_region);
+
+    // Copy values locally
+    if (rule.m_Class != nullptr) {
+        rule.m_Class->copy_str_internal(parser);
+    }
+    rule.m_Identifier->copy_str_internal(parser);
 
     TXT_MOD_ASSERT(parser.peek_rule() == RuleNameExpr);
     parser.pop_rule();
@@ -144,6 +156,8 @@ LiteralExprRule LiteralExprRule::create(TextModParser& parser) {
         rule.m_TextRegion.extend(parser.peek().TextRegion);
     }
     parser.advance();
+
+    rule.copy_str_internal(parser);
 
     TXT_MOD_ASSERT(parser.peek_rule() == RuleLiteralExpr);
     parser.pop_rule();

@@ -119,17 +119,13 @@ class ParserBaseRule {
         return *m_Text;
     }
 
+    std::shared_ptr<str> text() const noexcept { return m_Text; }
+
     void copy_str_internal(TextModParser& parser);
     bool has_copy_str() const noexcept { return m_Text != nullptr; }
 
    public:
     void set_text_region(const TokenTextView& text_region) { m_TextRegion = text_region; }
-};
-
-// Not sure if this is actually a good idea or even useful
-class ParserPrimaryRule : public ParserBaseRule {
-   protected:
-    TextModParser* m_Parser{nullptr};
 };
 
 #define RULE_PUBLIC_API(type, kind)             \
