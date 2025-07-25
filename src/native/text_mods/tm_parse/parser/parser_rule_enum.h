@@ -112,11 +112,19 @@ class ParserBaseRule {
 
    public:
     str_view to_string(TextModParser& parser) const;
+
     str_view to_string() const noexcept {
         if (m_Text == nullptr) {
             return str_view{};
         }
         return *m_Text;
+    }
+
+    str to_str(str_view text) const noexcept {
+        if (!operator bool() || !m_TextRegion.is_valid()) {
+            return str{};
+        }
+        return str{m_TextRegion.view_from(text)};
     }
 
     std::shared_ptr<str> text() const noexcept { return m_Text; }

@@ -84,7 +84,7 @@ class ExpressionRule {
     using InnerType = std::variant<std::monostate, PrimitiveExprRule, AssignmentExprListRule, ParenExprRule>;
 
    private:
-    InnerType m_InnerType{};
+    InnerType m_InnerType;
 
    public:
     operator bool() const noexcept { return !std::holds_alternative<std::monostate>(m_InnerType); }
@@ -122,16 +122,35 @@ class ExpressionRule {
         // clang-format on
     }
 
+    bool is_expr_list() const noexcept {
+        if (is<AssignmentExprListRule>()) {
+            return true;
+        }
+
+        if (!is<ParenExprRule>()) {
+            return false;
+        }
+
+        auto* inner = get<ParenExprRule>().inner_most();
+        return inner != nullptr && inner->is<AssignmentExprListRule>();
+    }
+
     template <class T>
     const T& get() const noexcept {
         // clang-format off
         if constexpr (
                std::is_same_v<T, std::monostate>
             || std::is_same_v<T, PrimitiveExprRule>
-            || std::is_same_v<T, AssignmentExprListRule>
             || std::is_same_v<T, ParenExprRule>
         ) {
             return std::get<T>(m_InnerType);
+        }
+        // Requesting ExpressionList but is it wrapped in a Paren Expr?
+        else if constexpr (std::is_same_v<T, AssignmentExprListRule>) {
+            if (is<ParenExprRule>()) {
+                return std::get<T>(get<ParenExprRule>().inner_most()->m_InnerType);
+            }
+            return std::get<AssignmentExprListRule>(m_InnerType);
         } else {
             return std::get<PrimitiveExprRule>(m_InnerType).get<T>();
         }
