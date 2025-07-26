@@ -32,6 +32,7 @@ void TextModLoader::unload_all() {
 }
 
 void TextModLoader::reload_all() {
+    m_ObjWriteList = {};
     for (TextMod& mod : m_TextMods) {
         mod.reload();
         _analyse_mod(mod);
@@ -77,6 +78,7 @@ FlatObjectWriteList& TextModLoader::_analyse_obj_def(const TextMod& mod, const r
 
     // Process the object
     ls.add_obj_def(*this, mod, rule);
+    return ls;
 }
 
 }  // namespace tm_parse

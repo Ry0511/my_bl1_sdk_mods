@@ -173,6 +173,34 @@ class PrimitiveExprRule {
         );
     }
 
+    str_view to_str(str_view text) const noexcept {
+        return std::visit(
+            [&text](const auto& val) -> str_view {
+                using U = std::decay_t<decltype(val)>;
+                if constexpr (std::is_same_v<U, std::monostate>) {
+                    return str_view{};
+                } else {
+                    return val.text_region().view_from(text);
+                }
+            },
+            inner()
+        );
+    }
+
+    str_view inner_name() const noexcept {
+        return std::visit(
+            [](const auto& val) -> str_view {
+                using U = std::decay_t<decltype(val)>;
+                if constexpr (std::is_base_of_v<ParserBaseRule, U>) {
+                    return val.enum_name();
+                } else {
+                    return str_view{TXT("N/A")};
+                }
+            },
+            inner()
+        );
+    }
+
    public:
     template <class T>
     bool is() const noexcept {

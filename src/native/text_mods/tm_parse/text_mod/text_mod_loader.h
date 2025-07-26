@@ -27,6 +27,14 @@ class TextModLoader {
     NameTable& name_table() { return m_NameTable; }
 
    public:
+    // clang-format off
+    decltype(auto) begin()       noexcept { return m_ObjWriteList.begin(); }
+    decltype(auto) end()         noexcept { return m_ObjWriteList.end();   }
+    decltype(auto) begin() const noexcept { return m_ObjWriteList.begin(); }
+    decltype(auto) end()   const noexcept { return m_ObjWriteList.end();   }
+    // clang-format on
+
+   public:
     void load_from_file(const fs::path& pth);
     void load_from_str(str&& text);
 

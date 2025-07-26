@@ -39,12 +39,11 @@ void FlatObjectWriteList::add_set_command(
 ) {
     NameTable& name_table = ctx.name_table();
 
-    table_ref prop = name_table.register_name(rule.to_str(source.text()));
+    table_ref prop = name_table.register_name(rule.property().to_str(source.text()));
     _parse_expr(name_table, prop, source, rule.expr());
 }
 
 void FlatObjectWriteList::add_obj_def(TextModLoader& ctx, const TextMod& mod, const rules::ObjectDefinitionRule& rule) {
-
     NameTable& name_table = ctx.name_table();
 
     // NOTE: We ignore the child objects here as we only construct the property assignment tree for
@@ -54,7 +53,6 @@ void FlatObjectWriteList::add_obj_def(TextModLoader& ctx, const TextMod& mod, co
         table_ref prop = name_table.register_name(assign.property().to_str(mod.text()));
         _parse_expr(name_table, prop, mod, assign.expr());
     }
-
 }
 
 void FlatObjectWriteList::_parse_expr(
@@ -66,12 +64,16 @@ void FlatObjectWriteList::_parse_expr(
     RefChain ref_chain = RefChain{ref};
 
     if (expr.is_expr_list()) {
-        TXT_MOD_ASSERT(expr.is<PrimitiveExprRule>(), "expecting expression list");
+        TXT_MOD_ASSERT(expr.is<ParenExprRule>() || expr.is<AssignmentExprListRule>());
         _parse_expr_list(table, ref_chain, mod, expr.get<AssignmentExprListRule>());
-    }
-    else {
-        TXT_MOD_ASSERT(expr.is<PrimitiveExprRule>(), "expecting primitive expr");
-        _parse_leaf(ref_chain, mod, expr.get<PrimitiveExprRule>());
+    } else {
+        if (expr.is<ParenExprRule>()) {
+            const auto* inner = expr.get<ParenExprRule>().inner_most();
+            TXT_MOD_ASSERT(inner != nullptr && inner->is<PrimitiveExprRule>());
+            _parse_leaf(ref_chain, mod, inner->get<PrimitiveExprRule>());
+        } else {
+            _parse_leaf(ref_chain, mod, expr.get<PrimitiveExprRule>());
+        }
     }
 }
 
@@ -94,28 +96,28 @@ void FlatObjectWriteList::_parse_expr_list(
 
         // This assignment is a list of assignments
         if (assign.expr().is_expr_list()) {
-            TXT_MOD_ASSERT(expr.is<AssignmentExprListRule>(), "expecting primitive expr");
+            TXT_MOD_ASSERT(expr.is<ParenExprRule>() || expr.is<AssignmentExprListRule>());
             _parse_expr_list(table, sub_chain, mod, expr.get<AssignmentExprListRule>());
         }
         // Assignment is a leaf/value producing expression
         else {
-            TXT_MOD_ASSERT(expr.is<PrimitiveExprRule>(), "expecting primitive expr");
-            _parse_leaf(sub_chain, mod, expr.get<PrimitiveExprRule>());
+            if (assign.expr().is<ParenExprRule>()) {
+                const auto* inner = expr.get<ParenExprRule>().inner_most();
+                TXT_MOD_ASSERT(inner != nullptr && inner->is<PrimitiveExprRule>(), "expecting primitive expr");
+                _parse_leaf(sub_chain, mod, inner->get<PrimitiveExprRule>());
+            } else {
+                _parse_leaf(sub_chain, mod, expr.get<PrimitiveExprRule>());
+            }
         }
     }
 }
 
 void FlatObjectWriteList::_parse_leaf(const RefChain& ref_chain, const TextMod& mod, const PrimitiveExprRule& expr) {
     size_t index = _find_or_insert(ref_chain);
-    if (index == invalid_index_v) {
-        m_PropExpr.emplace_back(&mod, &expr);
-    } else {
-        m_PropExpr[index] = std::make_pair(&mod, &expr);
-    }
+    m_PropExpr[index] = std::make_pair(&mod, &expr);
 }
 
 size_t FlatObjectWriteList::_find_or_insert(const RefChain& chain) noexcept {
-
     // Try to find the ref chain if we can
     for (size_t i = 0; i < m_PropertyRefChains.size(); ++i) {
         if (m_PropertyRefChains[i] == chain) {
@@ -123,8 +125,10 @@ size_t FlatObjectWriteList::_find_or_insert(const RefChain& chain) noexcept {
         }
     }
 
+    size_t index = m_PropertyRefChains.size();
     m_PropertyRefChains.push_back(chain);
-    return m_PropertyRefChains.size() - 1;
+    m_PropExpr.emplace_back();
+    return index;
 }
 
 }  // namespace tm_parse
