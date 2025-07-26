@@ -31,11 +31,16 @@ class RefChain {
 
    public:
     bool operator==(const RefChain& other) const noexcept {
+        if (size() != other.size()) {
+            return false;
+        }
+
         for (size_t i = 0; i < m_RefChain.size(); ++i) {
             if (m_RefChain[i] != other.m_RefChain[i]) {
                 return false;
             }
         }
+
         return true;
     }
 
@@ -56,12 +61,15 @@ class RefChain {
 class FlatObjectWriteList {
    public:
     using SourcedExpr = std::pair<const TextMod*, const rules::PrimitiveExprRule*>;
-    // TODO: Some form of listener for when a property is overwritten would be useful for informing the user of what expression is actually being used since we always overwrite, might even want to prevent the expression from being overwritten.
+    // TODO: Some form of listener for when a property is overwritten would be useful for informing the user of what
+    // expression is actually being used since we always overwrite, might even want to prevent the expression from being
+    // overwritten.
 
    private:
     table_ref m_ObjRef;
     std::vector<RefChain> m_PropertyRefChains;
     std::vector<SourcedExpr> m_PropExpr;
+    std::vector<FlatObjectWriteList*> m_ChildObjects;
 
    public:
     FlatObjectWriteList(table_ref obj_ref) : m_ObjRef(obj_ref) {};
@@ -73,6 +81,11 @@ class FlatObjectWriteList {
    public:
     void add_set_command(TextModLoader& ctx, const TextMod& mod, const rules::SetCommandRule& rule);
     void add_obj_def(TextModLoader& ctx, const TextMod& mod, const rules::ObjectDefinitionRule& rule);
+
+   public:
+    void add_child_obj(FlatObjectWriteList& child) {
+        m_ChildObjects.push_back(&child);
+    }
 
    private:
     void _parse_expr(NameTable& table, table_ref ref, const TextMod& mod, const rules::ExpressionRule& expr);
