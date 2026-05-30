@@ -1,6 +1,6 @@
 from unrealsdk import find_all
 from unrealsdk.hooks import Type
-from mods_base import hook
+from mods_base import hook, build_mod
 
 
 @hook("Engine.GameViewportClient:Tick", Type.POST, immediately_enable=True)
@@ -11,3 +11,6 @@ def hook_skip_to_main_menu(_1, _2, _3, _4) -> None:
         obj.extContinue()
 
     hook_skip_to_main_menu.disable()
+
+
+build_mod()
