@@ -1,16 +1,13 @@
 [project]
-name = "Skilltree UI Fix"
-version = "1.0"
+name = "skill_tree_tweaks"
+version = "1.1"
 authors = [{ name = "-Ry" }, { name = "sleepmaster" }]
-description = "Fixes the skill tree by showing when a class mod augments a skill"
-
-[packager]
-safe_name = "skill_tree_tweaks"
-exclude_globs = ["*.pyc"]
+description = """alters the skill tree ui to show when a class mod augments a skill and adds helper
+text to identify what the effects of the current and next skill point in said skill are.
+"""
 
 [tool.sdkmod]
-mod_type = "Standard"
-supported_games = "BL1"
-coop_support = "Unknown"
-auto_enable = "False"
+name = "Skilltree UI Fix"
+download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/skill_tree_tweaks.sdkmod"
+supported_games = ["BL1"]
 license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }

@@ -1,16 +1,10 @@
 [project]
-name = "-Ry's Auto-Save"
+name = "rys_auto_save"
 version = "1.0"
 authors = [{ name = "-Ry" }]
 description = "Implements Auto-Save Functionality"
 
-[packager]
-safe_name = "rys_auto_save"
-exclude_globs = ["*.pyc"]
-
 [tool.sdkmod]
-mod_type = "Standard"
-supported_games = "BL1"
-coop_support = "Unknown"
-auto_enable = "False"
+supported_games = ["BL1"]
+download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/rys_auto_save.sdkmod"
 license = {name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
