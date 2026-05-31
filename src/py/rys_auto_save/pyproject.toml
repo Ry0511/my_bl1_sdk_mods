@@ -2,9 +2,9 @@
 name = "rys_auto_save"
 version = "1.1"
 authors = [{ name = "-Ry" }]
-description = """implements an auto-saving mechanic that will save the game on fixed delay -
-optionally lets you save to either your current savefile or to an auto-save directory in your save
-game folder
+description = """Periodically saves the game at a user-configurable interval (20-600 seconds,
+default 60). Saves can either overwrite your active savefile (vanilla save behaviour) or be
+written to an 'Autosave/' subdirectory of your save folder to keep your main savefile untouched.
 """
 
 [tool.sdkmod]
