@@ -1,6 +1,5 @@
 *
-!rys_qol-*.zip
-!rys_auto_save-*.zip
-!skill_tree_tweaks-*.zip
-!startup_movie_skiper-*.zip
+!*.sdkmod
+!rys_qol-2.0.zip
+!skill_tree_tweaks-1.0.zip
 !.gitignore
