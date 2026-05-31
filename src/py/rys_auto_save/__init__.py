@@ -9,8 +9,6 @@ build_mod(
     hooks=[hook_auto_save],
     commands=[],
     options=[
-        _auto_save_enabled,
-        _auto_save_log,
         _auto_save_type,
         _auto_save_frequency
     ],

@@ -1,6 +1,6 @@
 [project]
 name = "rys_auto_save"
-version = "1.0"
+version = "1.1"
 authors = [{ name = "-Ry" }]
 description = """implements an auto-saving mechanic that will save the game on fixed delay -
 optionally lets you save to either your current savefile or to an auto-save directory in your save
