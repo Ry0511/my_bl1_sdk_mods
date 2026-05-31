@@ -1,10 +1,11 @@
 [project]
 name = "startup_movie_skipper"
-version = "1.1"
+version = "1.2"
 authors = [{ name = "-Ry" }]
-description = "Skips the startup movies"
+description = "skips some of the startup movies getting you to the main menu faster"
 
 [tool.sdkmod]
+name = "Startup Movie Skipper"
 supported_games = ["BL1"]
 download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/startup_movie_skipper.sdkmod"
 license = {name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }

@@ -2,9 +2,13 @@
 name = "rys_auto_save"
 version = "1.0"
 authors = [{ name = "-Ry" }]
-description = "Implements Auto-Save Functionality"
+description = """implements an auto-saving mechanic that will save the game on fixed delay -
+optionally lets you save to either your current savefile or to an auto-save directory in your save
+game folder
+"""
 
 [tool.sdkmod]
+name = "Configurable Auto-Save"
 supported_games = ["BL1"]
 download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/rys_auto_save.sdkmod"
-license = {name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
