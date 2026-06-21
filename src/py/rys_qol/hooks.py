@@ -27,6 +27,9 @@ if TYPE_CHECKING:
         WillowGameReplicationInfo,
         PlayerProfile,
     )
+else:
+    from unrealsdk import find_enum
+    EMissionStatus = find_enum("EMissionStatus")
 
 __all__: tuple[str, ...] = (
     "on_player_loaded",
@@ -41,7 +44,7 @@ __all__: tuple[str, ...] = (
 def _get_current_mission() -> (
     tuple[EMissionStatus | int, MissionDefinition | None] | None
 ):
-    pc = cast(WillowPlayerController, get_pc())
+    pc = cast("WillowPlayerController", get_pc())
     data = pc.MissionPlaythroughData[pc.GetCurrentPlaythrough()]
     active: MissionDefinition | None = data.ActiveMission
     for x in data.MissionList:
@@ -65,18 +68,18 @@ def on_player_loaded(
     _func: BoundFunction,
 ) -> None:
     # This removes the 30s timer required for saving
-    obj = cast(WillowPlayerController, obj)
+    obj = cast("WillowPlayerController", obj)
     obj.ClientSetProfileLoaded()
 
     if obj.CheatManager is None:
         obj.CheatManager = cast(
-            WillowCheatManager, construct_object("WillowGame.WillowCheatManager", obj)
+            "WillowCheatManager", construct_object("WillowGame.WillowCheatManager", obj)
         )
 
     if not fix_auto_mission_select.value:
         return
 
-    pc: WillowPlayerController = cast(WillowPlayerController, get_pc())
+    pc: WillowPlayerController = cast("WillowPlayerController", get_pc())
 
     global _mission_on_load
 
@@ -102,15 +105,15 @@ def hook_fix_auto_mission_select(
     _ret: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     _func: BoundFunction,
 ) -> None:
-    obj = cast(WillowPlayerController, obj)
+    obj = cast("WillowPlayerController", obj)
     if not fix_auto_mission_select.value:
         return
 
-    pc: WillowPlayerController = cast(WillowPlayerController, get_pc())
+    pc: WillowPlayerController = cast("WillowPlayerController", get_pc())
     assert pc.WorldInfo is not None and pc.WorldInfo.Game is not None
-    tracker = cast(MissionTracker, pc.WorldInfo.Game.MissionTracker)
+    tracker = cast("MissionTracker", pc.WorldInfo.Game.MissionTracker)
     in_mission: MissionDefinition = args.InMission  # pyright: ignore[reportAny]
-    in_status = EMissionStatus(tracker.GetMissionStatus(in_mission))
+    in_status = tracker.GetMissionStatus(in_mission)
     invalid_states = (EMissionStatus.MS_Redeemed, EMissionStatus.MS_Complete)
 
     if in_status not in invalid_states:
@@ -124,7 +127,7 @@ def hook_fix_auto_mission_select(
 
     index, name = _mission_on_load
     if 0 <= index < len(data.MissionList):
-        data_mission: MissionStatus = cast(MissionStatus, data.MissionList[index])
+        data_mission: MissionStatus = cast("MissionStatus", data.MissionList[index])
         assert data_mission.MissionDef is not None
         if data_mission.MissionDef.MissionName == name:
             data.ActiveMission = data_mission.MissionDef
@@ -146,7 +149,7 @@ def hook_sort_fast_travels(
     if not should_sort_fast_travels.value:
         return
 
-    xs = cast(PlayerProfile, args.Profile).VisitedTeleporters
+    xs = cast("PlayerProfile", args.Profile).VisitedTeleporters
     xs.sort(key=cmp_to_key(compare_outpost))
 
 
@@ -157,7 +160,7 @@ def hook_sort_fast_travels_2(
     _ret: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     _func: BoundFunction,
 ) -> None:
-    obj = cast(RegistrationStationGFxMovie, obj)
+    obj = cast("RegistrationStationGFxMovie", obj)
     # This sorts everytime you open the Fast Travel station
     if not should_sort_fast_travels.value:
         return
@@ -175,7 +178,7 @@ def hook_sort_fast_travels_2(
     # sane ordering.
     assert wp.WorldInfo is not None
     assert wp.WorldInfo.GRI is not None
-    locations = cast(WillowGameReplicationInfo, wp.WorldInfo.GRI).FastTravelLocations
+    locations = cast("WillowGameReplicationInfo", wp.WorldInfo.GRI).FastTravelLocations
     locations.sort(key=cmp_to_key(compare_outpost))
 
     # Changes the rate at which OnTick is called; N times a second.
@@ -189,7 +192,7 @@ def hook_fast_travel_indent(
     _ret: Any,  # pyright: ignore[reportAny, reportExplicitAny]
     _func: BoundFunction,
 ) -> None:
-    obj = cast(RegistrationStationGFxMovie, obj)
+    obj = cast("RegistrationStationGFxMovie", obj)
     if not should_sort_fast_travels.value:
         return
 
@@ -211,7 +214,7 @@ def hook_fast_travel_indent(
 
     from .registration_list import get_level_name_from_outpost_path
 
-    pc = cast(WillowPlayerController, get_pc())
+    pc = cast("WillowPlayerController", get_pc())
     globals = pc.GetWillowGlobals()
     assert globals is not None
     lookup = globals.GetRegistrationStationLookup()
@@ -279,7 +282,7 @@ def hook_indent_fast_travel_tab_changed(
     _ret: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     _func: BoundFunction,
 ) -> None:
-    obj = cast(RegistrationStationGFxMovie, obj)
+    obj = cast("RegistrationStationGFxMovie", obj)
     if not should_sort_fast_travels.value:
         return
 

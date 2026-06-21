@@ -27,9 +27,9 @@ def display_hud_message(
     color: tuple[int, int, int, int] = (255, 255, 255, 255),
     duration: float = 1.5,
 ):
-    pc = cast(WillowPlayerController, get_pc())
+    pc = cast("WillowPlayerController", get_pc())
 
-    hud = cast(WillowHUD | None, pc.myHUD)
+    hud = cast("WillowHUD | None", pc.myHUD)
     if hud is None:
         return
 
@@ -63,7 +63,7 @@ _saved_rotation: tuple[int, int, int] | None = None  # PYR
 
 
 def is_player_available() -> bool:
-    return cast(WillowPlayerController, get_pc()).Pawn is not None
+    return cast("WillowPlayerController", get_pc()).Pawn is not None
 
 
 @keybind(identifier="Save Position", key="F7", event_filter=None)
@@ -73,7 +73,7 @@ def on_save_position(event: EInputEvent):
 
     global _saved_location
     global _saved_rotation
-    wpc = cast(WillowPlayerController, get_pc())
+    wpc = cast("WillowPlayerController", get_pc())
     assert wpc.Pawn is not None
     pos = wpc.Pawn.Location
     _saved_location = (pos.X, pos.Y, pos.Z)
@@ -97,7 +97,7 @@ def on_restore_position():
     ):
         return
 
-    wpc = cast(WillowPlayerController, get_pc())
+    wpc = cast("WillowPlayerController", get_pc())
     pos = make_struct(
         "Core.Object.Vector",
         X=_saved_location[0],
@@ -129,7 +129,7 @@ def on_quit_without_saving():
     if not is_player_available():
         return
 
-    wpc = cast(WillowPlayerController, get_pc())
+    wpc = cast("WillowPlayerController", get_pc())
     wpc.DestroyOnlineGame(False)
     _ = wpc.ConsoleCommand("open menumap", False)
 
@@ -148,7 +148,7 @@ def on_toggle_hlq_noclip():
         return
 
     display_hud_message("Rys QoL", "Toggle HLQ Noclip!")
-    cast(WillowPlayerController, get_pc()).ServerToggleHLQ()
+    cast("WillowPlayerController", get_pc()).ServerToggleHLQ()
 
 
 @keybind(
@@ -161,4 +161,4 @@ def on_make_op():
         return
 
     display_hud_message("Rys QoL", "Making Player Max Level & Giving Gear!")
-    cast(WillowPlayerController, get_pc()).ServerBalanceMe(100, 999)
+    cast("WillowPlayerController", get_pc()).ServerBalanceMe(100, 999)
