@@ -1,27 +1,35 @@
-import mods_base
+from __future__ import annotations
+from typing import TYPE_CHECKING, cast
+
 from mods_base import keybind, EInputEvent, get_pc
+from unrealsdk import make_struct
 
-import unrealsdk
-from unrealsdk.unreal import WrappedStruct
+if TYPE_CHECKING:
+    from BL1.WillowGame import WillowPlayerController, WillowHUD
 
-__all__: [str] = [
+__all__: tuple[str, ...] = (
     "on_save_position",
     "on_restore_position",
     "on_quit_without_saving",
-    "on_toggle_ghost",
     "on_toggle_hlq_noclip",
     "on_make_op",
-]
+)
 
 
 ################################################################################
 # | UTILITY |
 ################################################################################
 
-def display_hud_message(title: str, msg: str, color=(255, 255, 255, 255), duration: float = 1.5):
-    pc = get_pc()
 
-    hud = pc.myHUD
+def display_hud_message(
+    title: str,
+    msg: str,
+    color: tuple[int, int, int, int] = (255, 255, 255, 255),
+    duration: float = 1.5,
+):
+    pc = cast(WillowPlayerController, get_pc())
+
+    hud = cast(WillowHUD | None, pc.myHUD)
     if hud is None:
         return
 
@@ -29,15 +37,20 @@ def display_hud_message(title: str, msg: str, color=(255, 255, 255, 255), durati
     if hud_movie is None:
         return
 
-    color_struct = unrealsdk.make_struct(
-        "Core.Object.Color",
-        B=color[0],
-        G=color[1],
-        R=color[2],
-        A=color[3]
+    hud_movie.AddTrainingText(
+        0,
+        msg,
+        title,
+        duration,
+        make_struct(
+            "Core.Object.Color", B=color[0], G=color[1], R=color[2], A=color[3]
+        ),
+        "",
+        False,
+        0.0,
+        None,
+        True,
     )
-
-    hud_movie.AddTrainingText(0, msg, title, duration, color_struct, "", False, 0.0, None, True)
 
 
 ################################################################################
@@ -50,8 +63,7 @@ _saved_rotation: tuple[int, int, int] | None = None  # PYR
 
 
 def is_player_available() -> bool:
-    pc = mods_base.get_pc()
-    return pc is not None and pc.Pawn is not None
+    return cast(WillowPlayerController, get_pc()).Pawn is not None
 
 
 @keybind(identifier="Save Position", key="F7", event_filter=None)
@@ -61,10 +73,9 @@ def on_save_position(event: EInputEvent):
 
     global _saved_location
     global _saved_rotation
-    wpc = get_pc()
-    pawn = wpc.Pawn
-
-    pos: WrappedStruct = pawn.Location
+    wpc = cast(WillowPlayerController, get_pc())
+    assert wpc.Pawn is not None
+    pos = wpc.Pawn.Location
     _saved_location = (pos.X, pos.Y, pos.Z)
 
     rotation = wpc.CalcViewRotation
@@ -78,18 +89,23 @@ def on_restore_position():
     global _saved_location
     global _saved_rotation
 
-    if not is_player_available() or None in (_saved_location, _saved_rotation):
+    if (
+        not is_player_available()
+        or None in (_saved_location, _saved_rotation)
+        or _saved_location is None
+        or _saved_rotation is None
+    ):
         return
 
-    wpc = get_pc()
-    pos = unrealsdk.make_struct(
+    wpc = cast(WillowPlayerController, get_pc())
+    pos = make_struct(
         "Core.Object.Vector",
         X=_saved_location[0],
         Y=_saved_location[1],
-        Z=_saved_location[2]
+        Z=_saved_location[2],
     )
 
-    rot = unrealsdk.make_struct(
+    rot = make_struct(
         "Core.Object.Rotator",
         Pitch=_saved_rotation[0],
         Yaw=_saved_rotation[1],
@@ -98,7 +114,7 @@ def on_restore_position():
 
     pawn = wpc.Pawn
     wpc.ClientSetPawnLocation(pawn, pos, rot)
-    wpc.ClientSetRotation(rot)
+    wpc.ClientSetRotation(rot, True)
 
     display_hud_message("Rys QoL", "Position Restored!")
 
@@ -113,26 +129,14 @@ def on_quit_without_saving():
     if not is_player_available():
         return
 
-    wpc = get_pc()
+    wpc = cast(WillowPlayerController, get_pc())
     wpc.DestroyOnlineGame(False)
-    wpc.ConsoleCommand("open menumap")
+    _ = wpc.ConsoleCommand("open menumap", False)
 
 
 ################################################################################
 # | CHEAT FEATURES |
 ################################################################################
-
-@keybind(
-    identifier="Toggle Ghost Mode",
-    description="Gives noclip not sure how it differs from HLQ"
-                " maybe enemies don't see you?",
-)
-def on_toggle_ghost():
-    if not is_player_available():
-        return
-
-    display_hud_message("Rys QoL", "Toggle Ghost Mode!")
-    get_pc().ServerToggleGhost()
 
 
 @keybind(
@@ -144,17 +148,17 @@ def on_toggle_hlq_noclip():
         return
 
     display_hud_message("Rys QoL", "Toggle HLQ Noclip!")
-    get_pc().ServerToggleHLQ()
+    cast(WillowPlayerController, get_pc()).ServerToggleHLQ()
 
 
 @keybind(
     identifier="Make me overpowered",
     description="Makes the user level 69 and gives them some good gear;"
-                " This deletes your inventory.",
+    + " This deletes your inventory.",
 )
 def on_make_op():
     if not is_player_available():
         return
 
     display_hud_message("Rys QoL", "Making Player Max Level & Giving Gear!")
-    get_pc().ServerBalanceMe(100, 100)
+    cast(WillowPlayerController, get_pc()).ServerBalanceMe(100, 999)

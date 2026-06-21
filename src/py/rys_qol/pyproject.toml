@@ -8,4 +8,4 @@ description = "QoL features and Cheats for BL1"
 name = "-Ry's QoL"
 supported_games = ["BL1"]
 download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/rys_qol.sdkmod"
-license = {name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
