@@ -1,6 +1,6 @@
 [project]
 name = "skill_tree_tweaks"
-version = "1.1"
+version = "1.2"
 authors = [{ name = "-Ry" }, { name = "sleepmaster" }]
 description = """alters the skill tree ui to show when a class mod augments a skill and adds helper
 text to identify what the effects of the current and next skill point in said skill are.
@@ -9,5 +9,5 @@ text to identify what the effects of the current and next skill point in said sk
 [tool.sdkmod]
 name = "Skilltree UI Fix"
 download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/skill_tree_tweaks.sdkmod"
-supported_games = ["BL1"]
+supported_games = ["BL1", "BL1E"]
 license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
