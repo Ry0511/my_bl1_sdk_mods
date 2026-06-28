@@ -1,10 +1,15 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, cast
 import time
 from typing import Any
 from unrealsdk import logging
 from unrealsdk.unreal import UObject, WrappedStruct, BoundFunction
 from mods_base import get_pc, hook
 
-from .options import *
+from .options import _auto_save_type, _auto_save_frequency
+
+if TYPE_CHECKING:
+    from BL1E.WillowGame import WillowPlayerController
 
 __all__ = [
     "hook_auto_save",
@@ -15,12 +20,12 @@ _last_tick_time: float | int | None = None
 
 @hook(hook_func="WillowGame.WillowPlayerController:PlayerTick")
 def hook_auto_save(
-    __obj: UObject,
+    obj: UObject,
     _args: WrappedStruct,
-    _ret: Any,
+    _ret: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     _func: BoundFunction,
 ) -> None:
-
+    obj = cast("WillowPlayerController", obj)
     global _last_tick_time
     tick_time_now = time.time()
 
@@ -32,10 +37,10 @@ def hook_auto_save(
         return
     _last_tick_time = time.time()
 
-    pc = get_pc()
+    pc = cast("WillowPlayerController", get_pc())
     file_name = pc.SaveGameName
 
-    if file_name is None or file_name == "":  # No valid file to save to
+    if file_name == "":
         return
 
     if _auto_save_type.value == "To Savefile":

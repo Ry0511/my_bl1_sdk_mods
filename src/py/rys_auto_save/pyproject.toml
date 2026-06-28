@@ -1,6 +1,6 @@
 [project]
 name = "rys_auto_save"
-version = "1.1"
+version = "1.2"
 authors = [{ name = "-Ry" }]
 description = """Periodically saves the game at a user-configurable interval (20-600 seconds,
 default 60). Saves can either overwrite your active savefile (vanilla save behaviour) or be
@@ -9,6 +9,6 @@ written to an 'Autosave/' subdirectory of your save folder to keep your main sav
 
 [tool.sdkmod]
 name = "Configurable Auto-Save"
-supported_games = ["BL1"]
+supported_games = ["BL1", "BL1E"]
 download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/rys_auto_save.sdkmod"
 license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }

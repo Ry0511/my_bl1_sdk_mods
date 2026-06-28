@@ -1,16 +1,12 @@
 from mods_base import SETTINGS_DIR
 from mods_base import build_mod
 
-from .options import *
-from .hooks import *
+from .options import _auto_save_type, _auto_save_frequency
+from .hooks import hook_auto_save
 
-build_mod(
-    keybinds=[],
+
+_ = build_mod(
     hooks=[hook_auto_save],
-    commands=[],
-    options=[
-        _auto_save_type,
-        _auto_save_frequency
-    ],
+    options=[_auto_save_type, _auto_save_frequency],
     settings_file=SETTINGS_DIR / "rys_auto_save.json",
 )
