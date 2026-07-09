@@ -1,0 +1,11 @@
+[project]
+name = "custom_skill_trees"
+version = "0.0"
+authors = [{ name = "-Ry" }]
+description = ""
+
+[tool.sdkmod]
+name = "Custom Skill Trees"
+supported_games = ["BL1"]
+download = ""
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
