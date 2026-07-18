@@ -1,45 +1,83 @@
+# pyright: reportGeneralTypeIssues=false
+# pyright: reportOptionalMemberAccess=false
+# pyright: reportMissingImports=false
+
 from __future__ import annotations
 from typing import TYPE_CHECKING, cast, Any
-from mods_base import build_mod, hook, keybind
-from unrealsdk.hooks import Type
+
+from mods_base import build_mod, hook, keybind, get_pc
+from unrealsdk import find_enum
 from unrealsdk.unreal import UObject, WrappedStruct, BoundFunction
 
+from .flat_skill_tree import FlatSkillTreeLayout, PlayerCharacter
+
 if TYPE_CHECKING:
-    from BL1.WillowGame import WillowGFxMovie
+    from BL1.WillowGame import StatusMenuExGFxMovie, WillowPlayerController
+    from BL1.GFxUI import ASType
+else:
+    from unrealsdk import find_enum
+
+    ASType = find_enum("ASType")
+    ENavActivateAction = find_enum("ENavActivateAction")
 
 
-def _on_show_skill_tree(obj: WillowGFxMovie) -> None:
+def generate_layout_str() -> str:
+    pc = cast("WillowPlayerController", get_pc())
+    my_tree = FlatSkillTreeLayout.from_skill_set(pc.PlayerClass.PlayerSkillSet)  # pyright: ignore[reportArgumentType]
+    layout = ""
+
+    def _outermost(obj: UObject) -> UObject:
+        outermost: UObject | None = obj
+        while outermost.Outer is not None:  # pyright: ignore[reportUnnecessaryComparison]
+            outermost = outermost.Outer
+        return outermost  # pyright: ignore[reportUnreachable]
+
+    skill_mapping: dict[str, tuple[str, FlatSkillTreeLayout]] = {
+        "gd_skills2_roland": (
+            "R",
+            FlatSkillTreeLayout.from_char(PlayerCharacter.Roland),
+        ),
+        "gd_skills2_mordecai": (
+            "M",
+            FlatSkillTreeLayout.from_char(PlayerCharacter.Mordecai),
+        ),
+        "gd_skills2_lilith": (
+            "L",
+            FlatSkillTreeLayout.from_char(PlayerCharacter.Lilith),
+        ),
+        "gd_skills2_brick": ("B", FlatSkillTreeLayout.from_char(PlayerCharacter.Brick)),
+    }
+
+    for skill in my_tree.skills:
+        ref_char, tree = skill_mapping[(str(_outermost(skill).Name.lower()))]
+        index = tree.skills[skill]
+        layout += f"{ref_char}{chr(ord('a') + index)}"
+
+    print(f"Layout Str: {layout}")
+    return layout
+
+
+def _on_show_skill_tree(obj: StatusMenuExGFxMovie) -> None:
     obj.SingleArgInvokeS("skills.gotoAndStop", "custom")
 
+    invoke = cast(BoundFunction, obj.Invoke)
+    invoke_args = WrappedStruct(invoke.func)
+    invoke_args.Method = "create_skill_tree_from_str"
+    invoke_args.args.emplace_struct(Type=ASType.AS_String, S=generate_layout_str())  # pyright: ignore[reportAny]
+    _ = invoke(invoke_args)  # pyright: ignore[reportAny]
 
-@hook(hook_func="WillowGame.SkillTreeGFxHelper:ArtifactSelect", hook_type=Type.POST)
-def hook_artifact_selected(
+
+@hook(hook_func="WillowGame.StatusMenuExGFxMovie:extSetCurrentScreen")
+def hook_set_current_screen(
     obj: UObject,
-    _1: WrappedStruct,
+    args: WrappedStruct,
     _2: Any,  # pyright: ignore[reportExplicitAny, reportAny]
     _3: BoundFunction,
 ) -> None:
-    _on_show_skill_tree(cast("WillowGFxMovie", obj.Movie))
+    if args.ScreenName != "skills":  # pyright: ignore[reportAny]
+        return
 
-
-@hook(hook_func="WillowGame.SkillTreeGFxHelper:Activate", hook_type=Type.POST)
-def hook_skill_tree_shown(
-    obj: UObject,
-    _1: WrappedStruct,
-    _2: Any,  # pyright: ignore[reportExplicitAny, reportAny]
-    _3: BoundFunction,
-) -> None:
-    _on_show_skill_tree(cast("WillowGFxMovie", obj.Movie))
-
-
-@hook(hook_func="WillowGame.SkillTreeGFxHelper:Init", hook_type=Type.POST)
-def hook_skill_tree_init(
-    obj: UObject,
-    _1: WrappedStruct,
-    _2: Any,  # pyright: ignore[reportExplicitAny, reportAny]
-    _3: BoundFunction,
-) -> None:
-    _on_show_skill_tree(cast("WillowGFxMovie", obj.Movie))
+    _on_show_skill_tree(cast("StatusMenuExGFxMovie", obj))
 
 
 def _on_enable() -> None:
@@ -54,7 +92,7 @@ def _reload_flash_file():
 
 
 _ = build_mod(
-    hooks=(hook_artifact_selected, hook_skill_tree_shown, hook_skill_tree_init),
+    hooks=(hook_set_current_screen,),
     keybinds=(_reload_flash_file,),
     on_enable=_on_enable,
 )

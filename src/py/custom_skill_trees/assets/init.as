@@ -1,83 +1,241 @@
-charclass.html = true;
-charclass.htmlText = "<font size=\'10\'>Custom Character One</font>";
-
-tree1.html = true;
-tree1.htmlText = "<font size=\'9\'>Custom Branch 1</font>";
-
-tree2.html = true;
-tree2.htmlText = "<font size=\'9\'>Custom Branch 2</font>";
-
-tree3.html = true;
-tree3.htmlText = "<font size=\'9\'>Custom Branch 3</font>";
-
-//
-// 04,05, 06,07, 08,09,
-// 10,11, 12,13, 14,15,
-// 16,17, 18,19, 20,21,
-//  22,    23,    24,
-//
-
-function create_skill(type: String, id: int, x: Number, y: Number) {
-
-    var sel_offset = 0;
-    if (type == "KillSkill") {
-        sel_offset = 90;
-    }
-
-    var sel = attachMovie("CST_Select_" + type, "sel" + id, 500 + id);
-    sel._x = ((x+sel_offset) / 20.0);
-    sel._y = (y / 20.0);
-
-    var cell_offset_x = sel_offset;
-    var cell_offset_y = 0;
-    if (type == "Regular") {
-        cell_offset_x = 93;
-        cell_offset_y = 92;
-    }
-
-    var cell = attachMovie("CST_Frame_" + type, "cell" + id, 600 + id);
-    cell._x = ((x+cell_offset_x) / 20.0);
-    cell._y = ((y+cell_offset_y) / 20.0);
-
-    var icon_offset_x = 100;
-    var icon_offset_y = 218;
-    if (type == "KillSkill") {
-        icon_offset_x = 103;
-        icon_offset_y = 232;
-    }
-
-    var icon = attachMovie("CST_Mordecai_Icon" + id, "icon" + id, 700 + id);
-    icon._x = ((x+icon_offset_x) / 20.0);
-    icon._y = ((y+icon_offset_y) / 20.0);
+var ICON_OFFSETS: Object = {
+  CST_Roland_Icon: {
+     Icon4: { x:    1, y:  116 },
+     Icon5: { x:    7, y:  126 },
+     Icon6: { x:  -17, y:  104 },
+     Icon7: { x:   -5, y:  126 },
+     Icon8: { x:    5, y:  123 },
+     Icon9: { x:   22, y:  126 },
+    Icon10: { x:    7, y:  140 },
+    Icon11: { x:   13, y:  248 },
+    Icon12: { x:  -10, y:  237 },
+    Icon13: { x:  -10, y:  140 },
+    Icon14: { x:    7, y:  140 },
+    Icon15: { x:   10, y:  140 },
+    Icon16: { x:    7, y:  114 },
+    Icon17: { x:   10, y:  114 },
+    Icon18: { x:  -10, y:  207 },
+    Icon19: { x:  -10, y:  114 },
+    Icon20: { x:    7, y:  114 },
+    Icon21: { x:   10, y:  114 },
+    Icon22: { x:    7, y:  166 },
+    Icon23: { x:   -5, y:  166 },
+    Icon24: { x:   35, y:  266 }
+  },
+  CST_Mordecai_Icon: {
+     Icon4: { x:    1, y:  116 },
+     Icon5: { x:    3, y:  126 },
+     Icon6: { x:  -17, y:  104 },
+     Icon7: { x:   -5, y:  126 },
+     Icon8: { x:    5, y:  123 },
+     Icon9: { x:   74, y:  126 },
+    Icon10: { x:    7, y:  140 },
+    Icon11: { x:   16, y:  236 },
+    Icon12: { x:  -13, y:  140 },
+    Icon13: { x:  -10, y:  140 },
+    Icon14: { x:    7, y:  140 },
+    Icon15: { x:   14, y:  230 },
+    Icon16: { x:    7, y:  114 },
+    Icon17: { x:   10, y:  114 },
+    Icon18: { x:  -13, y:  114 },
+    Icon19: { x:   -4, y:  212 },
+    Icon20: { x:    7, y:  114 },
+    Icon21: { x:   10, y:  120 },
+    Icon22: { x:    7, y:  166 },
+    Icon23: { x:   -5, y:  166 },
+    Icon24: { x:   35, y:  266 }
+  },
+  CST_Lilith_Icon: {
+     Icon4: { x:   13, y:  116 },
+     Icon5: { x:    7, y:  126 },
+     Icon6: { x:  -17, y:  112 },
+     Icon7: { x:   -5, y:  126 },
+     Icon8: { x:   12, y:  130 },
+     Icon9: { x:  103, y:  126 },
+    Icon10: { x:    7, y:  140 },
+    Icon11: { x:   10, y:  140 },
+    Icon12: { x:  -13, y:  140 },
+    Icon13: { x:  -10, y:  140 },
+    Icon14: { x:   11, y:  235 },
+    Icon15: { x:   10, y:  140 },
+    Icon16: { x:    7, y:  114 },
+    Icon17: { x:   16, y:  210 },
+    Icon18: { x:  -10, y:  207 },
+    Icon19: { x:  -10, y:  114 },
+    Icon20: { x:    7, y:  114 },
+    Icon21: { x:   15, y:  207 },
+    Icon22: { x:    7, y:  166 },
+    Icon23: { x:   -1, y:  262 },
+    Icon24: { x:   22, y:  166 }
+  },
+  CST_Brick_Icon: {
+     Icon4: { x:    1, y:  139 },
+     Icon5: { x:  -25, y:  126 },
+     Icon6: { x:  -22, y:  104 },
+     Icon7: { x:   -5, y:  126 },
+     Icon8: { x:   20, y:  123 },
+     Icon9: { x:   22, y:  126 },
+    Icon10: { x:    7, y:  140 },
+    Icon11: { x:   16, y:  235 },
+    Icon12: { x:  -13, y:  140 },
+    Icon13: { x:   -6, y:  235 },
+    Icon14: { x:   11, y:  235 },
+    Icon15: { x:   10, y:  140 },
+    Icon16: { x:    7, y:  114 },
+    Icon17: { x:   10, y:  114 },
+    Icon18: { x:  -13, y:  114 },
+    Icon19: { x:  -10, y:  114 },
+    Icon20: { x:    7, y:  114 },
+    Icon21: { x:   10, y:  114 },
+    Icon22: { x:    7, y:  166 },
+    Icon23: { x:   -5, y:  166 },
+    Icon24: { x:   26, y:  262 }
+  }
 };
 
-//
-// 04,05, 06,07, 08,09,
-// 10,11, 12,13, 14,15,
-// 16,17, 18,19, 20,21,
-//  22,    23,    24,
-//
+var ICON_PREFIXES: Object = {
+  R: "CST_Roland_Icon",
+  M: "CST_Mordecai_Icon",
+  L: "CST_Lilith_Icon",
+  B: "CST_Brick_Icon",
+  CR: "CST_CUSTOM_REGULAR_ICON", // Not implemented yet.
+  CK: "CST_CUSTOM_KILL_ICON" // Not implemented yet.
+};
 
-create_skill("Regular", 4 , 439 , 3317);
-create_skill("Regular", 5 , 2176, 3317);
-create_skill("Regular", 10, 439 , 4943);
-create_skill("KillSkill", 11, 2176, 4943);
-create_skill("Regular", 16, 439 , 6569);
-create_skill("Regular", 17, 2176, 6569);
-create_skill("Regular", 22, 1299, 8197);
+var KILL_SKILL_ICONS: Object = {
+    CST_Roland_Icon:   [11,12,18,24],
+    CST_Mordecai_Icon: [11,15,19,24],
+    CST_Lilith_Icon:   [14,17,18,21,23],
+    CST_Brick_Icon:    [11,13,14,24]
+};
 
-create_skill("Regular", 6 , 4039, 3317);
-create_skill("Regular", 7 , 5776, 3317);
-create_skill("KillSkill", 12, 4039, 4943);
-create_skill("Regular", 13, 5776, 4943);
-create_skill("KillSkill", 18, 4039, 6569);
-create_skill("Regular", 19, 5776, 6569);
-create_skill("Regular", 23, 4891, 8197);
+function is_kill_skill_icon(prefix: String, number: Number) {
+  if (prefix == "CST_CUSTOM_KILL_ICON") {
+    return true;
+  } else if (prefix == "CST_CUSTOM_REGULAR_ICON") {
+    return false;
+  }
 
-create_skill("Regular", 8 , 7599, 3317);
-create_skill("Regular", 9 , 9284, 3317);
-create_skill("Regular", 14, 7599, 4943);
-create_skill("Regular", 15, 9284, 4943);
-create_skill("Regular", 20, 7599, 6569);
-create_skill("Regular", 21, 9284, 6569);
-create_skill("KillSkill", 24, 8564, 8197);
+  var kill_list: Array = KILL_SKILL_ICONS[prefix];
+  for (var i = 0; i < kill_list.length; i++) {
+      if (kill_list[i] == number) {
+          return true;
+      }
+  }
+  return false;
+}
+
+function icon_offset(prefix: String, index: Number) {
+  var perChar = ICON_OFFSETS[prefix];
+  if (perChar != undefined) {
+      return perChar["Icon" + index];
+  }
+  return undefined;
+}
+
+function create_skill(type: String, id: Number, x: Number, y: Number) {
+  var icon_prefix = ICON_PREFIXES[type];
+  var is_kill_skill = is_kill_skill_icon(icon_prefix, id);
+  var suffix = is_kill_skill ? "KillSkill" : "Regular"
+
+  var sel = skills.attachMovie("CST_Select_" + suffix, "sel" + id, 800 + id);
+  if (is_kill_skill) {
+    sel._x = (x / 20.0);
+    sel._y = (y / 20.0);
+  } else {
+    sel._x = ((x - 93) / 20.0);
+    sel._y = ((y - 92) / 20.0);
+  }
+
+  var cell = skills.attachMovie("CST_Frame_" + suffix, "cell" + id, 900 + id);
+  cell._x = (x / 20.0);
+  cell._y = (y / 20.0);
+
+  var icon = skills.attachMovie(icon_prefix + id, "icon" + id, 1000 + id);
+  var offset = icon_offset(icon_prefix, id);
+  icon._x = (x + offset.x) / 20.0;
+  icon._y = (y + offset.y) / 20.0;
+};
+
+var SKILL_TREE_OFFSETS: Array = [
+  { x: 0000, y: 0000 },
+  { x: 0000, y: 0000 },
+  { x: 3992, y: 1237 },
+  { x: 0000, y: 0000 },
+  { x:  532, y: 3409 },
+  { x: 2269, y: 3409 },
+  { x: 4132, y: 3409 },
+  { x: 5880, y: 3409 },
+  { x: 7692, y: 3409 },
+  { x: 9429, y: 3409 },
+  { x:  532, y: 5035 },
+  { x: 2269, y: 5035 },
+  { x: 4132, y: 5035 },
+  { x: 5869, y: 5035 },
+  { x: 7692, y: 5035 },
+  { x: 9429, y: 5035 },
+  { x:  532, y: 6661 },
+  { x: 2269, y: 6661 },
+  { x: 4132, y: 6661 },
+  { x: 5869, y: 6661 },
+  { x: 7692, y: 6661 },
+  { x: 9429, y: 6661 },
+  { x: 1392, y: 8289 },
+  { x: 4984, y: 8289 },
+  { x: 8577, y: 8289 }
+];
+
+function create_standard_skill_tree(character: String) {
+
+  // action skill
+  var icon_prefix = ICON_PREFIXES[character];
+  var action_skill = skills.attachMovie(icon_prefix + "2", "icon2", 308);
+  action_skill._x = (3992 / 20.0);
+  action_skill._y = (1237 / 20.0);
+
+  // actual skills
+  for (var i = 4; i < SKILL_TREE_OFFSETS.length; ++i) {
+    var offset = SKILL_TREE_OFFSETS[i];
+    create_skill(character, i, offset.x, offset.y);
+  }
+
+  // ensure this appears on top of the skill tree
+  var artifact_selection = skills.attachMovie("CST_Artifact_Selection", "comm", 1250);
+  artifact_selection._x = (-65) / 20.0;
+  artifact_selection._y = (-1253) / 20.0;
+  artifact_selection.visible = false;
+}
+
+function create_skill_tree_from_str(str: String) {
+  // action skill
+  var icon_prefix = ICON_PREFIXES["R"];
+  var action_skill = skills.attachMovie(icon_prefix + "2", "icon2", 308);
+  action_skill._x = (3992 / 20.0);
+  action_skill._y = (1237 / 20.0);
+
+  for (var i = 0; i < str.length; ++i) {
+    var elem = str.charAt(i);
+    var offset = SKILL_TREE_OFFSETS[i+4];
+    create_skill(elem, i+4, offset.x, offset.y);
+  }
+
+  // ensure this appears on top of the skill tree
+  var artifact_selection = skills.attachMovie("CST_Artifact_Selection", "comm", 1250);
+  artifact_selection._x = (-65) / 20.0;
+  artifact_selection._y = (-1253) / 20.0;
+  artifact_selection.visible = false;
+}
+
+stop();
+header.gotoAndStop("skills");
+Key.removeListener(logListener);
+Key.removeListener(logWindowListener);
+Key.removeListener(characterListener);
+Key.removeListener(inventoryListener);
+Key.removeListener(mapListener);
+Key.removeListener(inventoryListListener);
+Key.removeListener(inventoryCellListener);
+Key.removeListener(movieCloseListener);
+currentScreen = "skills";
+topLevel_mc = skills;
+flash.external.ExternalInterface.call("extSetCurrentScreen","skills");
