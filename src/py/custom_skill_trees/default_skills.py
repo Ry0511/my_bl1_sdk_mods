@@ -1,5 +1,3 @@
-
-
 ALL_ROLAND_SKILLS = [
     "gd_skills2_roland.support.impact",
     "gd_skills2_roland.infantry.sentry",
@@ -94,4 +92,11 @@ ALL_BRICK_SKILLS = [
     "gd_skills2_brick.brawler.bloodsport",
     "gd_skills2_brick.tank.unbreakable",
     "gd_skills2_brick.blaster.masterblaster",
+]
+
+ACTION_SKILLS = [
+    "gd_skills2_roland.action.a_deployscorpio",
+    "gd_skills2_mordecai.action.a_launchbloodwing",
+    "gd_skills2_lilith.action.a_phasewalk",
+    "gd_skills2_brick.action.a_berserk",
 ]

@@ -19,9 +19,13 @@ class PlayerCharacter(IntEnum):
 
 
 class FlatSkillTreeLayout:
+    action_skill: SkillDefinition
     skills: dict[SkillDefinition, int]
 
-    def __init__(self, skill_set: dict[SkillDefinition, int]):
+    def __init__(
+        self, action_skill: SkillDefinition, skill_set: dict[SkillDefinition, int]
+    ):
+        self.action_skill = action_skill
         self.skills = skill_set
 
     @staticmethod
@@ -34,7 +38,8 @@ class FlatSkillTreeLayout:
         ):
             for i, skill in enumerate(chain(l.Skills, m.Skills, r.Skills)):
                 d[skill] = i
-        return FlatSkillTreeLayout(d)
+        assert skill_set.ActionSkill is not None
+        return FlatSkillTreeLayout(skill_set.ActionSkill, d)
 
     @staticmethod
     def from_char(char: PlayerCharacter):
@@ -43,6 +48,7 @@ class FlatSkillTreeLayout:
             ALL_MORDECAI_SKILLS,
             ALL_LILITH_SKILLS,
             ALL_BRICK_SKILLS,
+            ACTION_SKILLS,
         )
 
         skill_lists = (
@@ -61,4 +67,8 @@ class FlatSkillTreeLayout:
             )
             d[cast("SkillDefinition", skill)] = i
 
-        return FlatSkillTreeLayout(d)
+        action_skill = cast("Object", ENGINE).DynamicLoadObject(
+            ACTION_SKILLS[char.value], find_class("SkillDefinition")
+        )
+        assert action_skill is not None
+        return FlatSkillTreeLayout(cast("SkillDefinition", action_skill), d)

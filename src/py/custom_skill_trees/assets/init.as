@@ -133,9 +133,9 @@ function icon_offset(prefix: String, index: Number) {
   return undefined;
 }
 
-function create_skill(type: String, id: Number, x: Number, y: Number) {
+function create_skill(type: String, id: Number, icon_id: Number, x: Number, y: Number) {
   var icon_prefix = ICON_PREFIXES[type];
-  var is_kill_skill = is_kill_skill_icon(icon_prefix, id);
+  var is_kill_skill = is_kill_skill_icon(icon_prefix, icon_id);
   var suffix = is_kill_skill ? "KillSkill" : "Regular"
 
   var sel = skills.attachMovie("CST_Select_" + suffix, "sel" + id, 800 + id);
@@ -151,8 +151,8 @@ function create_skill(type: String, id: Number, x: Number, y: Number) {
   cell._x = (x / 20.0);
   cell._y = (y / 20.0);
 
-  var icon = skills.attachMovie(icon_prefix + id, "icon" + id, 1000 + id);
-  var offset = icon_offset(icon_prefix, id);
+  var icon = skills.attachMovie(icon_prefix + icon_id, "icon" + id, 1000 + id);
+  var offset = icon_offset(icon_prefix, icon_id);
   icon._x = (x + offset.x) / 20.0;
   icon._y = (y + offset.y) / 20.0;
 };
@@ -196,7 +196,7 @@ function create_standard_skill_tree(character: String) {
   // actual skills
   for (var i = 4; i < SKILL_TREE_OFFSETS.length; ++i) {
     var offset = SKILL_TREE_OFFSETS[i];
-    create_skill(character, i, offset.x, offset.y);
+    create_skill(character, i, i, offset.x, offset.y);
   }
 
   // ensure this appears on top of the skill tree
@@ -208,15 +208,18 @@ function create_standard_skill_tree(character: String) {
 
 function create_skill_tree_from_str(str: String) {
   // action skill
-  var icon_prefix = ICON_PREFIXES["R"];
+  var icon_prefix = ICON_PREFIXES[str.charAt(0)];
   var action_skill = skills.attachMovie(icon_prefix + "2", "icon2", 308);
   action_skill._x = (3992 / 20.0);
   action_skill._y = (1237 / 20.0);
 
-  for (var i = 0; i < str.length; ++i) {
-    var elem = str.charAt(i);
-    var offset = SKILL_TREE_OFFSETS[i+4];
-    create_skill(elem, i+4, offset.x, offset.y);
+  var index = 4;
+  for (var i = 1; i < str.length; i += 2) {
+    var charKey = str.charAt(i);
+    var iconIndex = (str.charAt(i+1).charCodeAt(0) - ("a".charCodeAt(0))) + 4;
+    var offset = SKILL_TREE_OFFSETS[index];
+    create_skill(charKey, index, iconIndex, offset.x, offset.y);
+    ++index;
   }
 
   // ensure this appears on top of the skill tree

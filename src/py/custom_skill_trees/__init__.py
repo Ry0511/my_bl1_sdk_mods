@@ -48,12 +48,14 @@ def generate_layout_str() -> str:
         "gd_skills2_brick": ("B", FlatSkillTreeLayout.from_char(PlayerCharacter.Brick)),
     }
 
+    ref_char, _ = skill_mapping[(str(_outermost(my_tree.action_skill).Name.lower()))]
+    layout += ref_char
+
     for skill in my_tree.skills:
         ref_char, tree = skill_mapping[(str(_outermost(skill).Name.lower()))]
         index = tree.skills[skill]
         layout += f"{ref_char}{chr(ord('a') + index)}"
 
-    print(f"Layout Str: {layout}")
     return layout
 
 
