@@ -33,6 +33,7 @@ paths_to_package = (
     SDK_MODS / "rys_qol",
     SDK_MODS / "skill_tree_tweaks",
     SDK_MODS / "startup_movie_skipper",
+    SDK_MODS / "custom_skill_trees",
 )
 
 for mod in paths_to_package:
