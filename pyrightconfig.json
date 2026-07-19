@@ -1,4 +1,5 @@
 {
   "reportMissingTypeStubs": false,
-  "reportMissingModuleSource": false
+  "reportMissingModuleSource": false,
+  "reportImportCycles": false
 }
