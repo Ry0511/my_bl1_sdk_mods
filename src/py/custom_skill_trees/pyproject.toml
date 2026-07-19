@@ -10,5 +10,5 @@ from the player controller skill tree so is always in sync (assuming only existi
 [tool.sdkmod]
 name = "Custom Skill Trees"
 supported_games = ["BL1"]
-download = ""
+download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/custom_skill_trees.sdkmod"
 license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
