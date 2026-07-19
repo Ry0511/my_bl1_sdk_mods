@@ -1,9 +1,19 @@
-from mods_base import hook
-from unrealsdk import logging
-from unrealsdk.hooks import Type
-from unrealsdk.unreal import *
+# pyright: reportAny=false
+# pyright: reportExplicitAny=false
 
-from .helpers import *
+from typing import Any
+
+from mods_base import hook
+from unrealsdk.hooks import Type
+from unrealsdk.unreal import UObject, BoundFunction, WrappedStruct
+
+from .helpers import (
+    get_current_class_mod,
+    get_modified_skills,
+    get_augmented_skills_dict,
+    is_skill_unlocked,
+    for_each_skill,
+)
 
 __all__ = [
     "hook_skill_tree_changed1",
@@ -22,7 +32,9 @@ def apply_skill_tree_changes(movie: UObject):
     modified_skills = get_modified_skills(get_current_class_mod())
 
     def apply_skill_flash(
-        __wpc: UObject, player_skill: WrappedStruct, skill_nav_def: UObject
+        _wpc: UObject,
+        player_skill: WrappedStruct,
+        skill_nav_def: UObject,
     ) -> None:
         nonlocal movie
         nonlocal modified_skills
@@ -35,16 +47,15 @@ def apply_skill_tree_changes(movie: UObject):
         for s, v in modified_skills:
             if s == skill:
                 skill_augment = v
-                break  # NOTE: If there are multiple augments to a single skill this will fail
+                break  # NOTE: If there are multiple augments to a single skill, this will fail
 
         p = f"skills.{skill_nav_def.SkillClipName}"
         is_unlocked = is_skill_unlocked(player_skill)
 
-        # Classmod effects augments this skill
+        # Class mod augments this skill
         if skill_augment > 0:
             state = "augmented" if is_unlocked else "augmented_locked"
             movie.SingleArgInvokeS(f"{p}.gotoAndStop", state)
-            # movie.SingleArgInvokeF(f"{p}.gotoAndStop", 5.0)
 
         movie.SetVariableBool(f"{p}.points.html", True)
 
@@ -69,9 +80,9 @@ def apply_skill_tree_changes(movie: UObject):
 @hook(hook_func="WillowGame.SkillTreeGFxHelper:ArtifactSelect", hook_type=Type.POST)
 def hook_skill_tree_changed1(
     obj: UObject,
-    __args: WrappedStruct,
-    __ret,
-    __func: BoundFunction,
+    _args: WrappedStruct,
+    _ret: Any,
+    _func: BoundFunction,
 ) -> None:
     apply_skill_tree_changes(obj.Movie)
 
@@ -79,9 +90,9 @@ def hook_skill_tree_changed1(
 @hook(hook_func="WillowGame.SkillTreeGFxHelper:Activate", hook_type=Type.POST)
 def hook_skill_tree_changed2(
     obj: UObject,
-    __args: WrappedStruct,
-    __ret,
-    __func: BoundFunction,
+    _args: WrappedStruct,
+    _ret: Any,
+    _func: BoundFunction,
 ) -> None:
     apply_skill_tree_changes(obj.Movie)
 
@@ -89,9 +100,9 @@ def hook_skill_tree_changed2(
 @hook(hook_func="WillowGame.SkillTreeGFxHelper:Init", hook_type=Type.POST)
 def hook_skill_tree_init(
     obj: UObject,
-    __args: WrappedStruct,
-    __ret,
-    __func: BoundFunction,
+    _args: WrappedStruct,
+    _ret: Any,
+    _func: BoundFunction,
 ) -> None:
     apply_skill_tree_changes(obj.Movie)
 
@@ -106,7 +117,10 @@ def hook_skill_tree_init(
     hook_type=Type.POST,
 )
 def hook_skill_tree_selection_after(
-    obj: UObject, args: WrappedStruct, __ret, __func: BoundFunction
+    obj: UObject,
+    args: WrappedStruct,
+    _ret: Any,
+    _func: BoundFunction,
 ) -> None:
     movie = obj.Movie
 
@@ -150,10 +164,10 @@ def hook_skill_tree_selection_after(
             current_grade == 0 and augmented_grade > 0
         ):  # Skill is augmented but not invested into
             current_grade_desc = (
-                f'\n<font color="#EF3054" size="12">'
-                f"Current Grade\n"
-                f"This skill is not active; Invest a skill point to unlock it!\n"
-                f"</font>"
+                '\n<font color="#EF3054" size="12">'
+                "Current Grade\n"
+                "This skill is not active; Invest a skill point to unlock it!\n"
+                "</font>"
             )
         elif current_grade > 0:  # Skill is invested into and maybe augmented
             colour = "#23CE6B" if current_grade >= skill_def.MaxGrade else "#F4D35E"

@@ -1,6 +1,6 @@
 [project]
 name = "skill_tree_tweaks"
-version = "1.2"
+version = "1.3"
 authors = [{ name = "-Ry" }, { name = "sleepmaster" }]
 description = """alters the skill tree ui to show when a class mod augments a skill and adds helper
 text to identify what the effects of the current and next skill point in said skill are.

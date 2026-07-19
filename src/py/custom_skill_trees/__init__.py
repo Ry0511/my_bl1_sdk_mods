@@ -100,7 +100,7 @@ def _reload_flash_file():
     _on_enable()
 
 
-_ = build_mod(
+MOD_INSTANCE = build_mod(
     hooks=(hook_set_current_screen,),
     keybinds=(_reload_flash_file,),
     on_enable=_on_enable,

@@ -1,8 +1,11 @@
 [project]
 name = "custom_skill_trees"
-version = "0.0"
+version = "1.0"
 authors = [{ name = "-Ry" }]
-description = ""
+description = """Significantly alters how the skill tree interface is created allowing the composition of
+any skill tree layout using the existing icon assets. While enabled this pulls the layout directly
+from the player controller skill tree so is always in sync (assuming only existing skills are used).
+"""
 
 [tool.sdkmod]
 name = "Custom Skill Trees"

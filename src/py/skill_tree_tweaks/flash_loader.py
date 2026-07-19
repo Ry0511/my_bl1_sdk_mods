@@ -1,10 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING, override, cast
 from enum import Enum
-from typing import override
-from mods_base import ENGINE, WillowObjectFlags, Game
 from importlib import resources
-from unrealsdk.unreal import UObject, WrappedArray
-from unrealsdk import logging, find_class
 from importlib.util import find_spec
+
+from mods_base import ENGINE, WillowObjectFlags, Game
+from unrealsdk import logging, find_class
+
+if TYPE_CHECKING:
+    from BL1.Core import Object
+    from BL1.GFxUI import GFxMovieInfo
+    from BL1.WillowGame import StatusMenuExGFxMovie
 
 _has_classic_ui = find_spec("Classic UI") is not None
 _has_custom_skill_trees = find_spec("custom_skill_trees") is not None
@@ -41,36 +47,52 @@ def get_flash_file_for_opt(opt: str | FlashOption) -> str:
 
 
 def patch_flash_objects(target_ui: str | FlashOption) -> None:
+
+    # would prefer a better solution, but this works for now - don't need to mess with the flash
+    #  files if it is enabled
     if _has_custom_skill_trees:
-        return
+        from custom_skill_trees import MOD_INSTANCE as CST_MOD_INST  # pyright: ignore[reportImplicitRelativeImport]
+
+        if CST_MOD_INST.is_enabled:
+            return
 
     try:
         STATUS_MENU_INSTANCE = "menus_ingame_redux.FlashInstances.status_menu_instance"
         STATUS_MENU_MOVIE = "menus_ingame_redux.FlashMovies.status_menu"
 
-        orig_ui = ENGINE.DynamicLoadObject(
-            STATUS_MENU_MOVIE, find_class("GFxMovieInfo")
+        engine = cast("Object", ENGINE)
+
+        orig_ui = cast(
+            "GFxMovieInfo",
+            engine.DynamicLoadObject(
+                STATUS_MENU_MOVIE,
+                find_class("GFxMovieInfo"),
+            ),
         )
 
-        # in-world ui movie object - fast fail if we can't get this
-        ui_inst: UObject | None = ENGINE.DynamicLoadObject(
-            STATUS_MENU_INSTANCE, find_class("StatusMenuExGFxMovie")
+        ui_inst = cast(
+            "StatusMenuExGFxMovie",
+            engine.DynamicLoadObject(
+                STATUS_MENU_INSTANCE,
+                find_class("StatusMenuExGFxMovie"),
+            ),
         )
-        if ui_inst is None:
-            raise RuntimeError(f"failed to load game gfx instance")
 
-        pth = resources.files("skill_tree_tweaks.flash") / get_flash_file_for_opt(
-            target_ui
-        )
+        if ui_inst is None:  # pyright: ignore[reportUnnecessaryComparison]
+            raise RuntimeError("failed to load game gfx instance")
+
+        FLASH_PATH = "skill_tree_tweaks.flash"
+        pth = resources.files(FLASH_PATH) / get_flash_file_for_opt(target_ui)
         content = pth.read_bytes()
-        xs: WrappedArray = orig_ui.RawData
+
+        xs = orig_ui.RawData
         xs.clear()
         for elem in content:
             xs.append(elem)
 
         ui_inst.MovieInfo = orig_ui
-        ui_inst.ObjectFlags |= WillowObjectFlags.KEEP_ALIVE
-        orig_ui.ObjectFlags |= WillowObjectFlags.KEEP_ALIVE
+        ui_inst.ObjectFlags |= WillowObjectFlags.KEEP_ALIVE  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
+        orig_ui.ObjectFlags |= WillowObjectFlags.KEEP_ALIVE  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue]
 
     except Exception as ex:
         logging.error(f"Error trying to apply custom ui flash changes: {ex}")

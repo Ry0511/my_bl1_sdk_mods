@@ -1,3 +1,7 @@
+#
+# Default skills in ascending position order i.e., icon4, icon5, icon6, ...
+#
+
 ALL_ROLAND_SKILLS = [
     "gd_skills2_roland.support.impact",
     "gd_skills2_roland.infantry.sentry",

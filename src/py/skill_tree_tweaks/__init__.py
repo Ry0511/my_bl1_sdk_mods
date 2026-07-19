@@ -1,14 +1,11 @@
-from mods_base import SETTINGS_DIR, build_mod, BoolOption
-
+from mods_base import SETTINGS_DIR, BoolOption, build_mod
+from .flash_loader import FlashOption, patch_flash_objects
 from .hooks import (
     hook_skill_tree_changed1,
     hook_skill_tree_changed2,
     hook_skill_tree_init,
     hook_skill_tree_selection_after,
 )
-
-from .flash_loader import FlashOption, patch_flash_objects
-
 
 OPT_LIMIT_MAX_POINTS = BoolOption(
     "Limit Max Skill Points",
@@ -18,8 +15,7 @@ OPT_LIMIT_MAX_POINTS = BoolOption(
     value=True,
 )
 
-# noinspection PyArgumentList
-_ = build_mod(
+MOD_INSTANCE = build_mod(
     hooks=[
         hook_skill_tree_changed1,
         hook_skill_tree_changed2,
