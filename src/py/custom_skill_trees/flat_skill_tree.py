@@ -65,10 +65,11 @@ class FlatSkillTreeLayout:
             skill = cast("Object", ENGINE).DynamicLoadObject(
                 skill_ref, find_class("SkillDefinition")
             )
+            assert skill is not None, f"could not load skill: {skill_ref}"
             d[cast("SkillDefinition", skill)] = i
 
         action_skill = cast("Object", ENGINE).DynamicLoadObject(
             ACTION_SKILLS[char.value], find_class("SkillDefinition")
         )
-        assert action_skill is not None
+        assert action_skill is not None, f"could not load action skill: {ACTION_SKILLS[char.value]}"
         return FlatSkillTreeLayout(cast("SkillDefinition", action_skill), d)

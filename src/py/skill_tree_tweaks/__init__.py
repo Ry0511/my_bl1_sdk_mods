@@ -1,5 +1,4 @@
-from mods_base import SETTINGS_DIR
-from mods_base import build_mod, BoolOption
+from mods_base import SETTINGS_DIR, build_mod, BoolOption
 
 from .hooks import (
     hook_skill_tree_changed1,

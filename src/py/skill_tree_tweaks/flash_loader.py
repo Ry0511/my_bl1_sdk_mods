@@ -7,6 +7,7 @@ from unrealsdk import logging, find_class
 from importlib.util import find_spec
 
 _has_classic_ui = find_spec("Classic UI") is not None
+_has_custom_skill_trees = find_spec("custom_skill_trees") is not None
 
 
 class FlashOption(Enum):
@@ -40,6 +41,9 @@ def get_flash_file_for_opt(opt: str | FlashOption) -> str:
 
 
 def patch_flash_objects(target_ui: str | FlashOption) -> None:
+    if _has_custom_skill_trees:
+        return
+
     try:
         STATUS_MENU_INSTANCE = "menus_ingame_redux.FlashInstances.status_menu_instance"
         STATUS_MENU_MOVIE = "menus_ingame_redux.FlashMovies.status_menu"
@@ -49,7 +53,7 @@ def patch_flash_objects(target_ui: str | FlashOption) -> None:
         )
 
         # in-world ui movie object - fast fail if we can't get this
-        ui_inst: UObject = ENGINE.DynamicLoadObject(
+        ui_inst: UObject | None = ENGINE.DynamicLoadObject(
             STATUS_MENU_INSTANCE, find_class("StatusMenuExGFxMovie")
         )
         if ui_inst is None:
