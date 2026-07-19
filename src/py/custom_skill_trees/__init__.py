@@ -5,14 +5,17 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, cast, Any
 
-from mods_base import build_mod, hook, keybind, get_pc
-from unrealsdk import find_enum
+from mods_base import build_mod, hook, get_pc
+from unrealsdk import find_enum, hooks
 from unrealsdk.unreal import UObject, WrappedStruct, BoundFunction
 
 from .flat_skill_tree import FlatSkillTreeLayout, PlayerCharacter
 
 if TYPE_CHECKING:
-    from BL1.WillowGame import StatusMenuExGFxMovie, WillowPlayerController
+    from BL1.WillowGame import (
+        StatusMenuExGFxMovie,
+        WillowPlayerController,
+    )
     from BL1.GFxUI import ASType
 else:
     from unrealsdk import find_enum
@@ -66,17 +69,38 @@ def generate_layout_str() -> str:
     return layout
 
 
-def _on_show_skill_tree(obj: StatusMenuExGFxMovie) -> None:
-    obj.SingleArgInvokeS("skills.gotoAndStop", "custom")
-
+def invoke_create_skill_tree_from_str(obj: StatusMenuExGFxMovie, layout: str) -> None:
     invoke = cast(BoundFunction, obj.Invoke)
     invoke_args = WrappedStruct(invoke.func)
     invoke_args.Method = "create_skill_tree_from_str"
-    invoke_args.args.emplace_struct(Type=ASType.AS_String, S=generate_layout_str())
+    invoke_args.args.emplace_struct(Type=ASType.AS_String, S=layout)
     _ = invoke(invoke_args)
 
 
-@hook(hook_func="WillowGame.StatusMenuExGFxMovie:extSetCurrentScreen")
+def _on_show_skill_tree(obj: StatusMenuExGFxMovie) -> None:
+    obj.SingleArgInvokeS("skills.gotoAndStop", "custom")
+
+    invoke_create_skill_tree_from_str(obj, generate_layout_str())
+
+    if helper := obj.SkillHelper:
+        helper.Flash_SendInitialSkillData()
+        if nav_def := helper.CurrentNavDef:
+            helper.HandleSelection(nav_def)
+
+        try:
+            from skill_tree_tweaks import MOD_INSTANCE as STT_MOD_INST  # pyright: ignore[reportImplicitRelativeImport]
+            from skill_tree_tweaks.hooks import apply_skill_tree_changes  # pyright: ignore[reportImplicitRelativeImport]
+
+            if STT_MOD_INST.is_enabled:
+                apply_skill_tree_changes(obj)
+        except ModuleNotFoundError:
+            pass
+
+
+@hook(
+    hook_func="WillowGame.StatusMenuExGFxMovie:extSetCurrentScreen",
+    hook_type=hooks.Type.POST_UNCONDITIONAL,
+)
 def hook_set_current_screen(
     obj: UObject,
     args: WrappedStruct,
@@ -85,7 +109,6 @@ def hook_set_current_screen(
 ) -> None:
     if args.ScreenName != "skills":
         return
-
     _on_show_skill_tree(cast("StatusMenuExGFxMovie", obj))
 
 
@@ -95,13 +118,7 @@ def _on_enable() -> None:
     patch_flash()
 
 
-@keybind(identifier="Reload Flash File", key="F12")
-def _reload_flash_file():
-    _on_enable()
-
-
 MOD_INSTANCE = build_mod(
     hooks=(hook_set_current_screen,),
-    keybinds=(_reload_flash_file,),
     on_enable=_on_enable,
 )

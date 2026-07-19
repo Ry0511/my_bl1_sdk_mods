@@ -1,6 +1,6 @@
 [project]
 name = "custom_skill_trees"
-version = "0.1"
+version = "0.2"
 authors = [{ name = "-Ry" }]
 description = """Significantly alters how the skill tree interface is created allowing the composition of
 any skill tree layout using the existing icon assets. While enabled this pulls the layout directly
