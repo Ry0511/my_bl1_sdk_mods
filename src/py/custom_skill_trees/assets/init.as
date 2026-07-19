@@ -157,10 +157,35 @@ function create_skill(type: String, id: Number, icon_id: Number, x: Number, y: N
   icon._y = (y + offset.y) / 20.0;
 };
 
+function create_action_skill(type: String, id: Number) {
+
+  var sel = skills.attachMovie("CST_Select_ActionSkill", "sel2", 850);
+  sel._x = (3062.0 / 20.0);
+  sel._y = (835.0 / 20.0);
+  sel._xscale = 109.99908;
+  sel._yscale = 109.99908;
+
+  var bg_frame = skills.attachMovie("CST_ActionSkill_Background", "cst_as_bg", 851)
+  bg_frame._x = 0.0;
+  bg_frame._y = 0.0;
+
+  var icon = skills.attachMovie(ICON_PREFIXES[type] + "2", "icon2", 852);
+  icon._x = (3992.0) / 20.0;
+  icon._y = (1237.0) / 20.0;
+  icon._xscale = 109.99908;
+  icon._yscale = 109.99908;
+
+  var cell = skills.attachMovie("CST_Frame_ActionSkill", "cell2", 853);
+  cell._x = (3202.0 / 20.0);
+  cell._y = (967.0 / 20.0);
+  cell._xscale = 109.99908;
+  cell._yscale = 109.99908;
+}
+
 var SKILL_TREE_OFFSETS: Array = [
   { x: 0000, y: 0000 },
   { x: 0000, y: 0000 },
-  { x: 3992, y: 1237 },
+  { x: 3202, y:  967 },
   { x: 0000, y: 0000 },
   { x:  532, y: 3409 },
   { x: 2269, y: 3409 },
@@ -207,11 +232,8 @@ function create_standard_skill_tree(character: String) {
 }
 
 function create_skill_tree_from_str(str: String) {
-  // action skill
-  var icon_prefix = ICON_PREFIXES[str.charAt(0)];
-  var action_skill = skills.attachMovie(icon_prefix + "2", "icon2", 308);
-  action_skill._x = (3992 / 20.0);
-  action_skill._y = (1237 / 20.0);
+
+  create_action_skill(str.charAt(0));
 
   var index = 4;
   for (var i = 1; i < str.length; i += 2) {

@@ -1,6 +1,6 @@
-# pyright: reportGeneralTypeIssues=false
 # pyright: reportOptionalMemberAccess=false
-# pyright: reportMissingImports=false
+# pyright: reportAny=false
+# pyright: reportExplicitAny=false
 
 from __future__ import annotations
 from typing import TYPE_CHECKING, cast, Any
@@ -23,7 +23,8 @@ else:
 
 def generate_layout_str() -> str:
     pc = cast("WillowPlayerController", get_pc())
-    my_tree = FlatSkillTreeLayout.from_skill_set(pc.PlayerClass.PlayerSkillSet)  # pyright: ignore[reportArgumentType]
+    assert pc.PlayerClass.PlayerSkillSet is not None
+    my_tree = FlatSkillTreeLayout.from_skill_set(pc.PlayerClass.PlayerSkillSet)
     layout = ""
 
     def _outermost(obj: UObject) -> UObject:
@@ -45,7 +46,10 @@ def generate_layout_str() -> str:
             "L",
             FlatSkillTreeLayout.from_char(PlayerCharacter.Lilith),
         ),
-        "gd_skills2_brick": ("B", FlatSkillTreeLayout.from_char(PlayerCharacter.Brick)),
+        "gd_skills2_brick": (
+            "B",
+            FlatSkillTreeLayout.from_char(PlayerCharacter.Brick),
+        ),
     }
 
     ref_char, _ = skill_mapping[(str(_outermost(my_tree.action_skill).Name.lower()))]
@@ -56,6 +60,9 @@ def generate_layout_str() -> str:
         index = tree.skills[skill]
         layout += f"{ref_char}{chr(ord('a') + index)}"
 
+    # example: RBiRdRrRuLdMgBcBjMhBuRfBkMnLmRgReLoLaBtRlLr
+    # default skill trees are predictable: RRaRbRcRd ...
+    assert len(layout) == 43, "invalid skill tree layout string"
     return layout
 
 
@@ -65,18 +72,18 @@ def _on_show_skill_tree(obj: StatusMenuExGFxMovie) -> None:
     invoke = cast(BoundFunction, obj.Invoke)
     invoke_args = WrappedStruct(invoke.func)
     invoke_args.Method = "create_skill_tree_from_str"
-    invoke_args.args.emplace_struct(Type=ASType.AS_String, S=generate_layout_str())  # pyright: ignore[reportAny]
-    _ = invoke(invoke_args)  # pyright: ignore[reportAny]
+    invoke_args.args.emplace_struct(Type=ASType.AS_String, S=generate_layout_str())
+    _ = invoke(invoke_args)
 
 
 @hook(hook_func="WillowGame.StatusMenuExGFxMovie:extSetCurrentScreen")
 def hook_set_current_screen(
     obj: UObject,
     args: WrappedStruct,
-    _2: Any,  # pyright: ignore[reportExplicitAny, reportAny]
+    _2: Any,
     _3: BoundFunction,
 ) -> None:
-    if args.ScreenName != "skills":  # pyright: ignore[reportAny]
+    if args.ScreenName != "skills":
         return
 
     _on_show_skill_tree(cast("StatusMenuExGFxMovie", obj))
