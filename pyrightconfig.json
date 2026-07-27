@@ -1,5 +1,8 @@
 {
   "reportMissingTypeStubs": false,
   "reportMissingModuleSource": false,
-  "reportImportCycles": false
+  "reportImportCycles": false,
+  "reportAny": false,
+  "reportExplicitAny": false,
+  "reportImplicitRelativeImport": false
 }

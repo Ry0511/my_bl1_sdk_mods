@@ -8,6 +8,7 @@ from mods_base import ENGINE, WillowObjectFlags
 
 
 if TYPE_CHECKING:
+    from BL1.Core import Object
     from BL1.GFxUI import GFxMovieInfo
     from BL1.WillowGame import StatusMenuExGFxMovie
 
@@ -17,22 +18,25 @@ def patch_flash() -> None:
         STATUS_MENU_INSTANCE = "menus_ingame_redux.FlashInstances.status_menu_instance"
         STATUS_MENU_MOVIE = "menus_ingame_redux.FlashMovies.status_menu"
 
+        engine = cast("Object", ENGINE)
+
         orig_ui = cast(
             "GFxMovieInfo",
-            ENGINE.DynamicLoadObject(  # pyright: ignore[reportAny]
-                STATUS_MENU_MOVIE, find_class("GFxMovieInfo")
+            engine.DynamicLoadObject(
+                STATUS_MENU_MOVIE,
+                find_class("GFxMovieInfo"),
             ),
         )
+        assert orig_ui is not None
 
         ui_inst = cast(
-            "StatusMenuExGFxMovie | None",
-            ENGINE.DynamicLoadObject(  # pyright: ignore[reportAny]
-                STATUS_MENU_INSTANCE, find_class("StatusMenuExGFxMovie")
+            "StatusMenuExGFxMovie",
+            engine.DynamicLoadObject(
+                STATUS_MENU_INSTANCE,
+                find_class("StatusMenuExGFxMovie"),
             ),
         )
-
-        if ui_inst is None:
-            raise RuntimeError("failed to load game gfx instance")
+        assert ui_inst is not None
 
         pth = resources.files("custom_skill_trees.assets") / "bl1_tree.swf"
         content = pth.read_bytes()

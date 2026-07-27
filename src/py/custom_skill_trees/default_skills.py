@@ -2,7 +2,7 @@
 # Default skills in ascending position order i.e., icon4, icon5, icon6, ...
 #
 
-ALL_ROLAND_SKILLS = [
+ALL_ROLAND_SKILLS = (
     "gd_skills2_roland.support.impact",
     "gd_skills2_roland.infantry.sentry",
     "gd_skills2_roland.support.defense",
@@ -24,9 +24,9 @@ ALL_ROLAND_SKILLS = [
     "gd_skills2_roland.infantry.guidedmissile",
     "gd_skills2_roland.support.supplydrop",
     "gd_skills2_roland.medic.stat",
-]
+)
 
-ALL_MORDECAI_SKILLS = [
+ALL_MORDECAI_SKILLS = (
     "gd_skills2_mordecai.sniper.focus",
     "gd_skills2_mordecai.sniper.caliber",
     "gd_skills2_mordecai.rogue.swiftstrike",
@@ -48,9 +48,9 @@ ALL_MORDECAI_SKILLS = [
     "gd_skills2_mordecai.sniper.trespass",
     "gd_skills2_mordecai.rogue.birdofprey",
     "gd_skills2_mordecai.gunslinger.relentless",
-]
+)
 
-ALL_LILITH_SKILLS = [
+ALL_LILITH_SKILLS = (
     "gd_skills2_lilith.controller.diva",
     "gd_skills2_lilith.controller.striking",
     "gd_skills2_lilith.elemental.quicksilver",
@@ -72,9 +72,9 @@ ALL_LILITH_SKILLS = [
     "gd_skills2_lilith.controller.mindgames",
     "gd_skills2_lilith.elemental.phoenix",
     "gd_skills2_lilith.assassin.phasestrike",
-]
+)
 
-ALL_BRICK_SKILLS = [
+ALL_BRICK_SKILLS = (
     "gd_skills2_brick.brawler.ironfist",
     "gd_skills2_brick.brawler.endlessrage",
     "gd_skills2_brick.tank.hardened",
@@ -96,11 +96,18 @@ ALL_BRICK_SKILLS = [
     "gd_skills2_brick.brawler.bloodsport",
     "gd_skills2_brick.tank.unbreakable",
     "gd_skills2_brick.blaster.masterblaster",
-]
+)
 
-ACTION_SKILLS = [
+ACTION_SKILLS = (
     "gd_skills2_roland.action.a_deployscorpio",
     "gd_skills2_mordecai.action.a_launchbloodwing",
     "gd_skills2_lilith.action.a_phasewalk",
     "gd_skills2_brick.action.a_berserk",
-]
+)
+
+ALL_SKILLS = (
+    ALL_ROLAND_SKILLS,
+    ALL_MORDECAI_SKILLS,
+    ALL_LILITH_SKILLS,
+    ALL_BRICK_SKILLS,
+)

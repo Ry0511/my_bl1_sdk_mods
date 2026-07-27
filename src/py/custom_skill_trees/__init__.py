@@ -1,7 +1,3 @@
-# pyright: reportOptionalMemberAccess=false
-# pyright: reportAny=false
-# pyright: reportExplicitAny=false
-
 from __future__ import annotations
 from typing import TYPE_CHECKING, cast, Any
 
@@ -26,7 +22,6 @@ else:
 
 def generate_layout_str() -> str:
     pc = cast("WillowPlayerController", get_pc())
-    assert pc.PlayerClass.PlayerSkillSet is not None
     my_tree = FlatSkillTreeLayout.from_skill_set(pc.PlayerClass.PlayerSkillSet)
     layout = ""
 
@@ -70,8 +65,8 @@ def generate_layout_str() -> str:
 
 
 def invoke_create_skill_tree_from_str(obj: StatusMenuExGFxMovie, layout: str) -> None:
-    invoke = cast(BoundFunction, obj.Invoke)
-    invoke_args = WrappedStruct(invoke.func)
+    invoke = obj.Invoke
+    invoke_args = cast("StatusMenuExGFxMovie.InvokeArgs", WrappedStruct(invoke.func))
     invoke_args.Method = "create_skill_tree_from_str"
     invoke_args.args.emplace_struct(Type=ASType.AS_String, S=layout)
     _ = invoke(invoke_args)
@@ -88,8 +83,8 @@ def _on_show_skill_tree(obj: StatusMenuExGFxMovie) -> None:
             helper.HandleSelection(nav_def)
 
         try:
-            from skill_tree_tweaks import MOD_INSTANCE as STT_MOD_INST  # pyright: ignore[reportImplicitRelativeImport]
-            from skill_tree_tweaks.hooks import apply_skill_tree_changes  # pyright: ignore[reportImplicitRelativeImport]
+            from skill_tree_tweaks import MOD_INSTANCE as STT_MOD_INST
+            from skill_tree_tweaks.hooks import apply_skill_tree_changes
 
             if STT_MOD_INST.is_enabled:
                 apply_skill_tree_changes(obj)
@@ -97,19 +92,19 @@ def _on_show_skill_tree(obj: StatusMenuExGFxMovie) -> None:
             pass
 
 
-@hook(
+@hook(  # pyright: ignore[reportArgumentType]
     hook_func="WillowGame.StatusMenuExGFxMovie:extSetCurrentScreen",
     hook_type=hooks.Type.POST_UNCONDITIONAL,
 )
 def hook_set_current_screen(
-    obj: UObject,
-    args: WrappedStruct,
+    obj: StatusMenuExGFxMovie,
+    args: StatusMenuExGFxMovie.extSetCurrentScreenArgs,
     _2: Any,
     _3: BoundFunction,
 ) -> None:
     if args.ScreenName != "skills":
         return
-    _on_show_skill_tree(cast("StatusMenuExGFxMovie", obj))
+    _on_show_skill_tree(obj)
 
 
 def _on_enable() -> None:

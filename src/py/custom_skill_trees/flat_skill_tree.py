@@ -31,7 +31,7 @@ class FlatSkillTreeLayout:
     @staticmethod
     def from_skill_set(skill_set: PlayerSkillSetDefinition):
         d: dict[SkillDefinition, int] = {}
-        for l, m, r in zip(  # noqa: E741
+        for l, m, r in zip(
             skill_set.LeftBranch.Tiers,
             skill_set.MiddleBranch.Tiers,
             skill_set.RightBranch.Tiers,
@@ -43,33 +43,21 @@ class FlatSkillTreeLayout:
 
     @staticmethod
     def from_char(char: PlayerCharacter):
-        from .default_skills import (
-            ALL_ROLAND_SKILLS,
-            ALL_MORDECAI_SKILLS,
-            ALL_LILITH_SKILLS,
-            ALL_BRICK_SKILLS,
-            ACTION_SKILLS,
-        )
+        from .default_skills import ALL_SKILLS, ACTION_SKILLS
 
-        skill_lists = (
-            ALL_ROLAND_SKILLS,
-            ALL_MORDECAI_SKILLS,
-            ALL_LILITH_SKILLS,
-            ALL_BRICK_SKILLS,
-        )
-
-        skill_list = skill_lists[char.value]
+        skill_list = ALL_SKILLS[char.value]
+        engine = cast("Object", ENGINE)
 
         d: dict[SkillDefinition, int] = {}
         for i, skill_ref in enumerate(skill_list):
-            skill = cast("Object", ENGINE).DynamicLoadObject(
-                skill_ref, find_class("SkillDefinition")
-            )
+            skill = engine.DynamicLoadObject(skill_ref, find_class("SkillDefinition"))
             assert skill is not None, f"could not load skill: {skill_ref}"
             d[cast("SkillDefinition", skill)] = i
 
-        action_skill = cast("Object", ENGINE).DynamicLoadObject(
+        action_skill = engine.DynamicLoadObject(
             ACTION_SKILLS[char.value], find_class("SkillDefinition")
         )
-        assert action_skill is not None, f"could not load action skill: {ACTION_SKILLS[char.value]}"
+        assert action_skill is not None, (
+            f"could not load action skill: {ACTION_SKILLS[char.value]}"
+        )
         return FlatSkillTreeLayout(cast("SkillDefinition", action_skill), d)
