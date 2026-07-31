@@ -8,7 +8,10 @@ from mods_base import ENGINE
 
 if TYPE_CHECKING:
     from BL1.Core import Object
-    from BL1.WillowGame import PlayerSkillSetDefinition, SkillDefinition
+    from BL1.WillowGame import (
+        PlayerSkillSetDefinition,
+        SkillDefinition,
+    )
 
 
 class PlayerCharacter(IntEnum):
@@ -23,7 +26,9 @@ class FlatSkillTreeLayout:
     skills: dict[SkillDefinition, int]
 
     def __init__(
-        self, action_skill: SkillDefinition, skill_set: dict[SkillDefinition, int]
+        self,
+        action_skill: SkillDefinition,
+        skill_set: dict[SkillDefinition, int],
     ):
         self.action_skill = action_skill
         self.skills = skill_set

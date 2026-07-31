@@ -1,3 +1,16 @@
+from __future__ import annotations
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, cast
+from itertools import chain
+
+from unrealsdk import find_class
+from mods_base import ENGINE
+from unrealsdk.unreal import UObject
+
+if TYPE_CHECKING:
+    from BL1.Core import Object
+    from BL1.WillowGame import SkillDefinition
+
 #
 # Default skills in ascending position order i.e., icon4, icon5, icon6, ...
 #
@@ -111,3 +124,90 @@ ALL_SKILLS = (
     ALL_LILITH_SKILLS,
     ALL_BRICK_SKILLS,
 )
+
+SKILL_MAPPING = {
+    "Roland": ALL_ROLAND_SKILLS,
+    "Mordecai": ALL_MORDECAI_SKILLS,
+    "Lilith": ALL_LILITH_SKILLS,
+    "Brick": ALL_BRICK_SKILLS,
+}
+
+ALL_KILL_SKILLS: set[str] = {
+    "gd_skills2_roland.infantry.metalstorm",
+    "gd_skills2_roland.support.quickcharge",
+    "gd_skills2_roland.support.grenadier",
+    "gd_skills2_roland.medic.stat",
+    "gd_skills2_mordecai.sniper.killer",
+    "gd_skills2_mordecai.rogue.ransack",
+    "gd_skills2_mordecai.gunslinger.relentless",
+    "gd_skills2_mordecai.gunslinger.riotousremedy",
+    "gd_skills2_lilith.controller.girlpower",
+    "gd_skills2_lilith.elemental.intuition",
+    "gd_skills2_lilith.elemental.phoenix",
+    "gd_skills2_lilith.assassin.enforcer",
+    "gd_skills2_brick.brawler.heavyhanded",
+    "gd_skills2_brick.tank.juggernaut",
+    "gd_skills2_brick.blaster.revenge",
+    "gd_skills2_brick.blaster.masterblaster",
+}
+
+
+def create_skill_look_up_table() -> dict[str, str]:
+    lut: dict[str, str] = dict()
+    engine = cast("Object", ENGINE)
+    cls = find_class("SkillDefinition")
+    for skill_ref in chain.from_iterable(ALL_SKILLS):
+        skill = cast("SkillDefinition", engine.DynamicLoadObject(skill_ref, cls))
+        lut[skill_ref] = skill.SkillName
+    return lut
+
+
+def generate_layout_from_skills(
+    action_skill: SkillDefinition | None,
+    skills: Iterable[SkillDefinition],
+) -> str:
+    from .flat_skill_tree import FlatSkillTreeLayout, PlayerCharacter
+
+    def _outermost(obj: UObject) -> UObject:
+        outer: UObject = obj
+        while outer.Outer is not None:  # pyright: ignore[reportUnnecessaryComparison]
+            outer = outer.Outer
+        return outer  # pyright: ignore[reportUnreachable]
+
+    # fmt: off
+    mapping = {
+        "gd_skills2_roland": ("R", FlatSkillTreeLayout.from_char(PlayerCharacter.Roland)),
+        "gd_skills2_mordecai": ("M",FlatSkillTreeLayout.from_char(PlayerCharacter.Mordecai)),
+        "gd_skills2_lilith": ("L",FlatSkillTreeLayout.from_char(PlayerCharacter.Lilith)),
+        "gd_skills2_brick": ("B", FlatSkillTreeLayout.from_char(PlayerCharacter.Brick)),
+    }
+    # fmt: on
+
+    layout = ""
+
+    if action_skill is not None:
+        ref_char, _ = mapping[(str(_outermost(action_skill).Name.lower()))]
+        layout += ref_char
+
+    for skill in skills:
+        assert skill is not None
+        ref_char, skill_tree = mapping[_outermost(skill).Name.lower()]
+        layout += f"{ref_char}{chr(ord('a') + skill_tree.skills[skill])}"
+
+    return layout
+
+
+def generate_layout_from_paths(
+    action_skill: str | None,
+    paths: Iterable[str],
+) -> str:
+    engine = cast("Object", ENGINE)
+    cls = find_class("SkillDefinition")
+    return generate_layout_from_skills(
+        (
+            cast("SkillDefinition", engine.DynamicLoadObject(action_skill, cls))
+            if action_skill is not None
+            else None
+        ),
+        (cast("SkillDefinition", engine.DynamicLoadObject(p, cls)) for p in paths),
+    )

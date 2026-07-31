@@ -3,9 +3,10 @@ from typing import TYPE_CHECKING, cast, Any
 
 from mods_base import build_mod, hook, get_pc
 from unrealsdk import find_enum, hooks
-from unrealsdk.unreal import UObject, WrappedStruct, BoundFunction
+from unrealsdk.unreal import WrappedStruct, BoundFunction
 
-from .flat_skill_tree import FlatSkillTreeLayout, PlayerCharacter
+from .skill_tree_builder import SKILL_TREE_BUILDER
+from .flat_skill_tree import FlatSkillTreeLayout
 
 if TYPE_CHECKING:
     from BL1.WillowGame import (
@@ -21,47 +22,11 @@ else:
 
 
 def generate_layout_str() -> str:
+    from .default_skills import generate_layout_from_skills
+
     pc = cast("WillowPlayerController", get_pc())
     my_tree = FlatSkillTreeLayout.from_skill_set(pc.PlayerClass.PlayerSkillSet)
-    layout = ""
-
-    def _outermost(obj: UObject) -> UObject:
-        outermost: UObject | None = obj
-        while outermost.Outer is not None:  # pyright: ignore[reportUnnecessaryComparison]
-            outermost = outermost.Outer
-        return outermost  # pyright: ignore[reportUnreachable]
-
-    skill_mapping: dict[str, tuple[str, FlatSkillTreeLayout]] = {
-        "gd_skills2_roland": (
-            "R",
-            FlatSkillTreeLayout.from_char(PlayerCharacter.Roland),
-        ),
-        "gd_skills2_mordecai": (
-            "M",
-            FlatSkillTreeLayout.from_char(PlayerCharacter.Mordecai),
-        ),
-        "gd_skills2_lilith": (
-            "L",
-            FlatSkillTreeLayout.from_char(PlayerCharacter.Lilith),
-        ),
-        "gd_skills2_brick": (
-            "B",
-            FlatSkillTreeLayout.from_char(PlayerCharacter.Brick),
-        ),
-    }
-
-    ref_char, _ = skill_mapping[(str(_outermost(my_tree.action_skill).Name.lower()))]
-    layout += ref_char
-
-    for skill in my_tree.skills:
-        ref_char, tree = skill_mapping[(str(_outermost(skill).Name.lower()))]
-        index = tree.skills[skill]
-        layout += f"{ref_char}{chr(ord('a') + index)}"
-
-    # example: RBiRdRrRuLdMgBcBjMhBuRfBkMnLmRgReLoLaBtRlLr
-    # default skill trees are predictable: RRaRbRcRd ...
-    assert len(layout) == 43, "invalid skill tree layout string"
-    return layout
+    return generate_layout_from_skills(my_tree.action_skill, my_tree.skills)
 
 
 def invoke_create_skill_tree_from_str(obj: StatusMenuExGFxMovie, layout: str) -> None:
@@ -107,13 +72,31 @@ def hook_set_current_screen(
     _on_show_skill_tree(obj)
 
 
+@hook(  # pyright: ignore[reportArgumentType]
+    hook_func="WillowGame.WillowPlayerController:LoadPlayerProfile",
+    hook_type=hooks.Type.POST_UNCONDITIONAL,
+)
+def hook_profile_loaded(
+    _1: WillowPlayerController,
+    _2: WillowPlayerController.LoadPlayerProfileArgs,
+    _3: Any,
+    _4: BoundFunction,
+) -> None:
+    SKILL_TREE_BUILDER.activate()
+
+
 def _on_enable() -> None:
     from .patch_flash import patch_flash
 
     patch_flash()
+    SKILL_TREE_BUILDER.activate()
 
 
 MOD_INSTANCE = build_mod(
-    hooks=(hook_set_current_screen,),
+    hooks=(
+        hook_set_current_screen,
+        hook_profile_loaded,
+    ),
     on_enable=_on_enable,
+    options=(*SKILL_TREE_BUILDER.options(),),
 )
