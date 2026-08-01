@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from BL1.Core import Object
     from BL1.WillowGame import (
         WillowPlayerController,
+        PlayerSkillSetDefinition,
         SkillSetBranchData,
         SkillDefinition,
     )
@@ -141,23 +142,23 @@ class SkillTreeBuilder:
             + " Do note that using the same skill multiple times will break things. i.e., multiple "
             + "Metal Storms is actually just one metal storm in N places; This applies to every skill.",
             value=False,
-            on_change_while_enabled=lambda s, _: self.activate(s.value),
         )
         self.left = BranchBuilder("Left Branch")
         self.middle = BranchBuilder("Middle Branch")
         self.right = BranchBuilder("Right Branch")
         self.init_from(ALL_ROLAND_SKILLS)
 
-    def activate(self, is_enabled: bool | None = None) -> None:
-        if is_enabled is None and not self.is_enabled.value:
-            return
-
+    def activate(self, skill_set: PlayerSkillSetDefinition | None = None) -> None:
         pc = cast("WillowPlayerController", get_pc())
+        if (
+            skill_set is None
+            and pc is not None  # pyright: ignore[reportUnnecessaryComparison]
+            and pc.PlayerClass is not None  # pyright: ignore[reportUnnecessaryComparison]
+        ):
+            skill_set = pc.PlayerClass.PlayerSkillSet
 
-        if pc is None or pc.PlayerClass is None:  # pyright: ignore[reportUnnecessaryComparison]
+        if skill_set is None:
             return
-
-        skill_set = pc.PlayerClass.PlayerSkillSet
         skill_set.CombatSkills.clear()
         skill_set.InstinctSkillAugmentations.clear()
 

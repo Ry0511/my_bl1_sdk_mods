@@ -74,15 +74,16 @@ def hook_set_current_screen(
 
 @hook(  # pyright: ignore[reportArgumentType]
     hook_func="WillowGame.WillowPlayerController:LoadPlayerProfile",
-    hook_type=hooks.Type.POST_UNCONDITIONAL,
 )
 def hook_profile_loaded(
     _1: WillowPlayerController,
-    _2: WillowPlayerController.LoadPlayerProfileArgs,
+    args: WillowPlayerController.LoadPlayerProfileArgs,
     _3: Any,
     _4: BoundFunction,
 ) -> None:
-    SKILL_TREE_BUILDER.activate()
+    SKILL_TREE_BUILDER.activate(
+        skill_set=args.NewProfile.PlayerClassDefinition.PlayerSkillSet  # pyright: ignore[reportOptionalMemberAccess]
+    )
 
 
 def _on_enable() -> None:
@@ -93,7 +94,7 @@ def _on_enable() -> None:
 
 
 MOD_INSTANCE = build_mod(
-    hooks=(
+    hooks=(  # pyright: ignore[reportUnknownArgumentType]
         hook_set_current_screen,
         hook_profile_loaded,
     ),
