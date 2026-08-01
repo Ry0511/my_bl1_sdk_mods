@@ -21,6 +21,9 @@ else:
     ENavActivateAction = find_enum("ENavActivateAction")
 
 
+_force_reload_player: bool = False
+
+
 def generate_layout_str() -> str:
     from .default_skills import generate_layout_from_skills
 
@@ -81,9 +84,11 @@ def hook_profile_loaded(
     _3: Any,
     _4: BoundFunction,
 ) -> None:
+    global _force_reload_player
     SKILL_TREE_BUILDER.activate(
         skill_set=args.NewProfile.PlayerClassDefinition.PlayerSkillSet  # pyright: ignore[reportOptionalMemberAccess]
     )
+    _force_reload_player = False
 
 
 def _on_enable() -> None:
@@ -93,10 +98,50 @@ def _on_enable() -> None:
     SKILL_TREE_BUILDER.activate()
 
 
+@hook(hook_func="WillowGame.WillowPlayerController:PlayerTick")  # pyright: ignore[reportArgumentType]
+def hook_reload_when_all_menus_closed(
+    obj: WillowPlayerController,
+    _2: WillowPlayerController.TickArgs,
+    _3: Any,
+    _4: BoundFunction,
+) -> None:
+    global _force_reload_player
+
+    def _control_returned(pc: WillowPlayerController) -> bool:
+        if (
+            pc.Pawn is None  # pyright: ignore[reportUnnecessaryComparison]
+            or pc.Pawn.IsDead()
+            or pc.IsPaused()
+            or pc.bStatusMenuOpen
+        ):
+            return False
+
+        if (pri := pc.PlayerReplicationInfo) is not None:  # pyright: ignore[reportUnnecessaryComparison]
+            return not pri.bGFxMenuOpen
+        else:
+            return False
+
+    if _control_returned(obj) and _force_reload_player:
+        current_map = obj.WorldInfo.GetPersistentMapName()
+        obj.SaveGame()
+        obj.openl(str(current_map))
+        _force_reload_player = False
+
+
+def force_reload_player() -> None:
+    global _force_reload_player
+    _force_reload_player = True
+
+
+def is_enabled() -> bool:
+    return MOD_INSTANCE.is_enabled
+
+
 MOD_INSTANCE = build_mod(
     hooks=(  # pyright: ignore[reportUnknownArgumentType]
         hook_set_current_screen,
         hook_profile_loaded,
+        hook_reload_when_all_menus_closed,
     ),
     on_enable=_on_enable,
     options=(*SKILL_TREE_BUILDER.options(),),

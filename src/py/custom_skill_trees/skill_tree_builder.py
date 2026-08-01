@@ -87,6 +87,7 @@ class BranchBuilder:
 def _init_from_character(_: ButtonOption) -> None:
     def _on_select(_: OptionBox, opt: OptionBoxButton) -> None:
         SKILL_TREE_BUILDER.init_from(SKILL_MAPPING[opt.name])
+        SKILL_TREE_BUILDER.activate()
 
     box = OptionBox(
         title="Load Preset",
@@ -106,6 +107,7 @@ def _select_preset_file(_: ButtonOption) -> None:
             file = PresetFile(PRESET_DIR / btn.name)
             for i, opt in enumerate(SKILL_TREE_BUILDER.all_skills()):
                 opt.value = SKILL_LOOKUP_TABLE[file.skills[i]]
+            SKILL_TREE_BUILDER.activate()
         except (FileNotFoundError, ValueError) as ex:
             TrainingBox(
                 title="Error",
@@ -135,13 +137,20 @@ class SkillTreeBuilder:
     right: BranchBuilder
 
     def __init__(self):
+
+        def _on_change(opt: BoolOption, _2: bool) -> None:
+            if opt.value:
+                self.activate()
+
         self.is_enabled = BoolOption(
             "Use Custom Tree",
             description="When enabled this will apply the below settings to any loaded character. "
-            + "This will/may require a skill point reset and a restart for things to properly sync."
+            + "This will/may require a skill point reset and a restart for things to properly sync.\n\n"
             + " Do note that using the same skill multiple times will break things. i.e., multiple "
-            + "Metal Storms is actually just one metal storm in N places; This applies to every skill.",
+            + "Metal Storms is actually just one metal storm in N places; This applies to every skill.\n\n"
+            + "enabling this makes it incompatible with any other mod that modifies with the skill tree",
             value=False,
+            on_change_while_enabled=_on_change,
         )
         self.left = BranchBuilder("Left Branch")
         self.middle = BranchBuilder("Middle Branch")
@@ -149,13 +158,20 @@ class SkillTreeBuilder:
         self.init_from(ALL_ROLAND_SKILLS)
 
     def activate(self, skill_set: PlayerSkillSetDefinition | None = None) -> None:
+        from . import is_enabled
+
+        if not self.is_enabled.value or not is_enabled():
+            return
+
         pc = cast("WillowPlayerController", get_pc())
+        force_reload = False
         if (
             skill_set is None
             and pc is not None  # pyright: ignore[reportUnnecessaryComparison]
             and pc.PlayerClass is not None  # pyright: ignore[reportUnnecessaryComparison]
         ):
             skill_set = pc.PlayerClass.PlayerSkillSet
+            force_reload = True
 
         if skill_set is None:
             return
@@ -187,6 +203,11 @@ class SkillTreeBuilder:
         _set_branch(self.middle, skill_set.MiddleBranch)
         _set_branch(self.right, skill_set.RightBranch)
         pc.OnPlayerClassChange()
+
+        if force_reload:
+            from . import force_reload_player
+
+            force_reload_player()
 
     def all_skills(self) -> chain[SpinnerOption]:
         return chain(
