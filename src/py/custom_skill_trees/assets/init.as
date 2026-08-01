@@ -105,7 +105,7 @@ var ICON_PREFIXES: Object = {
 var KILL_SKILL_ICONS: Object = {
     CST_Roland_Icon:   [11,12,18,24],
     CST_Mordecai_Icon: [11,15,19,24],
-    CST_Lilith_Icon:   [14,17,18,21,23],
+    CST_Lilith_Icon:   [14,17,19,23],
     CST_Brick_Icon:    [11,13,14,24]
 };
 
