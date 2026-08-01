@@ -143,9 +143,9 @@ class SkillTreeBuilder:
             "Use Custom Tree",
             description="When enabled this will apply the below settings to any loaded character. "
             + "This will/may require a skill point reset and a restart for things to properly sync.\n\n"
-            + " Do note that using the same skill multiple times will break things. i.e., multiple "
+            + "Do note that using the same skill multiple times will break things. i.e., multiple "
             + "Metal Storms is actually just one metal storm in N places; This applies to every skill.\n\n"
-            + "enabling this makes it incompatible with any other mod that modifies with the skill tree",
+            + "enabling this makes it incompatible with any other mod that modifies the skill tree",
             value=False,
             on_change_while_enabled=_on_change,
         )
