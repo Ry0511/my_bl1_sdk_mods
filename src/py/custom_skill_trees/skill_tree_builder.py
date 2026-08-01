@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, cast
 from itertools import chain
 from collections.abc import Sequence
 from pathlib import Path
-from dataclasses import dataclass, field
 
 from mods_base import (
     get_pc,
@@ -47,7 +46,7 @@ DEFAULT_SKILL_NAME = ALL_SKILL_NAMES[0]
 KEEP_ALIVE = WillowObjectFlags.KEEP_ALIVE  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]
 
 
-def _create_default_layout() -> NestedOption:
+def _create_default_layout(branch: str) -> NestedOption:
     def _create_tier(tier: str):
         return (
             SpinnerOption(
@@ -59,11 +58,11 @@ def _create_default_layout() -> NestedOption:
         )
 
     return NestedOption(
-        "Branch Data",
+        branch,
         children=(
-            *_create_tier("Tier 1 | "),
-            *_create_tier("Tier 2 | "),
-            *_create_tier("Tier 3 | "),
+            *_create_tier("Tier 1"),
+            *_create_tier("Tier 2"),
+            *_create_tier("Tier 3"),
             SpinnerOption(
                 "Capstone", choices=ALL_SKILL_NAMES, value=DEFAULT_SKILL_NAME
             ),
@@ -71,13 +70,11 @@ def _create_default_layout() -> NestedOption:
     )
 
 
-@dataclass
 class BranchBuilder:
-    name: str
-    screen: NestedOption = field(default_factory=_create_default_layout)
+    screen: NestedOption
 
-    def __post_init__(self):
-        self.screen.display_name = self.name
+    def __init__(self, name: str):
+        self.screen = _create_default_layout(name)
 
     def all_skills(self) -> Sequence[SpinnerOption]:
         return cast("Sequence[SpinnerOption]", self.screen.children)
