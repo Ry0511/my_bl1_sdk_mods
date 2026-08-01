@@ -1,4 +1,5 @@
 from __future__ import annotations
+from copy import deepcopy
 from typing import TYPE_CHECKING, cast, Any
 
 from mods_base import build_mod, hook, get_pc
@@ -9,6 +10,7 @@ from .skill_tree_builder import SKILL_TREE_BUILDER
 from .flat_skill_tree import FlatSkillTreeLayout
 
 if TYPE_CHECKING:
+    from BL1.Core import Vector, Rotator
     from BL1.WillowGame import (
         StatusMenuExGFxMovie,
         WillowPlayerController,
@@ -22,6 +24,8 @@ else:
 
 
 _force_reload_player: bool = False
+_restore_info: tuple[Vector, Rotator] | None = None
+_delay_ticks: int = 0
 
 
 def generate_layout_str() -> str:
@@ -105,7 +109,7 @@ def hook_reload_when_all_menus_closed(
     _3: Any,
     _4: BoundFunction,
 ) -> None:
-    global _force_reload_player
+    global _force_reload_player, _restore_info, _delay_ticks
 
     def _control_returned(pc: WillowPlayerController) -> bool:
         if (
@@ -121,11 +125,22 @@ def hook_reload_when_all_menus_closed(
         else:
             return False
 
-    if _control_returned(obj) and _force_reload_player:
-        current_map = obj.WorldInfo.GetPersistentMapName()
-        obj.SaveGame()
-        obj.openl(str(current_map))
-        _force_reload_player = False
+    if _control_returned(obj):
+        if _force_reload_player:
+            current_map = obj.WorldInfo.GetPersistentMapName()
+            pawn = obj.Pawn
+            _restore_info = (deepcopy(pawn.Location), deepcopy(pawn.Rotation))
+            obj.SaveGame()
+            obj.openl(str(current_map))
+            _force_reload_player = False
+            _delay_ticks = 5
+        elif _restore_info is not None:
+            if _delay_ticks <= 0:
+                obj.ClientSetLocation(_restore_info[0], _restore_info[1])
+                _restore_info = None
+                _delay_ticks = 0
+            else:
+                _delay_ticks -= 1
 
 
 def force_reload_player() -> None:
@@ -134,7 +149,10 @@ def force_reload_player() -> None:
 
 
 def is_enabled() -> bool:
-    return MOD_INSTANCE.is_enabled
+    try:
+        return MOD_INSTANCE.is_enabled
+    except Exception:
+        return False
 
 
 MOD_INSTANCE = build_mod(
