@@ -4,7 +4,7 @@ from enum import IntEnum
 from itertools import chain
 
 from unrealsdk import find_class
-from mods_base import ENGINE
+from mods_base import ENGINE  # pyright: ignore[reportAssignmentType]
 
 if TYPE_CHECKING:
     from BL1.Core import Object
@@ -12,6 +12,8 @@ if TYPE_CHECKING:
         PlayerSkillSetDefinition,
         SkillDefinition,
     )
+
+    ENGINE: Object
 
 
 class PlayerCharacter(IntEnum):
@@ -51,16 +53,16 @@ class FlatSkillTreeLayout:
         from .default_skills import ALL_SKILLS, ACTION_SKILLS
 
         skill_list = ALL_SKILLS[char.value]
-        engine = cast("Object", ENGINE)
-
+        skill_def_cls = find_class("SkillDefinition")
         d: dict[SkillDefinition, int] = {}
+
         for i, skill_ref in enumerate(skill_list):
-            skill = engine.DynamicLoadObject(skill_ref, find_class("SkillDefinition"))
+            skill = ENGINE.DynamicLoadObject(skill_ref, skill_def_cls)
             assert skill is not None, f"could not load skill: {skill_ref}"
             d[cast("SkillDefinition", skill)] = i
 
-        action_skill = engine.DynamicLoadObject(
-            ACTION_SKILLS[char.value], find_class("SkillDefinition")
+        action_skill = ENGINE.DynamicLoadObject(
+            ACTION_SKILLS[char.value], skill_def_cls
         )
         assert action_skill is not None, (
             f"could not load action skill: {ACTION_SKILLS[char.value]}"

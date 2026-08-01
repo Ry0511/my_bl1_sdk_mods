@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, cast
 from itertools import chain
 from collections.abc import Sequence
+from pathlib import Path
 from dataclasses import dataclass, field
 
 from mods_base import (
@@ -14,13 +15,15 @@ from mods_base import (
     ENGINE,  # pyright: ignore[reportAssignmentType]
     WillowObjectFlags,
 )
-from ui_utils import OptionBox, OptionBoxButton
+from ui_utils import OptionBox, OptionBoxButton, TrainingBox
 from unrealsdk import logging, find_class
 
 from .default_skills import (
     SKILL_MAPPING,
     ALL_ROLAND_SKILLS,
     ALL_KILL_SKILLS,
+    INDEX_MAPPING_ROW_MAJOR,
+    INDEX_MAPPING_BRANCH_MAJOR,
     create_skill_look_up_table,
     generate_layout_from_paths,
 )
@@ -41,22 +44,6 @@ ALL_SKILL_NAMES = list(SKILL_LOOKUP_TABLE.values())
 DEFAULT_SKILL_NAME = ALL_SKILL_NAMES[0]
 
 KEEP_ALIVE = WillowObjectFlags.KEEP_ALIVE  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownVariableType]
-
-# fmt: off
-#######################################
-# 00,01,  07,08,  14,15
-# 02,03,  09,10,  16,17
-# 04,05,  11,12,  18,19
-#   06,     13,     20
-#######################################
-# 00,01,  02,03,  04,05
-# 06,07,  08,09,  10,11
-# 12,13,  14,15,  16,17
-#   18,     19,     20
-#######################################
-INDEX_MAPPING_ROW_MAJOR    = (0,1,6,7,12,13,18,2,3,8,9,14,15,19,4,5,10,11,16,17,20)
-INDEX_MAPPING_BRANCH_MAJOR = (0,1,7,8,14,15,2,3,9,10,16,17,4,5,11,12,18,19,6,13,20)
-# fmt: on
 
 
 def _create_default_layout() -> NestedOption:
@@ -109,6 +96,37 @@ def _init_from_character(_: ButtonOption) -> None:
     box.show()
 
 
+@ButtonOption("Load Preset")
+def _select_preset_file(_: ButtonOption) -> None:
+    from .preset_file import PRESET_DIR, PresetFile
+
+    def _load_preset_file(_: OptionBox, btn: OptionBoxButton) -> None:
+        try:
+            file = PresetFile(PRESET_DIR / btn.name)
+            for i, opt in enumerate(SKILL_TREE_BUILDER.all_skills()):
+                opt.value = SKILL_LOOKUP_TABLE[file.skills[i]]
+        except (FileNotFoundError, ValueError) as ex:
+            TrainingBox(
+                title="Error",
+                message=f"Failed to load preset file: {ex} - check console for more details",
+                min_duration=1,
+            ).show()
+
+    PresetFile.create_example_file()
+    choices: tuple[Path, ...] = tuple(
+        sorted(
+            (k for k in PRESET_DIR.rglob("*.txt")),
+            key=lambda x: x.name,
+        )
+    )
+
+    OptionBox(
+        title="Select Preset File",
+        buttons=tuple(OptionBoxButton(name=str(k.name)) for k in choices),
+        on_select=_load_preset_file,
+    ).show()
+
+
 class SkillTreeBuilder:
     is_enabled: BoolOption
     left: BranchBuilder
@@ -118,6 +136,10 @@ class SkillTreeBuilder:
     def __init__(self):
         self.is_enabled = BoolOption(
             "Use Custom Tree",
+            description="When enabled this will apply the below settings to any loaded character. "
+            + "This will/may require a skill point reset and a restart for things to properly sync."
+            + " Do note that using the same skill multiple times will break things. i.e., multiple "
+            + "Metal Storms is actually just one metal storm in N places; This applies to every skill.",
             value=False,
             on_change_while_enabled=lambda s, _: self.activate(s.value),
         )
@@ -194,6 +216,7 @@ class SkillTreeBuilder:
             children=(
                 self.is_enabled,
                 _init_from_character,
+                _select_preset_file,
                 self.left.screen,
                 self.middle.screen,
                 self.right.screen,

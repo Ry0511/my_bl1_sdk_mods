@@ -4,12 +4,35 @@ from typing import TYPE_CHECKING, cast
 from itertools import chain
 
 from unrealsdk import find_class
-from mods_base import ENGINE
+from mods_base import ENGINE  # pyright: ignore[reportAssignmentType]
 from unrealsdk.unreal import UObject
 
 if TYPE_CHECKING:
     from BL1.Core import Object
     from BL1.WillowGame import SkillDefinition
+
+    ENGINE: Object
+
+#
+# Two indexing paradigms exist for the way data is laid out - the flash side tends to prefer row
+# major but unreal script and subsequently the python side prefer the branch major layout.
+#
+## Branch Major ###########################
+# 00,01,  07,08,  14,15
+# 02,03,  09,10,  16,17
+# 04,05,  11,12,  18,19
+#   06,     13,     20
+## Row Major ########################
+# 00,01,  02,03,  04,05
+# 06,07,  08,09,  10,11
+# 12,13,  14,15,  16,17
+#   18,     19,     20
+#######################################
+
+# fmt: off
+INDEX_MAPPING_ROW_MAJOR    = (0,1,6,7,12,13,18,2,3,8,9,14,15,19,4,5,10,11,16,17,20)
+INDEX_MAPPING_BRANCH_MAJOR = (0,1,7,8,14,15,2,3,9,10,16,17,4,5,11,12,18,19,6,13,20)
+# fmt: on
 
 #
 # Default skills in ascending position order i.e., icon4, icon5, icon6, ...
@@ -154,10 +177,9 @@ ALL_KILL_SKILLS: set[str] = {
 
 def create_skill_look_up_table() -> dict[str, str]:
     lut: dict[str, str] = dict()
-    engine = cast("Object", ENGINE)
     cls = find_class("SkillDefinition")
     for skill_ref in chain.from_iterable(ALL_SKILLS):
-        skill = cast("SkillDefinition", engine.DynamicLoadObject(skill_ref, cls))
+        skill = cast("SkillDefinition", ENGINE.DynamicLoadObject(skill_ref, cls))
         lut[skill_ref] = skill.SkillName
     return lut
 
@@ -177,8 +199,8 @@ def generate_layout_from_skills(
     # fmt: off
     mapping = {
         "gd_skills2_roland": ("R", FlatSkillTreeLayout.from_char(PlayerCharacter.Roland)),
-        "gd_skills2_mordecai": ("M",FlatSkillTreeLayout.from_char(PlayerCharacter.Mordecai)),
-        "gd_skills2_lilith": ("L",FlatSkillTreeLayout.from_char(PlayerCharacter.Lilith)),
+        "gd_skills2_mordecai": ("M", FlatSkillTreeLayout.from_char(PlayerCharacter.Mordecai)),
+        "gd_skills2_lilith": ("L", FlatSkillTreeLayout.from_char(PlayerCharacter.Lilith)),
         "gd_skills2_brick": ("B", FlatSkillTreeLayout.from_char(PlayerCharacter.Brick)),
     }
     # fmt: on
@@ -201,13 +223,12 @@ def generate_layout_from_paths(
     action_skill: str | None,
     paths: Iterable[str],
 ) -> str:
-    engine = cast("Object", ENGINE)
     cls = find_class("SkillDefinition")
     return generate_layout_from_skills(
         (
-            cast("SkillDefinition", engine.DynamicLoadObject(action_skill, cls))
+            cast("SkillDefinition", ENGINE.DynamicLoadObject(action_skill, cls))
             if action_skill is not None
             else None
         ),
-        (cast("SkillDefinition", engine.DynamicLoadObject(p, cls)) for p in paths),
+        (cast("SkillDefinition", ENGINE.DynamicLoadObject(p, cls)) for p in paths),
     )
