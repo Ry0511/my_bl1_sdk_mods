@@ -1,0 +1,11 @@
+[project]
+name = "boss_bars"
+version = "0.1"
+authors = [{ name = "-Ry" }]
+description = "Work in progress mod that adds custom boss bars for named enemies"
+
+[tool.sdkmod]
+name = "Boss Bars"
+supported_games = ["BL1", "BL1E"]
+download = "https://raw.githubusercontent.com/Ry0511/my_bl1_sdk_mods/refs/heads/master/packaged/boss_bars.sdkmod"
+license = { name = "GPL3", url = "https://choosealicense.com/licenses/gpl-3.0/" }
