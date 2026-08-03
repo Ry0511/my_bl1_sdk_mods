@@ -7,8 +7,6 @@ from unrealsdk.unreal import BoundFunction, WeakPointer
 from unrealsdk.hooks import Type
 from mods_base import build_mod, hook
 
-from py.boss_bars.boss_bar import ClampedValue
-
 from .constants import boss_pawn_names, boss_vehicle_names
 
 _debug_mode: bool = True
@@ -120,11 +118,13 @@ def hook_render_boss_bars(
     from .boss_bar import (
         DEBUG_ENTITY_STATE,
         EntityState,
+        ClampedValue,
         BossBarStrategy,
         create_boss_bar_strategy,
     )
 
     entities: list[EntityState] = list()
+    valid_entities: list[BossBarEntity] = list()
 
     for entity in _spawned_bosses:
         if (actor := entity.get()) is None:
@@ -134,18 +134,31 @@ def hook_render_boss_bars(
             entity.invalidate()
             continue
 
+        valid_entities.append(entity)
+
+        shield: ClampedValue | None = None
+        if actor.Class.Name == "WillowAIPawn" and actor.HasShieldVar():
+            shield = ClampedValue(
+                actor.GetShieldStrength(), actor.GetMaxShieldStrength()
+            )
+
         _, name = actor.GetTargetName("")
         entities.append(
             EntityState(
                 name=name,
                 health=ClampedValue(actor.GetHealth(), actor.GetMaxHealth()),
+                shield=shield,
             )
         )
 
+    _spawned_bosses = valid_entities
+
     strategy = create_boss_bar_strategy(BossBarStrategy.Minimal)
-    strategy.draw(canvas, entities)
     if _debug_mode:
-        strategy.draw(canvas, DEBUG_ENTITY_STATE)
+        for e in DEBUG_ENTITY_STATE:
+            entities.append(e)
+
+    strategy.draw(canvas, entities)
 
 
 _ = build_mod(

@@ -28,13 +28,15 @@ class EntityState:
     shield: ClampedValue | None = None
 
 
+# fmt: off
 DEBUG_ENTITY_STATE = (
     EntityState(name="Test the Invincible", health=ClampedValue(25, 100)),
     EntityState(name="Test the Invincible", health=ClampedValue(50, 100)),
-    EntityState(name="Test the Invincible", health=ClampedValue(75, 100)),
-    EntityState(name="Test the Invincible", health=ClampedValue(100, 100)),
-    EntityState(name="Test the Invincible", health=ClampedValue(10, 100)),
+    EntityState(name="Test the Invincible", shield=(ClampedValue(5, 100)), health=ClampedValue(75, 100)),
+    EntityState(name="Test the Invincible", shield=(ClampedValue(100, 100)), health=ClampedValue(100, 100)),
+    EntityState(name="Test the Invincible", shield=(ClampedValue(66, 100)), health=ClampedValue(10, 100)),
 )
+# fmt: on
 
 
 class IBossBarStrategy(Protocol):
@@ -50,6 +52,7 @@ def create_boss_bar_strategy(strategy: BossBarStrategy) -> IBossBarStrategy:
     match strategy:
         case BossBarStrategy.Minimal:
             from .minimal_boss_bar import MinimalBossBar
+
             return MinimalBossBar()
 
         case BossBarStrategy.Decorative:
