@@ -7,7 +7,11 @@ from unrealsdk.unreal import BoundFunction, WeakPointer
 from unrealsdk.hooks import Type
 from mods_base import build_mod, hook
 
+from py.boss_bars.boss_bar import ClampedValue
+
 from .constants import boss_pawn_names, boss_vehicle_names
+
+_debug_mode: bool = True
 
 if TYPE_CHECKING:
     from BL1.WillowGame import (
@@ -113,39 +117,35 @@ def hook_render_boss_bars(
     if (canvas := args.Canvas) is None:
         return
 
-    x: float = 80
-    y: float = 48
+    from .boss_bar import (
+        DEBUG_ENTITY_STATE,
+        EntityState,
+        BossBarStrategy,
+        create_boss_bar_strategy,
+    )
 
-    text_height = canvas.Font.GetMaxCharHeight()
-    tex = canvas.DefaultTexture
-    BAR_WIDTH = 128
-    BAR_HEIGHT = 9
+    entities: list[EntityState] = list()
 
     for entity in _spawned_bosses:
         if (actor := entity.get()) is None:
             continue
 
-        _, name = actor.GetTargetName("")
-        cur_hp = actor.GetHealth()
-        max_hp = actor.GetMaxHealth()
-
-        if cur_hp <= 0 or actor.IsDead():
+        if actor.IsDead():
             entity.invalidate()
             continue
 
-        canvas.SetPos(x, y)
-        canvas.SetDrawColor(255, 255, 255, 255)
-        canvas.DrawText(f"{name}", False, 1.0, 1.0)
-        y += text_height
+        _, name = actor.GetTargetName("")
+        entities.append(
+            EntityState(
+                name=name,
+                health=ClampedValue(actor.GetHealth(), actor.GetMaxHealth()),
+            )
+        )
 
-        canvas.SetPos(x, y)
-        canvas.SetDrawColor(255, 0, 0, 255)
-        canvas.DrawRect(BAR_WIDTH * (cur_hp / max_hp), BAR_HEIGHT, tex)
-
-        canvas.SetPos(x, y)
-        canvas.SetDrawColor(200, 200, 200, 255)
-        canvas.DrawBox(BAR_WIDTH, BAR_HEIGHT)
-        y += text_height
+    strategy = create_boss_bar_strategy(BossBarStrategy.Minimal)
+    strategy.draw(canvas, entities)
+    if _debug_mode:
+        strategy.draw(canvas, DEBUG_ENTITY_STATE)
 
 
 _ = build_mod(
